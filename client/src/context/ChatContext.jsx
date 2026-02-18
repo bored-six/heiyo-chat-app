@@ -26,6 +26,7 @@ const initialState = {
   onlineUsers: {},
   typing: {},
   unread: {},
+  dmUnread: {},
 };
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -127,6 +128,7 @@ function reducer(state, action) {
 
     case 'DM_RECEIVED': {
       const existing = state.dms[action.dmId];
+      const isActiveDm = state.activeDmId === action.dmId;
       return {
         ...state,
         dms: {
@@ -139,7 +141,42 @@ function reducer(state, action) {
               : [action.message],
           },
         },
+        dmUnread: isActiveDm
+          ? state.dmUnread
+          : { ...state.dmUnread, [action.dmId]: (state.dmUnread[action.dmId] ?? 0) + 1 },
       };
+    }
+
+    case 'REACTION_UPDATE': {
+      if (action.roomId) {
+        const msgs = state.roomMessages[action.roomId] ?? [];
+        return {
+          ...state,
+          roomMessages: {
+            ...state.roomMessages,
+            [action.roomId]: msgs.map((m) =>
+              m.id === action.messageId ? { ...m, reactions: action.reactions } : m
+            ),
+          },
+        };
+      }
+      if (action.dmId) {
+        const dm = state.dms[action.dmId];
+        if (!dm) return state;
+        return {
+          ...state,
+          dms: {
+            ...state.dms,
+            [action.dmId]: {
+              ...dm,
+              messages: dm.messages.map((m) =>
+                m.id === action.messageId ? { ...m, reactions: action.reactions } : m
+              ),
+            },
+          },
+        };
+      }
+      return state;
     }
 
     case 'TYPING_UPDATE':
@@ -157,7 +194,12 @@ function reducer(state, action) {
       };
 
     case 'SET_ACTIVE_DM':
-      return { ...state, activeDmId: action.dmId, activeRoomId: null };
+      return {
+        ...state,
+        activeDmId: action.dmId,
+        activeRoomId: null,
+        dmUnread: { ...state.dmUnread, [action.dmId]: 0 },
+      };
 
     default:
       return state;
@@ -170,16 +212,33 @@ const ChatContext = createContext(null);
 
 export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const [authUser, setAuthUserRaw] = useState(null);
 
-  const setAuthUser = useCallback((user) => {
-    setAuthUserRaw(user);
+  // Initialise from localStorage so returning users skip the auth screen immediately
+  const [authUser, setAuthUserRaw] = useState(() => {
+    try {
+      const saved = localStorage.getItem('heiyo_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setAuthUser = useCallback((updaterOrUser) => {
+    setAuthUserRaw((prev) => {
+      const next = typeof updaterOrUser === 'function' ? updaterOrUser(prev) : updaterOrUser;
+      if (next) {
+        localStorage.setItem('heiyo_session', JSON.stringify(next));
+      } else {
+        localStorage.removeItem('heiyo_session');
+      }
+      return next;
+    });
   }, []);
 
   const socket = useSocket(dispatch, authUser);
 
   return (
-    <ChatContext.Provider value={{ ...state, dispatch, socket, setAuthUser }}>
+    <ChatContext.Provider value={{ ...state, dispatch, socket, setAuthUser, authUser }}>
       {children}
     </ChatContext.Provider>
   );

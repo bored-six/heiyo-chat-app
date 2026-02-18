@@ -30,6 +30,12 @@ export default function UserBadge() {
     setAuthUser((prev) => ({ ...prev, avatar: newAvatar }));
   }
 
+  function handleSignOut() {
+    setOpen(false);
+    // Passing null clears localStorage and triggers AuthScreen
+    setAuthUser(null);
+  }
+
   return (
     <>
       {editingAvatar && (
@@ -90,6 +96,14 @@ export default function UserBadge() {
             aria-label="Online"
             className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-[#00F5D4] animate-pulse"
           />
+        </button>
+
+        {/* Sign-out link */}
+        <button
+          onClick={handleSignOut}
+          className="mt-1.5 w-full text-center font-heading text-[9px] font-bold uppercase tracking-widest text-white/25 transition-colors hover:text-[#FF3AF2]/70"
+        >
+          sign out
         </button>
       </div>
     </>

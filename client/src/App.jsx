@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useChat } from './context/ChatContext.jsx';
 import BubbleUniverse from './components/BubbleUniverse.jsx';
 import RoomPortal from './components/RoomPortal.jsx';
@@ -6,15 +6,9 @@ import UserBadge from './components/UserBadge.jsx';
 import AuthScreen from './components/AuthScreen.jsx';
 
 export default function App() {
-  const { connected, socket, activeRoomId, activeDmId, setAuthUser } = useChat();
-  const [authed, setAuthed] = useState(false);
+  const { connected, socket, activeRoomId, activeDmId, setAuthUser, authUser } = useChat();
   const everConnected = useRef(false);
   if (connected) everConnected.current = true;
-
-  function handleAuth(user) {
-    setAuthed(true);
-    setAuthUser(user);
-  }
 
   // Pre-load General's messages on connect but don't navigate there —
   // the user lands in the Bubble Universe and picks their own room.
@@ -23,8 +17,8 @@ export default function App() {
     socket.emit('room:join', { roomId: 'general' });
   }, [connected, socket]);
 
-  if (!authed) {
-    return <AuthScreen onAuth={handleAuth} />;
+  if (!authUser) {
+    return <AuthScreen onAuth={setAuthUser} />;
   }
 
   if (!connected && !everConnected.current) {
