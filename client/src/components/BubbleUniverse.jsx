@@ -33,7 +33,7 @@ const DECORATIONS = [
 ];
 
 export default function BubbleUniverse() {
-  const { rooms, socket, dispatch } = useChat();
+  const { rooms, socket, dispatch, unread } = useChat();
   const [creating, setCreating] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
 
@@ -86,6 +86,7 @@ export default function BubbleUniverse() {
             index={i}
             style={{ top: pos.top, left: pos.left }}
             onEnter={() => enterRoom(room.id)}
+            unread={unread[room.id] ?? 0}
           />
         );
       })}

@@ -25,6 +25,7 @@ const initialState = {
   activeDmId: null,
   onlineUsers: {},
   typing: {},
+  unread: {},
 };
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -84,7 +85,8 @@ function reducer(state, action) {
           state.activeRoomId === action.roomId ? null : state.activeRoomId,
       };
 
-    case 'MESSAGE_RECEIVED':
+    case 'MESSAGE_RECEIVED': {
+      const isActive = state.activeRoomId === action.roomId;
       return {
         ...state,
         roomMessages: {
@@ -94,7 +96,11 @@ function reducer(state, action) {
             action.message,
           ].slice(-100),
         },
+        unread: isActive
+          ? state.unread
+          : { ...state.unread, [action.roomId]: (state.unread[action.roomId] ?? 0) + 1 },
       };
+    }
 
     case 'DM_OPENED':
       return {
@@ -132,7 +138,12 @@ function reducer(state, action) {
       };
 
     case 'SET_ACTIVE_ROOM':
-      return { ...state, activeRoomId: action.roomId, activeDmId: null };
+      return {
+        ...state,
+        activeRoomId: action.roomId,
+        activeDmId: null,
+        unread: { ...state.unread, [action.roomId]: 0 },
+      };
 
     case 'SET_ACTIVE_DM':
       return { ...state, activeDmId: action.dmId, activeRoomId: null };

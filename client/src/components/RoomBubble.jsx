@@ -11,7 +11,7 @@ const FLOAT_ANIMS  = [
 // Tailwind rotation classes — compose cleanly with hover:scale
 const ROTATIONS    = ['-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2', 'rotate-0'];
 
-export default function RoomBubble({ room, index, style, onEnter }) {
+export default function RoomBubble({ room, index, style, onEnter, unread = 0 }) {
   const accent      = ACCENTS[index % ACCENTS.length];
   const borderColor = CLASH[index % CLASH.length];
   const floatAnim   = FLOAT_ANIMS[index % FLOAT_ANIMS.length];
@@ -26,6 +26,20 @@ export default function RoomBubble({ room, index, style, onEnter }) {
       className={`absolute z-10 ${floatAnim}`}
       style={{ ...style, animationDelay: delay }}
     >
+      {/* Unread badge */}
+      {unread > 0 && (
+        <div
+          className="absolute -top-2 -right-2 z-20 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full px-1 font-heading text-xs font-black text-[#0D0D1A] animate-pulse"
+          style={{
+            backgroundColor: '#FFE600',
+            boxShadow: '0 0 10px #FFE600, 0 0 22px #FFE60066, 2px 2px 0 #FF3AF2',
+            border: '2px solid #FF3AF2',
+          }}
+        >
+          {unread > 99 ? '99+' : unread}
+        </div>
+      )}
+
       <button
         onClick={onEnter}
         className={`
