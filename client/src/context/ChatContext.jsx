@@ -39,13 +39,15 @@ function reducer(state, action) {
         connected: true,
         me: action.user,
         rooms: action.rooms,
-        onlineUsers: { [action.user.id]: action.user },
+        onlineUsers: {},
       };
 
     case 'DISCONNECTED':
       return { ...state, connected: false };
 
     case 'USER_ONLINE':
+      // Never add self — me is tracked separately and shown in its own row
+      if (action.user.id === state.me?.id) return state;
       return {
         ...state,
         onlineUsers: { ...state.onlineUsers, [action.user.id]: action.user },
