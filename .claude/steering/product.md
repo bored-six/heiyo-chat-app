@@ -13,6 +13,22 @@ Anonymous real-time chat. No accounts, no login, no persistence. Users connect a
 | Direct messages | Complete | Peer-to-peer via socket ID |
 | Typing indicators | Complete | Per-room, not per-DM |
 | Client UI | Complete | All core components built |
+| 3-orbit universe layout | Complete | Friends / Echoes / Rooms rings |
+| Orbit customizer | Complete | Toggle rooms in/out of orbit, persisted to localStorage |
+
+## BubbleUniverse Orbit System
+
+Three concentric orbits around the user hub:
+
+| Orbit | Ring | Content | Cap | Notes |
+|-------|------|---------|-----|-------|
+| 1 (inner) | Friends | DM partners | 10 | Smallest bubbles → highest cap |
+| 2 (middle) | Echoes | Under construction | 6 | Ghost placeholders; future: ephemeral signals |
+| 3 (outer) | Rooms | Joined rooms | 5 + 1 | 1 slot always reserved for "+" customize button |
+
+**Cap logic:** Smaller ring = smaller bubbles = more can fit = higher cap.
+
+**Orbit customizer:** The "+" bubble in orbit 3 opens a modal to toggle room visibility. Preferences stored in `localStorage` key `heiyo_orbit_hidden`.
 
 ## Business Rules
 
