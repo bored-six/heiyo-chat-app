@@ -21,6 +21,13 @@ export function initDb() {
   db.pragma('journal_mode = WAL'); // better concurrent read performance
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      username     TEXT PRIMARY KEY,
+      password_hash TEXT NOT NULL,
+      color        TEXT NOT NULL,
+      created_at   INTEGER NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS rooms (
       id         TEXT PRIMARY KEY,
       name       TEXT NOT NULL,
@@ -141,4 +148,21 @@ export function dbGetDmMessages(dmId) {
   return db.prepare(`
     SELECT * FROM dm_messages WHERE dm_id = ? ORDER BY timestamp ASC LIMIT ?
   `).all(dmId, MAX_MESSAGES);
+}
+
+// ─── Auth / Users ─────────────────────────────────────────────────────────────
+
+export function dbCreateUser(username, passwordHash, color) {
+  db.prepare(`
+    INSERT INTO users (username, password_hash, color, created_at)
+    VALUES (?, ?, ?, ?)
+  `).run(username, passwordHash, color, Date.now());
+}
+
+export function dbGetUser(username) {
+  return db.prepare('SELECT * FROM users WHERE username = ?').get(username) ?? null;
+}
+
+export function dbUsernameExists(username) {
+  return !!db.prepare('SELECT 1 FROM users WHERE username = ?').get(username);
 }

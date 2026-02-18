@@ -6,7 +6,7 @@ import { io } from 'socket.io-client';
  * Wires every server→client event to dispatch so ChatContext state stays current.
  * Returns the socket instance (stable ref, safe to call .emit() on).
  */
-export function useSocket(dispatch) {
+export function useSocket(dispatch, authUser) {
   const socketRef = useRef(null);
 
   // Initialise synchronously so the ref is never null after first render
@@ -15,7 +15,13 @@ export function useSocket(dispatch) {
   }
 
   useEffect(() => {
+    // Don't connect until auth is resolved
+    if (!authUser) return;
+
     const socket = socketRef.current;
+
+    // Pass identity in the handshake so server knows who this is
+    socket.auth = { username: authUser.username, color: authUser.color };
 
     // ── Connection lifecycle ────────────────────────────────────────────────
 
@@ -91,7 +97,7 @@ export function useSocket(dispatch) {
       socket.removeAllListeners();
       socket.disconnect();
     };
-  }, [dispatch]);
+  }, [dispatch, authUser]);
 
   return socketRef.current;
 }

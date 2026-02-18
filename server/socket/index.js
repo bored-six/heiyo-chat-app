@@ -1,5 +1,4 @@
 import { addUser, removeUser, getAllRooms, joinRoom } from '../store/index.js';
-import { generateUser } from '../utils/nameGenerator.js';
 import { registerRoomHandlers } from './roomHandlers.js';
 import { registerMessageHandlers } from './messageHandlers.js';
 import { registerDmHandlers } from './dmHandlers.js';
@@ -11,8 +10,8 @@ const typing = {};
 
 export function initSocket(io) {
   io.on('connection', (socket) => {
-    // Assign random identity
-    const { username, color } = generateUser();
+    // Use identity provided by client auth handshake
+    const { username, color } = socket.handshake.auth ?? {};
     const user = addUser(socket.id, { username, color });
 
     // Auto-join General

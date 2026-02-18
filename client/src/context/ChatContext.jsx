@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer } from 'react';
+import { createContext, useContext, useReducer, useState, useCallback } from 'react';
 import { useSocket } from '../hooks/useSocket.js';
 
 // ─── State shape ─────────────────────────────────────────────────────────────
@@ -148,10 +148,16 @@ const ChatContext = createContext(null);
 
 export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const socket = useSocket(dispatch);
+  const [authUser, setAuthUserRaw] = useState(null);
+
+  const setAuthUser = useCallback((user) => {
+    setAuthUserRaw(user);
+  }, []);
+
+  const socket = useSocket(dispatch, authUser);
 
   return (
-    <ChatContext.Provider value={{ ...state, dispatch, socket }}>
+    <ChatContext.Provider value={{ ...state, dispatch, socket, setAuthUser }}>
       {children}
     </ChatContext.Provider>
   );
