@@ -66,7 +66,7 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
             height: `${size}px`,
             backgroundColor: `${accent}1A`,
             border: `4px solid ${borderColor}`,
-            boxShadow: `0 0 40px ${accent}99, 0 0 80px ${accent}44`,
+            boxShadow: `0 0 40px ${accent}99, 0 0 200px ${accent}22`,
             focusRingColor: accent,
           }}
           aria-label={`Enter room: ${room.name}`}

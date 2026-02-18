@@ -62,6 +62,7 @@ export default function RoomPortal() {
           myId={me?.id}
           highlight={searchQuery}
           onReply={handleReply}
+          label={room?.name ?? ''}
         />
         <TypingIndicator roomId={activeRoomId} />
         <MessageInput
@@ -104,6 +105,7 @@ export default function RoomPortal() {
         myId={me?.id}
         highlight={searchQuery}
         onReply={handleReply}
+        label={`@ ${other.username}`}
       />
       <div className="h-6 flex-shrink-0" />
       <MessageInput
@@ -283,7 +285,12 @@ function Portal({
         )}
 
         {/* ── Scrollable chat area ── */}
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="relative flex flex-1 flex-col overflow-hidden">
+          {/* Top-fade: softens the header→messages transition */}
+          <div
+            className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-8"
+            style={{ background: `linear-gradient(to bottom, ${accent}0F, transparent)` }}
+          />
           {children}
         </div>
       </div>

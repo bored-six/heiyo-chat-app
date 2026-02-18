@@ -2,6 +2,31 @@ import { useState, useRef, useCallback } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import RoomBubble from './RoomBubble.jsx';
 
+// Ambient particle field — 20 tiny slow-rising dots spread across the bg.
+// Opacity is very low (0.2) so they feel like space dust, not noise.
+const PARTICLES = [
+  { top: '94%', left: '6%',  color: '#FF3AF2', cls: 'w-1 h-1',     anim: 'animate-float',      delay: '0s'    },
+  { top: '91%', left: '19%', color: '#00F5D4', cls: 'w-1 h-1',     anim: 'animate-float-slow', delay: '1.2s'  },
+  { top: '89%', left: '32%', color: '#FFE600', cls: 'w-1.5 h-1.5', anim: 'animate-float',      delay: '0.4s'  },
+  { top: '93%', left: '46%', color: '#7B2FFF', cls: 'w-1 h-1',     anim: 'animate-float-slow', delay: '2.0s'  },
+  { top: '88%', left: '60%', color: '#FF6B35', cls: 'w-1 h-1',     anim: 'animate-float',      delay: '0.9s'  },
+  { top: '92%', left: '73%', color: '#FF3AF2', cls: 'w-1.5 h-1.5', anim: 'animate-float-slow', delay: '1.6s'  },
+  { top: '90%', left: '87%', color: '#00F5D4', cls: 'w-1 h-1',     anim: 'animate-float',      delay: '2.4s'  },
+  { top: '72%', left: '11%', color: '#FFE600', cls: 'w-1 h-1',     anim: 'animate-float-slow', delay: '0.3s'  },
+  { top: '68%', left: '24%', color: '#FF3AF2', cls: 'w-1 h-1',     anim: 'animate-float',      delay: '1.8s'  },
+  { top: '76%', left: '39%', color: '#7B2FFF', cls: 'w-1.5 h-1.5', anim: 'animate-float-slow', delay: '0.7s'  },
+  { top: '63%', left: '57%', color: '#FF6B35', cls: 'w-1 h-1',     anim: 'animate-float',      delay: '2.7s'  },
+  { top: '74%', left: '81%', color: '#00F5D4', cls: 'w-1 h-1',     anim: 'animate-float-slow', delay: '1.4s'  },
+  { top: '47%', left: '8%',  color: '#FF3AF2', cls: 'w-1 h-1',     anim: 'animate-float',      delay: '0.5s'  },
+  { top: '42%', left: '21%', color: '#FFE600', cls: 'w-1.5 h-1.5', anim: 'animate-float-slow', delay: '2.2s'  },
+  { top: '53%', left: '51%', color: '#7B2FFF', cls: 'w-1 h-1',     anim: 'animate-float',      delay: '1.0s'  },
+  { top: '44%', left: '65%', color: '#FF3AF2', cls: 'w-1 h-1',     anim: 'animate-float-slow', delay: '0.2s'  },
+  { top: '57%', left: '77%', color: '#00F5D4', cls: 'w-1.5 h-1.5', anim: 'animate-float',      delay: '3.1s'  },
+  { top: '27%', left: '16%', color: '#FF6B35', cls: 'w-1 h-1',     anim: 'animate-float-slow', delay: '1.7s'  },
+  { top: '32%', left: '49%', color: '#FFE600', cls: 'w-1 h-1',     anim: 'animate-float',      delay: '0.6s'  },
+  { top: '22%', left: '71%', color: '#FF3AF2', cls: 'w-1.5 h-1.5', anim: 'animate-float-slow', delay: '2.9s'  },
+];
+
 // Pre-defined scatter positions — spread across the viewport, avoiding
 // center (portal lives there) and bottom-left (user badge lives there).
 const BUBBLE_POSITIONS = [
@@ -90,6 +115,16 @@ export default function BubbleUniverse() {
         >
           {d.char}
         </span>
+      ))}
+
+      {/* ── Ambient particle field ── */}
+      {PARTICLES.map((p, i) => (
+        <div
+          key={`p${i}`}
+          aria-hidden="true"
+          className={`pointer-events-none absolute rounded-full ${p.cls} ${p.anim}`}
+          style={{ top: p.top, left: p.left, backgroundColor: p.color, opacity: 0.2, animationDelay: p.delay, filter: 'blur(0.5px)' }}
+        />
       ))}
 
       {/* ── Room bubbles ── */}

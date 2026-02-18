@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Message from './Message.jsx';
 
-export default function MessageList({ messages, myId, highlight = '', onReply }) {
+export default function MessageList({ messages, myId, highlight = '', onReply, label = '' }) {
   const containerRef   = useRef(null);
   const bottomRef      = useRef(null);
   const isAtBottomRef  = useRef(true);   // sync ref so effects don't go stale
@@ -52,11 +52,31 @@ export default function MessageList({ messages, myId, highlight = '', onReply })
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <span className="animate-bounce-subtle text-6xl" aria-hidden="true">
-          💬
-        </span>
-        <p className="font-heading text-base font-black uppercase tracking-[0.25em] text-[#FF3AF2]/50">
+      <div className="flex flex-1 flex-col items-center justify-center gap-5">
+        {/* Geometric centerpiece */}
+        <div className="relative flex h-32 w-32 items-center justify-center">
+          <span
+            aria-hidden="true"
+            className="animate-spin-slow pointer-events-none absolute select-none text-[8rem] leading-none"
+            style={{ color: '#FF3AF2', opacity: 0.1 }}
+          >
+            ◇
+          </span>
+          <span
+            aria-hidden="true"
+            className="animate-float pointer-events-none select-none text-5xl leading-none"
+            style={{ color: '#FF3AF2', opacity: 0.55 }}
+          >
+            ◆
+          </span>
+        </div>
+        {/* Room / DM label */}
+        {label && (
+          <h3 className="font-heading text-2xl font-black uppercase tracking-tighter text-white/60">
+            {label}
+          </h3>
+        )}
+        <p className="font-heading text-xs font-black uppercase tracking-[0.3em] text-[#FF3AF2]/50">
           Nothing yet — break the silence
         </p>
       </div>
