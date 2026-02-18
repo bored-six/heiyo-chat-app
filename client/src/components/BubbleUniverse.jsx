@@ -42,24 +42,23 @@ export const DECORATIONS = [
   { char: '★', top: '72%', left: '8%',  anim: 'animate-float-slow',    size: 'text-2xl', color: '#FF6B35', delay: '1.4s' },
 ];
 
-// Under-construction placeholder data for Echoes orbit (middle ring)
-const ECHO_PLACEHOLDERS = [
-  { id: 'echo-1', glyph: '🔮', label: 'ECHOES',   color: '#FF6B35' },
-  { id: 'echo-2', glyph: '✦',  label: 'SIGNALS',  color: '#7B2FFF' },
-  { id: 'echo-3', glyph: '◈',  label: 'VIBES',    color: '#FF3AF2' },
-  { id: 'echo-4', glyph: '⟡',  label: 'STORIES',  color: '#00F5D4' },
+// Ghost placeholders shown in orbit 2 when fewer than MIN_ECHO_SLOTS real echoes exist
+const ECHO_GHOSTS = [
+  { id: 'g1', glyph: '🔮', color: '#FF6B35' },
+  { id: 'g2', glyph: '✦',  color: '#7B2FFF' },
+  { id: 'g3', glyph: '◈',  color: '#FF3AF2' },
+  { id: 'g4', glyph: '⟡',  color: '#00F5D4' },
 ];
+const MIN_ECHO_SLOTS = 4; // keep at least 4 items in orbit 2 for visual balance
+
+// Preset emojis for the pulse picker
+const PULSE_PRESETS = ['🔥','✨','💬','🎵','😎','💭','⚡','🌊','🎯','🔮','💥','🌀'];
 
 // ─── Orbital ring system ──────────────────────────────────────────────────────
 //
-//  Three concentric ellipses radiating outward from the hub at (CX%, CY%):
-//
-//  Orbit 1 — Inner  (Friends)  rX 12%, rY 9%   — cap 10 (smallest bubbles → more fit)
-//  Orbit 2 — Middle (Echoes)   rX 24%, rY 17%  — cap 6  (under construction)
-//  Orbit 3 — Outer  (Rooms)    rX 38%, rY 27%  — cap 5  (largest bubbles + 1 reserved for "+")
-//
-//  Cap logic: smaller ring → smaller bubbles → higher cap.
-//             Larger ring → larger bubbles → lower cap (outer rooms are prominent).
+//  Orbit 1 — Inner  (Friends)  rX 12%, rY  9%  cap 10 — smallest bubbles → highest cap
+//  Orbit 2 — Middle (Echoes)   rX 24%, rY 17%  cap  6 — ephemeral user signals
+//  Orbit 3 — Outer  (Rooms)    rX 38%, rY 27%  cap  5 — largest bubbles + 1 "+" slot
 
 const CX = 50;
 const CY = 53;
@@ -70,7 +69,7 @@ const RING = {
   outer:  { rX: 38, rY: 27, angleOffset: 0,           max:  5, color: 'rgba(0,245,212,0.08)'  },
 };
 
-const SCALE_KEY       = 'heiyo_ring_scales';
+const SCALE_KEY        = 'heiyo_ring_scales';
 const ORBIT_HIDDEN_KEY = 'heiyo_orbit_hidden';
 
 function orbitalPositions(count, rX, rY, angleOffset = 0) {
@@ -94,6 +93,224 @@ function loadHiddenRooms() {
   catch { return new Set(); }
 }
 
+function fmtTimeLeft(ms) {
+  if (ms <= 0) return 'Fading…';
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+// ─── Echo Profile Modal ───────────────────────────────────────────────────────
+
+function EchoProfileModal({ echo, onClose, onDm, isOnline }) {
+  const [timeLeft, setTimeLeft] = useState(() => Math.max(0, echo.expiresAt - Date.now()));
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const left = Math.max(0, echo.expiresAt - Date.now());
+      setTimeLeft(left);
+      if (left === 0) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [echo.expiresAt]);
+
+  const totalDuration = 10 * 60 * 1000;
+  const pct = Math.max(0, (timeLeft / totalDuration) * 100);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(12px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-80 animate-appear flex flex-col items-center"
+        style={{
+          background: 'rgba(13,13,26,0.98)',
+          border: `2px solid ${echo.color}55`,
+          borderRadius: '1.75rem',
+          boxShadow: `0 0 60px ${echo.color}22, 0 24px 64px rgba(0,0,0,0.85)`,
+          padding: '2rem 1.5rem 1.5rem',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center font-heading text-white/30 hover:text-white hover:bg-white/10 transition-all"
+        >×</button>
+
+        {/* Big echo text */}
+        <div
+          className="text-4xl mb-4 flex items-center justify-center w-16 h-16 rounded-2xl"
+          style={{ background: `${echo.color}18`, border: `2px solid ${echo.color}40` }}
+        >
+          {echo.text}
+        </div>
+
+        {/* Avatar */}
+        <div
+          className="w-16 h-16 rounded-full overflow-hidden mb-3"
+          style={{
+            border: `3px solid ${echo.color}`,
+            boxShadow: `0 0 20px ${echo.color}55`,
+          }}
+        >
+          {echo.avatar && echo.avatar !== 'Stargazer'
+            ? <img src={avatarUrl(echo.avatar)} alt="" className="w-full h-full object-cover" />
+            : <span className="w-full h-full flex items-center justify-center font-heading text-2xl font-black text-white"
+                style={{ background: `${echo.color}22` }}>
+                {echo.username?.[0]?.toUpperCase() ?? '?'}
+              </span>
+          }
+        </div>
+
+        {/* Name + tag */}
+        <p className="font-heading text-base font-black uppercase tracking-tight text-white mb-0.5">
+          {echo.username}
+        </p>
+        {echo.tag && (
+          <p className="font-heading text-[10px] text-white/35 mb-3">#{echo.tag}</p>
+        )}
+
+        {/* From room */}
+        {echo.fromRoom && (
+          <p className="font-heading text-[10px] text-white/40 mb-4">
+            Pulsed from <span style={{ color: `${echo.color}cc` }}>{echo.fromRoom}</span>
+          </p>
+        )}
+
+        {/* Time remaining */}
+        <div className="w-full mb-4">
+          <div className="flex justify-between mb-1">
+            <span className="font-heading text-[9px] text-white/30 uppercase tracking-widest">Fades in</span>
+            <span className="font-heading text-[9px] font-black" style={{ color: echo.color }}>
+              {fmtTimeLeft(timeLeft)}
+            </span>
+          </div>
+          <div className="w-full h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-1000"
+              style={{
+                width: `${pct}%`,
+                background: `linear-gradient(90deg, ${echo.color}88, ${echo.color})`,
+                boxShadow: `0 0 6px ${echo.color}`,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        {isOnline && (
+          <button
+            onClick={() => { onDm(); onClose(); }}
+            className="w-full rounded-full py-2.5 font-heading text-[11px] font-black uppercase tracking-widest text-[#0D0D1A] transition-all hover:scale-105"
+            style={{ background: echo.color, boxShadow: `0 0 16px ${echo.color}88` }}
+          >
+            Send DM
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Pulse Picker Modal ───────────────────────────────────────────────────────
+
+function PulsePicker({ activeRoomName, onPulse, onClose }) {
+  const [selected, setSelected] = useState('');
+  const [custom, setCustom]     = useState('');
+
+  const text = custom.trim() || selected;
+
+  function handlePulse() {
+    if (!text) return;
+    onPulse(text);
+    onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-start pb-24 pl-8"
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-80 animate-appear flex flex-col gap-3"
+        style={{
+          background: 'rgba(13,13,26,0.98)',
+          border: '2px solid rgba(255,107,53,0.4)',
+          borderRadius: '1.5rem',
+          boxShadow: '0 0 40px rgba(255,107,53,0.2), 0 20px 48px rgba(0,0,0,0.8)',
+          padding: '1.25rem',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-heading text-sm font-black uppercase tracking-tight text-white">Pulse an Echo</p>
+            {activeRoomName && (
+              <p className="font-heading text-[9px] text-[#FF6B35]/60 mt-0.5">
+                from <span className="text-[#FF6B35]">{activeRoomName}</span>
+              </p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all font-heading"
+          >×</button>
+        </div>
+
+        {/* Preset emojis */}
+        <div className="grid grid-cols-6 gap-1.5">
+          {PULSE_PRESETS.map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => { setSelected(emoji); setCustom(''); }}
+              className="flex items-center justify-center h-10 rounded-xl text-xl transition-all hover:scale-110"
+              style={{
+                background: selected === emoji && !custom ? 'rgba(255,107,53,0.25)' : 'rgba(255,255,255,0.05)',
+                border: selected === emoji && !custom ? '1.5px solid rgba(255,107,53,0.6)' : '1.5px solid rgba(255,255,255,0.08)',
+                boxShadow: selected === emoji && !custom ? '0 0 10px rgba(255,107,53,0.3)' : 'none',
+              }}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom text */}
+        <input
+          value={custom}
+          onChange={e => { setCustom(e.target.value.slice(0, 20)); setSelected(''); }}
+          placeholder="Or type a vibe… (20 chars)"
+          maxLength={20}
+          className="w-full rounded-full px-4 py-2 font-heading text-sm text-white placeholder-white/20 outline-none transition-all"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: custom ? '1.5px solid rgba(255,107,53,0.5)' : '1.5px solid rgba(255,255,255,0.1)',
+          }}
+        />
+
+        {/* Pulse button */}
+        <button
+          onClick={handlePulse}
+          disabled={!text}
+          className="w-full rounded-full py-2.5 font-heading text-sm font-black uppercase tracking-widest transition-all hover:scale-105 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
+          style={{
+            background: text ? 'linear-gradient(135deg, #FF6B35, #FF3AF2)' : 'rgba(255,255,255,0.08)',
+            color: text ? 'white' : 'rgba(255,255,255,0.3)',
+            boxShadow: text ? '0 0 20px rgba(255,107,53,0.5)' : 'none',
+          }}
+        >
+          🔮 PULSE
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Orbit Customizer Modal ───────────────────────────────────────────────────
 
 function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
@@ -113,82 +330,58 @@ function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
           borderRadius: '1.5rem',
           boxShadow: '0 0 60px rgba(0,245,212,0.18), 0 24px 64px rgba(0,0,0,0.85)',
         }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-white/8">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-lg">🪐</span>
-              <h2 className="font-heading text-sm font-black uppercase tracking-tight text-white">
-                Room Orbit
-              </h2>
+              <h2 className="font-heading text-sm font-black uppercase tracking-tight text-white">Room Orbit</h2>
             </div>
             <p className="font-heading text-[10px] text-white/35 leading-relaxed">
               Choose which rooms orbit around you.<br />
               Hidden rooms still exist — just off your radar.
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center font-heading text-lg text-white/30 hover:text-white hover:bg-white/10 transition-all flex-shrink-0 mt-0.5"
-          >×</button>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center font-heading text-lg text-white/30 hover:text-white hover:bg-white/10 transition-all flex-shrink-0 mt-0.5">
+            ×
+          </button>
         </div>
 
-        {/* Room list */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {rooms.length === 0 && (
-            <p className="text-center font-heading text-[11px] text-white/25 py-10">
-              No rooms yet.<br />
-              <span className="text-white/15">Create one below ↓</span>
-            </p>
+            <p className="text-center font-heading text-[11px] text-white/25 py-10">No rooms yet.</p>
           )}
-          {rooms.map((room) => {
+          {rooms.map(room => {
             const hidden = hiddenRooms.has(room.id);
             return (
-              <button
-                key={room.id}
-                onClick={() => onToggle(room.id)}
+              <button key={room.id} onClick={() => onToggle(room.id)}
                 className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 hover:bg-white/5 text-left"
                 style={{
                   border: `1px solid ${hidden ? 'rgba(255,255,255,0.07)' : 'rgba(0,245,212,0.25)'}`,
                   background: hidden ? 'transparent' : 'rgba(0,245,212,0.04)',
                 }}
               >
-                {/* Toggle indicator */}
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200"
                   style={{
                     background: hidden ? 'transparent' : '#00F5D4',
                     border: `2px solid ${hidden ? 'rgba(255,255,255,0.15)' : '#00F5D4'}`,
                     boxShadow: hidden ? 'none' : '0 0 10px #00F5D4aa',
-                  }}
-                >
-                  {!hidden && (
-                    <span className="font-heading text-[9px] text-[#0D0D1A] font-black leading-none">✓</span>
-                  )}
+                  }}>
+                  {!hidden && <span className="font-heading text-[9px] text-[#0D0D1A] font-black leading-none">✓</span>}
                 </div>
-
-                {/* Room info */}
                 <div className="flex-1 min-w-0">
-                  <p
-                    className="font-heading text-sm font-black uppercase tracking-tight truncate"
-                    style={{ color: hidden ? 'rgba(255,255,255,0.25)' : 'white' }}
-                  >
+                  <p className="font-heading text-sm font-black uppercase tracking-tight truncate"
+                    style={{ color: hidden ? 'rgba(255,255,255,0.25)' : 'white' }}>
                     {room.name}
                   </p>
                   {room.description && (
-                    <p className="font-heading text-[9px] text-white/20 truncate mt-0.5">
-                      {room.description}
-                    </p>
+                    <p className="font-heading text-[9px] text-white/20 truncate mt-0.5">{room.description}</p>
                   )}
                 </div>
-
-                {/* Member count */}
-                <span
-                  className="font-heading text-[10px] font-black flex-shrink-0 tabular-nums"
-                  style={{ color: hidden ? 'rgba(255,255,255,0.15)' : '#00F5D4' }}
-                >
+                <span className="font-heading text-[10px] font-black flex-shrink-0 tabular-nums"
+                  style={{ color: hidden ? 'rgba(255,255,255,0.15)' : '#00F5D4' }}>
                   {room.memberCount ?? 0} online
                 </span>
               </button>
@@ -196,17 +389,13 @@ function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
           })}
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-white/8 flex items-center justify-between">
           <p className="font-heading text-[9px] text-white/25">
-            <span style={{ color: 'rgba(0,245,212,0.5)' }}>{visibleCount}</span>
-            /{rooms.length} in orbit
+            <span style={{ color: 'rgba(0,245,212,0.5)' }}>{visibleCount}</span>/{rooms.length} in orbit
           </p>
-          <button
-            onClick={onClose}
+          <button onClick={onClose}
             className="rounded-full px-4 py-1.5 font-heading text-[10px] font-black uppercase tracking-widest text-[#0D0D1A] transition-all hover:scale-105"
-            style={{ background: '#00F5D4', boxShadow: '0 0 12px #00F5D4aa' }}
-          >
+            style={{ background: '#00F5D4', boxShadow: '0 0 12px #00F5D4aa' }}>
             Done
           </button>
         </div>
@@ -218,43 +407,41 @@ function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BubbleUniverse() {
-  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser } = useChat();
+  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes } = useChat();
   const { sortedRooms, pinnedId, togglePin } = useRoomOrder(rooms);
 
-  const [creating, setCreating]         = useState(false);
-  const [newRoomName, setNewRoomName]   = useState('');
-  const [newRoomDesc, setNewRoomDesc]   = useState('');
-  const [showOnline, setShowOnline]     = useState(true);
-  const [mouse, setMouse]               = useState({ x: 0.5, y: 0.5 });
-  const [hubOpen, setHubOpen]           = useState(false);
+  const [creating, setCreating]           = useState(false);
+  const [newRoomName, setNewRoomName]     = useState('');
+  const [newRoomDesc, setNewRoomDesc]     = useState('');
+  const [showOnline, setShowOnline]       = useState(true);
+  const [mouse, setMouse]                 = useState({ x: 0.5, y: 0.5 });
+  const [hubOpen, setHubOpen]             = useState(false);
   const [editingAvatar, setEditingAvatar] = useState(false);
-  const [scales, setScalesRaw]          = useState(loadScales);
-  const [hiddenRooms, setHiddenRooms]   = useState(loadHiddenRooms);
+  const [scales, setScalesRaw]            = useState(loadScales);
+  const [hiddenRooms, setHiddenRooms]     = useState(loadHiddenRooms);
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [showPulse, setShowPulse]         = useState(false);
+  const [viewEcho, setViewEcho]           = useState(null); // echo object or null
   const rafRef = useRef(null);
   const hubRef = useRef(null);
 
-  // Persist scales to localStorage whenever they change
   const setScales = useCallback((updater) => {
-    setScalesRaw((prev) => {
+    setScalesRaw(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       localStorage.setItem(SCALE_KEY, JSON.stringify(next));
       return next;
     });
   }, []);
 
-  // Toggle a room's visibility in the orbit
   function toggleRoomVisibility(roomId) {
-    setHiddenRooms((prev) => {
+    setHiddenRooms(prev => {
       const next = new Set(prev);
-      if (next.has(roomId)) next.delete(roomId);
-      else next.add(roomId);
+      if (next.has(roomId)) next.delete(roomId); else next.add(roomId);
       localStorage.setItem(ORBIT_HIDDEN_KEY, JSON.stringify([...next]));
       return next;
     });
   }
 
-  // Close hub panel on outside click
   useEffect(() => {
     if (!hubOpen) return;
     function onDown(e) {
@@ -264,15 +451,12 @@ export default function BubbleUniverse() {
     return () => document.removeEventListener('mousedown', onDown);
   }, [hubOpen]);
 
-  const handleMouseMove = useCallback((e) => {
+  const handleMouseMove = useCallback(e => {
     if (rafRef.current) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top)  / rect.height;
-    rafRef.current = requestAnimationFrame(() => {
-      setMouse({ x, y });
-      rafRef.current = null;
-    });
+    const y = (e.clientY - rect.top) / rect.height;
+    rafRef.current = requestAnimationFrame(() => { setMouse({ x, y }); rafRef.current = null; });
   }, []);
 
   function enterRoom(roomId) {
@@ -285,67 +469,65 @@ export default function BubbleUniverse() {
     const name = newRoomName.trim();
     if (!name) return;
     socket.emit('room:create', { name, description: newRoomDesc.trim() });
-    setNewRoomName('');
-    setNewRoomDesc('');
-    setCreating(false);
+    setNewRoomName(''); setNewRoomDesc(''); setCreating(false);
   }
 
   function changeScale(ring, delta) {
-    setScales((s) => ({ ...s, [ring]: Math.min(2, Math.max(0.4, +(s[ring] + delta).toFixed(2))) }));
+    setScales(s => ({ ...s, [ring]: Math.min(2, Math.max(0.4, +(s[ring] + delta).toFixed(2))) }));
   }
 
-  // ── Categorise ──────────────────────────────────────────────────────────────
+  function pulseEcho(text) {
+    const activeRoom = rooms.find(r => r.id === sortedRooms[0]?.id);
+    socket.emit('echo:pulse', { text, fromRoom: activeRoom?.name ?? null });
+  }
 
-  // Orbit 1 — Inner (Friends): DM partners, sorted by latest activity
-  const dmList = Object.values(dms ?? {}).sort((a, b) => {
-    return (b.messages.at(-1)?.timestamp ?? 0) - (a.messages.at(-1)?.timestamp ?? 0);
-  });
+  function openDm(userId) {
+    socket.emit('dm:open', { toUserId: userId });
+  }
 
-  // Orbit 2 — Middle (Echoes): Fixed under-construction placeholders
-  const echoPlaceholders = ECHO_PLACEHOLDERS;
+  // ── Data ────────────────────────────────────────────────────────────────────
 
-  // Orbit 3 — Outer (Rooms): All rooms, filtered by user's orbit preferences
-  const visibleRooms = sortedRooms.filter(r => !hiddenRooms.has(r.id));
+  // Orbit 1 — Friends (DM partners)
+  const dmList = Object.values(dms ?? {}).sort((a, b) =>
+    (b.messages.at(-1)?.timestamp ?? 0) - (a.messages.at(-1)?.timestamp ?? 0)
+  );
 
-  // ── Apply per-ring caps ──────────────────────────────────────────────────────
-  // Cap logic: smaller ring → smaller bubbles → higher cap
-  const innerVisible  = dmList.slice(0, RING.inner.max);                  // cap 10
+  // Orbit 2 — Echoes: real echoes + ghost placeholders to fill MIN_ECHO_SLOTS
+  const realEchoes   = (echoes ?? []).slice(0, RING.middle.max);
+  const ghostsNeeded = Math.max(0, MIN_ECHO_SLOTS - realEchoes.length);
+  const ghostSlots   = ECHO_GHOSTS.slice(0, ghostsNeeded);
+  const totalMiddle  = realEchoes.length + ghostSlots.length;
+
+  // Orbit 3 — Rooms (customizable)
+  const visibleRooms  = sortedRooms.filter(r => !hiddenRooms.has(r.id));
+
+  // ── Caps ────────────────────────────────────────────────────────────────────
+  const innerVisible  = dmList.slice(0, RING.inner.max);
   const innerOverflow = Math.max(0, dmList.length - RING.inner.max);
-
-  const middleVisible = echoPlaceholders.slice(0, RING.middle.max);        // cap 6 (always 4 placeholders)
-
-  const outerVisible  = visibleRooms.slice(0, RING.outer.max);             // cap 5 (+1 reserved for "+")
+  const outerVisible  = visibleRooms.slice(0, RING.outer.max);
 
   // ── Orbital positions ────────────────────────────────────────────────────────
   const innerPos  = orbitalPositions(
     innerVisible.length + (innerOverflow > 0 ? 1 : 0),
     RING.inner.rX, RING.inner.rY, RING.inner.angleOffset
   );
-  const middlePos = orbitalPositions(
-    middleVisible.length,
-    RING.middle.rX, RING.middle.rY, RING.middle.angleOffset
-  );
-  // Outer always allocates +1 slot for the "+" customize button
+  const middlePos = orbitalPositions(totalMiddle, RING.middle.rX, RING.middle.rY, RING.middle.angleOffset);
+  // Outer always has +1 reserved for "+" button
   const outerPos  = orbitalPositions(
-    outerVisible.length + 1,
-    RING.outer.rX, RING.outer.rY, RING.outer.angleOffset
+    outerVisible.length + 1, RING.outer.rX, RING.outer.rY, RING.outer.angleOffset
   );
+
+  // Active room name (for pulse picker)
+  const activeRoomName = rooms.find(r => r.id === sortedRooms[0]?.id)?.name ?? null;
 
   function OverflowBubble({ pos, count, color }) {
     return (
-      <div
-        className="absolute z-10 flex items-center justify-center rounded-full border-2 border-dashed animate-pulse"
+      <div className="absolute z-10 flex items-center justify-center rounded-full border-2 border-dashed animate-pulse"
         style={{
-          left: pos.left, top: pos.top,
-          transform: 'translate(-50%, -50%)',
-          width: '72px', height: '72px',
-          borderColor: color,
-          background: `${color}18`,
-        }}
-      >
-        <span className="font-heading text-sm font-black" style={{ color }}>
-          +{count}
-        </span>
+          left: pos.left, top: pos.top, transform: 'translate(-50%, -50%)',
+          width: '72px', height: '72px', borderColor: color, background: `${color}18`,
+        }}>
+        <span className="font-heading text-sm font-black" style={{ color }}>+{count}</span>
       </div>
     );
   }
@@ -355,46 +537,57 @@ export default function BubbleUniverse() {
     <div className="relative h-full w-full overflow-hidden" onMouseMove={handleMouseMove}>
 
       {/* ── SVG orbital ring guides ──────────────────────────────────────────── */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        style={{ zIndex: 1 }}
-      >
+      <svg className="absolute inset-0 w-full h-full pointer-events-none"
+        viewBox="0 0 100 100" preserveAspectRatio="none" style={{ zIndex: 1 }}>
         <defs>
           <radialGradient id="hub-glow" cx="50%" cy="50%" r="50%">
             <stop offset="0%"   stopColor={me?.color ?? '#FF3AF2'} stopOpacity="0.20" />
-            <stop offset="100%" stopColor={me?.color ?? '#FF3AF2'} stopOpacity="0"    />
+            <stop offset="100%" stopColor={me?.color ?? '#FF3AF2'} stopOpacity="0" />
           </radialGradient>
         </defs>
         <ellipse cx={CX} cy={CY} rx="9" ry="6.5" fill="url(#hub-glow)" />
-
-        {/* Orbit 3 — Rooms (outer) */}
+        {/* Orbit 3 — Rooms */}
         <ellipse cx={CX} cy={CY} rx={RING.outer.rX}  ry={RING.outer.rY}
           fill="none" stroke="rgba(0,245,212,0.08)"  strokeWidth="0.35" strokeDasharray="2.5 6" />
-        {/* Orbit 2 — Echoes (middle) */}
+        {/* Orbit 2 — Echoes */}
         <ellipse cx={CX} cy={CY} rx={RING.middle.rX} ry={RING.middle.rY}
-          fill="none" stroke="rgba(255,107,53,0.10)" strokeWidth="0.35" strokeDasharray="2 5"   />
-        {/* Orbit 1 — Friends (inner) */}
+          fill="none" stroke="rgba(255,107,53,0.10)" strokeWidth="0.35" strokeDasharray="2 5" />
+        {/* Orbit 1 — Friends */}
         <ellipse cx={CX} cy={CY} rx={RING.inner.rX}  ry={RING.inner.rY}
           fill="none" stroke="rgba(255,230,0,0.10)"  strokeWidth="0.35" strokeDasharray="1.5 4" />
       </svg>
 
-      {/* ── Zone labels ──────────────────────────────────────────────────────── */}
+      {/* ── Zone labels — pill badges staggered diagonally ───────────────────── */}
+
+      {/* Orbit 3: Rooms — top-left */}
       <div className="absolute pointer-events-none select-none z-10"
-        style={{ top: `${CY - RING.outer.rY - 3.5}%`, left: '50%', transform: 'translateX(-50%)' }}>
-        <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#00F5D4]/25">rooms</span>
-      </div>
-      <div className="absolute pointer-events-none select-none z-10"
-        style={{ top: `${CY - RING.middle.rY - 2.5}%`, left: '50%', transform: 'translateX(-50%)' }}>
-        <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#FF6B35]/20">echoes</span>
-      </div>
-      {dmList.length > 0 && (
-        <div className="absolute pointer-events-none select-none z-10"
-          style={{ top: `${CY - RING.inner.rY - 2.5}%`, left: '50%', transform: 'translateX(-50%)' }}>
-          <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#FFE600]/25">friends</span>
+        style={{ top: `${CY - RING.outer.rY - 4}%`, left: '35%', transform: 'translateX(-50%)' }}>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+          style={{ background: 'rgba(0,245,212,0.07)', border: '1px solid rgba(0,245,212,0.14)' }}>
+          <span className="font-heading text-[8px] font-black" style={{ color: 'rgba(0,245,212,0.4)' }}>○3</span>
+          <span className="font-heading text-[7px] font-black uppercase tracking-[0.45em]" style={{ color: 'rgba(0,245,212,0.25)' }}>ROOMS</span>
         </div>
-      )}
+      </div>
+
+      {/* Orbit 2: Echoes — top-center */}
+      <div className="absolute pointer-events-none select-none z-10"
+        style={{ top: `${CY - RING.middle.rY - 3}%`, left: '50%', transform: 'translateX(-50%)' }}>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+          style={{ background: 'rgba(255,107,53,0.07)', border: '1px solid rgba(255,107,53,0.14)' }}>
+          <span className="font-heading text-[8px] font-black" style={{ color: 'rgba(255,107,53,0.4)' }}>○2</span>
+          <span className="font-heading text-[7px] font-black uppercase tracking-[0.45em]" style={{ color: 'rgba(255,107,53,0.25)' }}>ECHOES</span>
+        </div>
+      </div>
+
+      {/* Orbit 1: Friends — top-right */}
+      <div className="absolute pointer-events-none select-none z-10"
+        style={{ top: `${CY - RING.inner.rY - 2.5}%`, left: '65%', transform: 'translateX(-50%)' }}>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+          style={{ background: 'rgba(255,230,0,0.07)', border: '1px solid rgba(255,230,0,0.14)' }}>
+          <span className="font-heading text-[8px] font-black" style={{ color: 'rgba(255,230,0,0.4)' }}>○1</span>
+          <span className="font-heading text-[7px] font-black uppercase tracking-[0.45em]" style={{ color: 'rgba(255,230,0,0.25)' }}>FRIENDS</span>
+        </div>
+      </div>
 
       {/* ── Universe title ───────────────────────────────────────────────────── */}
       <div className="absolute top-7 left-1/2 z-10 -translate-x-1/2 text-center">
@@ -402,6 +595,7 @@ export default function BubbleUniverse() {
         <p className="mt-1 font-heading text-xs font-black uppercase tracking-[0.3em] text-[#FF3AF2]/50">
           {rooms.length} {rooms.length === 1 ? 'room' : 'rooms'}
           {dmList.length > 0 ? ` · ${dmList.length} friend${dmList.length !== 1 ? 's' : ''}` : ''}
+          {echoes?.length > 0 ? ` · ${echoes.length} echo${echoes.length !== 1 ? 'es' : ''}` : ''}
           {' · click to enter'}
         </p>
       </div>
@@ -423,50 +617,19 @@ export default function BubbleUniverse() {
       ))}
 
       {/* ── Profile hub ──────────────────────────────────────────────────────── */}
-      <div
-        ref={hubRef}
-        className="absolute z-30"
-        style={{ left: `${CX}%`, top: `${CY}%`, transform: 'translate(-50%, -50%)' }}
-      >
-        {/* Outer pulse ring */}
-        <div
-          className="absolute rounded-full animate-spin-slow pointer-events-none"
-          style={{
-            inset: '-18px',
-            border: `1px solid ${me?.color ?? '#FF3AF2'}44`,
-          }}
-        />
-        {/* Inner dashed ring */}
-        <div
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            inset: '-8px',
-            border: `1px dashed ${me?.color ?? '#FF3AF2'}22`,
-          }}
-        />
-        {/* Glow */}
-        <div
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            inset: '-28px',
-            background: `radial-gradient(circle, ${me?.color ?? '#FF3AF2'}18, transparent 70%)`,
-          }}
-        />
+      <div ref={hubRef} className="absolute z-30"
+        style={{ left: `${CX}%`, top: `${CY}%`, transform: 'translate(-50%, -50%)' }}>
+        <div className="absolute rounded-full animate-spin-slow pointer-events-none"
+          style={{ inset: '-18px', border: `1px solid ${me?.color ?? '#FF3AF2'}44` }} />
+        <div className="absolute rounded-full pointer-events-none"
+          style={{ inset: '-8px', border: `1px dashed ${me?.color ?? '#FF3AF2'}22` }} />
+        <div className="absolute rounded-full pointer-events-none"
+          style={{ inset: '-28px', background: `radial-gradient(circle, ${me?.color ?? '#FF3AF2'}18, transparent 70%)` }} />
 
-        {/* Clickable avatar card */}
-        <button
-          onClick={() => setHubOpen((v) => !v)}
-          className="relative flex flex-col items-center gap-1.5 group"
-          title="Your profile"
-        >
-          {/* Avatar image */}
-          <div
-            className="relative w-16 h-16 rounded-full overflow-hidden transition-all duration-300 group-hover:scale-110"
-            style={{
-              border: `3px solid ${me?.color ?? '#FF3AF2'}`,
-              boxShadow: `0 0 20px ${me?.color ?? '#FF3AF2'}66, 0 0 48px ${me?.color ?? '#FF3AF2'}22`,
-            }}
-          >
+        <button onClick={() => setHubOpen(v => !v)}
+          className="relative flex flex-col items-center gap-1.5 group" title="Your profile">
+          <div className="relative w-16 h-16 rounded-full overflow-hidden transition-all duration-300 group-hover:scale-110"
+            style={{ border: `3px solid ${me?.color ?? '#FF3AF2'}`, boxShadow: `0 0 20px ${me?.color ?? '#FF3AF2'}66, 0 0 48px ${me?.color ?? '#FF3AF2'}22` }}>
             {me?.avatar
               ? <img src={avatarUrl(me.avatar)} alt={me.username} className="w-full h-full object-cover" />
               : <span className="w-full h-full flex items-center justify-center font-heading text-2xl font-black text-white">
@@ -474,37 +637,23 @@ export default function BubbleUniverse() {
                 </span>
             }
           </div>
-
-          {/* Username pill */}
-          <span
-            className="font-heading text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-            style={{
-              color: me?.color ?? '#FF3AF2',
-              background: `${me?.color ?? '#FF3AF2'}18`,
-              border: `1px solid ${me?.color ?? '#FF3AF2'}44`,
-            }}
-          >
+          <span className="font-heading text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+            style={{ color: me?.color ?? '#FF3AF2', background: `${me?.color ?? '#FF3AF2'}18`, border: `1px solid ${me?.color ?? '#FF3AF2'}44` }}>
             {me?.username ?? '…'}
           </span>
         </button>
 
-        {/* ── Profile panel (open on click) ──────────────────────────────────── */}
         {hubOpen && (
-          <div
-            className="absolute bottom-[calc(100%+1rem)] left-1/2 -translate-x-1/2 w-64 animate-appear"
+          <div className="absolute bottom-[calc(100%+1rem)] left-1/2 -translate-x-1/2 w-64 animate-appear"
             style={{
               background: 'rgba(13,13,26,0.97)',
               border: `2px solid ${me?.color ?? '#FF3AF2'}55`,
               borderRadius: '1.25rem',
               boxShadow: `0 0 40px ${me?.color ?? '#FF3AF2'}33, 0 12px 40px rgba(0,0,0,0.6)`,
-            }}
-          >
-            {/* Header */}
+            }}>
             <div className="flex items-center gap-3 p-4 border-b border-white/8">
-              <div
-                className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0"
-                style={{ border: `2px solid ${me?.color ?? '#FF3AF2'}` }}
-              >
+              <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0"
+                style={{ border: `2px solid ${me?.color ?? '#FF3AF2'}` }}>
                 {me?.avatar
                   ? <img src={avatarUrl(me.avatar)} alt="" className="w-full h-full object-cover" />
                   : <span className="w-full h-full flex items-center justify-center font-heading text-lg font-black text-white">
@@ -513,12 +662,8 @@ export default function BubbleUniverse() {
                 }
               </div>
               <div className="min-w-0">
-                <p className="font-heading text-sm font-black uppercase tracking-tight text-white truncate">
-                  {me?.username}
-                </p>
-                {me?.tag && (
-                  <p className="font-heading text-[10px] text-white/40">#{me.tag}</p>
-                )}
+                <p className="font-heading text-sm font-black uppercase tracking-tight text-white truncate">{me?.username}</p>
+                {me?.tag && <p className="font-heading text-[10px] text-white/40">#{me.tag}</p>}
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ boxShadow: '0 0 4px #34d399' }} />
                   <span className="font-heading text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Online</span>
@@ -526,55 +671,38 @@ export default function BubbleUniverse() {
               </div>
             </div>
 
-            {/* ── Ring size controls ──────────────────────────────────────────── */}
             <div className="px-4 py-3 border-b border-white/8">
-              <p className="font-heading text-[9px] font-black uppercase tracking-[0.4em] text-white/30 mb-2">
-                Bubble sizes
-              </p>
+              <p className="font-heading text-[9px] font-black uppercase tracking-[0.4em] text-white/30 mb-2">Bubble sizes</p>
               {[
-                { key: 'inner',  label: 'Friends (orbit 1)',  color: '#FFE600' },
-                { key: 'middle', label: 'Echoes (orbit 2)',   color: '#FF6B35' },
-                { key: 'outer',  label: 'Rooms (orbit 3)',    color: '#00F5D4' },
+                { key: 'inner',  label: 'Friends (orbit 1)', color: '#FFE600' },
+                { key: 'middle', label: 'Echoes (orbit 2)',  color: '#FF6B35' },
+                { key: 'outer',  label: 'Rooms (orbit 3)',   color: '#00F5D4' },
               ].map(({ key, label, color }) => (
                 <div key={key} className="flex items-center gap-2 mb-2 last:mb-0">
-                  <span
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}` }}
-                  />
+                  <span className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}` }} />
                   <span className="font-heading text-[10px] font-bold text-white/60 flex-1 truncate">{label}</span>
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); changeScale(key, -0.15); }}
-                      className="w-5 h-5 rounded-full flex items-center justify-center font-heading text-xs font-black text-white/50 hover:text-white hover:bg-white/10 transition-all"
-                    >−</button>
-                    <span
-                      className="w-8 text-center font-heading text-[10px] font-black"
-                      style={{ color }}
-                    >
+                    <button onClick={e => { e.stopPropagation(); changeScale(key, -0.15); }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center font-heading text-xs font-black text-white/50 hover:text-white hover:bg-white/10 transition-all">−</button>
+                    <span className="w-8 text-center font-heading text-[10px] font-black" style={{ color }}>
                       {Math.round(scales[key] * 100)}%
                     </span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); changeScale(key, +0.15); }}
-                      className="w-5 h-5 rounded-full flex items-center justify-center font-heading text-xs font-black text-white/50 hover:text-white hover:bg-white/10 transition-all"
-                    >+</button>
+                    <button onClick={e => { e.stopPropagation(); changeScale(key, +0.15); }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center font-heading text-xs font-black text-white/50 hover:text-white hover:bg-white/10 transition-all">+</button>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* ── Action buttons ──────────────────────────────────────────────── */}
             <div className="flex gap-2 p-3">
-              <button
-                onClick={(e) => { e.stopPropagation(); setEditingAvatar(true); setHubOpen(false); }}
+              <button onClick={e => { e.stopPropagation(); setEditingAvatar(true); setHubOpen(false); }}
                 className="flex-1 rounded-full py-2 font-heading text-[10px] font-black uppercase tracking-widest text-white/80 hover:text-white transition-all"
-                style={{ background: `${me?.color ?? '#FF3AF2'}22`, border: `1px solid ${me?.color ?? '#FF3AF2'}55` }}
-              >
+                style={{ background: `${me?.color ?? '#FF3AF2'}22`, border: `1px solid ${me?.color ?? '#FF3AF2'}55` }}>
                 Edit Avatar
               </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setAuthUser(null); }}
-                className="flex-1 rounded-full py-2 font-heading text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white/80 transition-all border border-white/10 hover:border-white/20"
-              >
+              <button onClick={e => { e.stopPropagation(); setAuthUser(null); }}
+                className="flex-1 rounded-full py-2 font-heading text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white/80 transition-all border border-white/10 hover:border-white/20">
                 Sign Out
               </button>
             </div>
@@ -582,7 +710,7 @@ export default function BubbleUniverse() {
         )}
       </div>
 
-      {/* ── Orbit 1: Friends — inner ring (DM partners) ──────────────────────── */}
+      {/* ── Orbit 1: Friends — inner ring ────────────────────────────────────── */}
       {innerVisible.map((dm, i) => {
         const other       = dm.participants?.find(p => p.id !== me?.id);
         const unreadCount = dmUnread?.[dm.id] ?? 0;
@@ -592,7 +720,6 @@ export default function BubbleUniverse() {
         const pX = (mouse.x - 0.5) * 5 * -1;
         const pY = (mouse.y - 0.5) * 5 * -1;
         const sz = Math.round(78 * scales.inner);
-
         return (
           <button key={dm.id}
             className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
@@ -606,14 +733,7 @@ export default function BubbleUniverse() {
             title={lastMsg ? `${other?.username}: ${lastMsg.text}` : other?.username}
           >
             <div className="relative flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-              style={{
-                width: sz, height: sz,
-                background: `${color}18`,
-                border: `3px solid ${color}88`,
-                borderRadius: '28%',
-                boxShadow: `0 0 16px ${color}44`,
-              }}
-            >
+              style={{ width: sz, height: sz, background: `${color}18`, border: `3px solid ${color}88`, borderRadius: '28%', boxShadow: `0 0 16px ${color}44` }}>
               {other?.avatar
                 ? <img src={avatarUrl(other.avatar)} alt="" className="w-full h-full object-cover rounded-[inherit]" style={{ borderRadius: '22%' }} />
                 : <span className="font-heading font-black text-white select-none" style={{ fontSize: sz * 0.3 }}>
@@ -627,8 +747,7 @@ export default function BubbleUniverse() {
                 </span>
               )}
             </div>
-            <span className="font-heading text-[9px] font-black uppercase tracking-widest"
-              style={{ color: `${color}cc` }}>
+            <span className="font-heading text-[9px] font-black uppercase tracking-widest" style={{ color: `${color}cc` }}>
               {other?.username ?? '…'}
             </span>
           </button>
@@ -638,16 +757,74 @@ export default function BubbleUniverse() {
         <OverflowBubble pos={innerPos[innerVisible.length]} count={innerOverflow} color="#FFE600" />
       )}
 
-      {/* ── Orbit 2: Echoes — middle ring (under construction) ───────────────── */}
-      {middleVisible.map((echo, i) => {
-        const pos = middlePos[i];
-        const pX  = (mouse.x - 0.5) * 8 * -1;
-        const pY  = (mouse.y - 0.5) * 8 * -1;
-        const sz  = Math.round(62 * scales.middle);
+      {/* ── Orbit 2: Echoes — middle ring (real echoes + ghost fill) ─────────── */}
+      {middlePos.map((pos, i) => {
+        const pX = (mouse.x - 0.5) * 8 * -1;
+        const pY = (mouse.y - 0.5) * 8 * -1;
+        const isReal = i < realEchoes.length;
 
+        if (isReal) {
+          const echo = realEchoes[i];
+          const sz   = Math.round(68 * scales.middle);
+          return (
+            <button
+              key={echo.id}
+              className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
+              style={{
+                left: pos.left, top: pos.top,
+                transform: `translate(calc(-50% + ${pX}px), calc(-50% + ${pY}px))`,
+                transition: 'transform 0.12s ease-out',
+                animationDelay: `${i * 0.8}s`,
+              }}
+              onClick={() => setViewEcho(echo)}
+              title={`${echo.username}: ${echo.text}`}
+            >
+              {/* Echo bubble */}
+              <div
+                className="relative flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                style={{
+                  width: sz, height: sz,
+                  background: `${echo.color}15`,
+                  border: `2.5px solid ${echo.color}70`,
+                  borderRadius: '50%',
+                  boxShadow: `0 0 18px ${echo.color}44`,
+                }}
+              >
+                {/* User avatar or initial */}
+                {echo.avatar && echo.avatar !== 'Stargazer'
+                  ? <img src={avatarUrl(echo.avatar)} alt="" className="w-full h-full object-cover rounded-full" />
+                  : <span className="font-heading font-black text-white select-none" style={{ fontSize: sz * 0.3 }}>
+                      {echo.username?.[0]?.toUpperCase() ?? '?'}
+                    </span>
+                }
+                {/* Echo text badge */}
+                <div
+                  className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center rounded-full px-1.5 py-0.5"
+                  style={{
+                    background: `${echo.color}cc`,
+                    border: '1.5px solid rgba(13,13,26,0.8)',
+                    minWidth: 22,
+                    fontSize: 11,
+                    lineHeight: 1,
+                  }}
+                >
+                  {echo.text}
+                </div>
+              </div>
+              <span className="font-heading text-[8px] font-black uppercase tracking-widest mt-1"
+                style={{ color: `${echo.color}bb` }}>
+                {echo.username}
+              </span>
+            </button>
+          );
+        }
+
+        // Ghost placeholder
+        const ghost = ghostSlots[i - realEchoes.length];
+        if (!ghost) return null;
+        const sz = Math.round(60 * scales.middle);
         return (
-          <div
-            key={echo.id}
+          <div key={ghost.id}
             className="absolute z-10 flex flex-col items-center gap-1 animate-float-slow"
             style={{
               left: pos.left, top: pos.top,
@@ -655,48 +832,38 @@ export default function BubbleUniverse() {
               transition: 'transform 0.12s ease-out',
               animationDelay: `${i * 1.1}s`,
             }}
-            title="Echoes orbit — coming soon"
+            title="Echoes orbit — pulse something to appear here"
           >
             <div
               className="relative flex items-center justify-center animate-pulse"
               style={{
                 width: sz, height: sz,
-                background: `${echo.color}08`,
-                border: `2px dashed ${echo.color}30`,
-                borderRadius: '28%',
-                boxShadow: `0 0 10px ${echo.color}18`,
+                background: `${ghost.color}07`,
+                border: `2px dashed ${ghost.color}28`,
+                borderRadius: '50%',
+                boxShadow: `0 0 10px ${ghost.color}14`,
                 animationDelay: `${i * 0.7}s`,
-                animationDuration: '3s',
+                animationDuration: '3.5s',
               }}
             >
-              <span style={{ fontSize: sz * 0.38, opacity: 0.3 }}>{echo.glyph}</span>
-              {/* Construction badge */}
-              <div
-                className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full"
-                style={{ background: 'rgba(13,13,26,0.9)', border: `1px solid ${echo.color}30` }}
-              >
-                <span style={{ fontSize: 8 }}>🚧</span>
+              <span style={{ fontSize: sz * 0.38, opacity: 0.22 }}>{ghost.glyph}</span>
+              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(13,13,26,0.9)', border: `1px solid ${ghost.color}28`, fontSize: 8 }}>
+                🚧
               </div>
             </div>
-            <span
-              className="font-heading text-[7px] font-black uppercase tracking-widest"
-              style={{ color: `${echo.color}30` }}
-            >
-              {echo.label}
-            </span>
           </div>
         );
       })}
 
-      {/* ── Orbit 3: Rooms — outer ring (customizable) ───────────────────────── */}
+      {/* ── Orbit 3: Rooms — outer ring ──────────────────────────────────────── */}
       {outerVisible.map((room, i) => {
         const pos   = outerPos[i];
         const depth = 14 + (i % 4) * 2;
         return (
           <RoomBubble key={room.id} room={room} index={i}
             style={{ left: pos.left, top: pos.top }}
-            centered
-            sizeScale={scales.outer}
+            centered sizeScale={scales.outer}
             onEnter={() => enterRoom(room.id)}
             unread={unread[room.id] ?? 0}
             parallaxX={(mouse.x - 0.5) * depth * -1}
@@ -707,10 +874,10 @@ export default function BubbleUniverse() {
         );
       })}
 
-      {/* ── "+" customize button — always occupies the last outer slot ───────── */}
+      {/* ── "+" customize button — always last outer slot ─────────────────────── */}
       {outerPos[outerVisible.length] && (() => {
-        const pos  = outerPos[outerVisible.length];
-        const sz   = Math.round(88 * scales.outer);
+        const pos = outerPos[outerVisible.length];
+        const sz  = Math.round(88 * scales.outer);
         return (
           <button
             className="absolute z-20 flex flex-col items-center justify-center gap-1 animate-float group"
@@ -722,29 +889,22 @@ export default function BubbleUniverse() {
               border: '2px dashed rgba(0,245,212,0.28)',
               borderRadius: '50%',
               boxShadow: '0 0 18px rgba(0,245,212,0.08)',
-              transition: 'all 0.2s ease',
             }}
             onClick={() => setShowCustomizer(true)}
             title="Customize your room orbit"
           >
-            <span
-              className="font-heading text-2xl font-black transition-all duration-200 group-hover:scale-125"
-              style={{ color: 'rgba(0,245,212,0.45)' }}
-            >+</span>
-            <span
-              className="font-heading text-[7px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200"
-              style={{ color: 'rgba(0,245,212,0.5)' }}
-            >orbit</span>
+            <span className="font-heading text-2xl font-black transition-all duration-200 group-hover:scale-125"
+              style={{ color: 'rgba(0,245,212,0.45)' }}>+</span>
+            <span className="font-heading text-[7px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200"
+              style={{ color: 'rgba(0,245,212,0.5)' }}>orbit</span>
           </button>
         );
       })()}
 
-      {/* ── Online users panel — top-right ──────────────────────────────────── */}
+      {/* ── Online users panel ───────────────────────────────────────────────── */}
       <div className="absolute top-6 right-6 z-30 w-52">
-        <button
-          onClick={() => setShowOnline((v) => !v)}
-          className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-[#00F5D4]/60 bg-[#0D0D1A]/70 px-3 py-2 backdrop-blur-sm transition-all hover:border-[#00F5D4]"
-        >
+        <button onClick={() => setShowOnline(v => !v)}
+          className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-[#00F5D4]/60 bg-[#0D0D1A]/70 px-3 py-2 backdrop-blur-sm transition-all hover:border-[#00F5D4]">
           <span className="font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4]">
             {Object.keys(onlineUsers).length + 1} online
           </span>
@@ -759,7 +919,7 @@ export default function BubbleUniverse() {
                 <span className="font-heading text-[9px] font-black text-[#FFE600]">you</span>
               </div>
             )}
-            {Object.values(onlineUsers).map((user) => (
+            {Object.values(onlineUsers).map(user => (
               <div key={user.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5">
                 <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: user.color, boxShadow: `0 0 6px ${user.color}` }} />
                 <span className="flex-1 truncate font-heading text-[11px] font-black text-white/80">{user.username}</span>
@@ -772,25 +932,37 @@ export default function BubbleUniverse() {
         )}
       </div>
 
+      {/* ── Pulse Echo button — bottom-left ──────────────────────────────────── */}
+      <div className="absolute bottom-8 left-8 z-30">
+        <button
+          onClick={() => setShowPulse(true)}
+          className="rounded-full border-2 px-6 py-3 font-heading text-sm font-black uppercase tracking-widest text-white transition-all duration-300 hover:scale-110"
+          style={{
+            borderColor: 'rgba(255,107,53,0.6)',
+            background: 'rgba(255,107,53,0.12)',
+            boxShadow: '0 0 20px rgba(255,107,53,0.25)',
+          }}
+        >
+          🔮 Pulse
+        </button>
+      </div>
+
       {/* ── Create room — bottom-right ───────────────────────────────────────── */}
       <div className="absolute bottom-8 right-8 z-30">
         {creating ? (
           <form onSubmit={createRoom}
             className="animate-appear flex flex-col gap-3 rounded-3xl border-4 border-[#FFE600] bg-[#2D1B4E]/95 p-6 backdrop-blur-sm"
-            style={{ boxShadow: '0 0 20px rgba(255,58,242,0.4)' }}
-          >
+            style={{ boxShadow: '0 0 20px rgba(255,58,242,0.4)' }}>
             <label className="font-heading text-xs font-black uppercase tracking-widest text-[#FFE600]">Room name</label>
-            <input autoFocus value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)}
+            <input autoFocus value={newRoomName} onChange={e => setNewRoomName(e.target.value)}
               placeholder="SUPERNOVA…" maxLength={32}
-              className="rounded-full border-4 border-[#FF3AF2] bg-[#0D0D1A] px-5 py-3 font-heading text-sm font-black uppercase tracking-widest text-white placeholder-white/25 outline-none transition-all duration-300 focus:border-[#00F5D4] focus:ring-4 focus:ring-[#FF3AF2]/30"
-            />
+              className="rounded-full border-4 border-[#FF3AF2] bg-[#0D0D1A] px-5 py-3 font-heading text-sm font-black uppercase tracking-widest text-white placeholder-white/25 outline-none transition-all duration-300 focus:border-[#00F5D4] focus:ring-4 focus:ring-[#FF3AF2]/30" />
             <label className="font-heading text-xs font-black uppercase tracking-widest text-[#00F5D4]">
               Description <span className="font-normal normal-case text-white/30">(optional)</span>
             </label>
-            <input value={newRoomDesc} onChange={(e) => setNewRoomDesc(e.target.value)}
+            <input value={newRoomDesc} onChange={e => setNewRoomDesc(e.target.value)}
               placeholder="What happens here…" maxLength={120}
-              className="rounded-full border-4 border-[#00F5D4]/50 bg-[#0D0D1A] px-5 py-2.5 font-heading text-sm font-bold tracking-wide text-white placeholder-white/20 outline-none transition-all duration-300 focus:border-[#00F5D4] focus:ring-4 focus:ring-[#00F5D4]/20"
-            />
+              className="rounded-full border-4 border-[#00F5D4]/50 bg-[#0D0D1A] px-5 py-2.5 font-heading text-sm font-bold tracking-wide text-white placeholder-white/20 outline-none transition-all duration-300 focus:border-[#00F5D4] focus:ring-4 focus:ring-[#00F5D4]/20" />
             <div className="flex gap-2">
               <button type="submit"
                 className="flex-1 rounded-full border-4 border-[#FFE600] bg-gradient-to-r from-[#FF3AF2] via-[#7B2FFF] to-[#00F5D4] px-5 py-2.5 font-heading text-sm font-black uppercase tracking-widest text-white transition-all duration-200 hover:scale-105">
@@ -812,7 +984,24 @@ export default function BubbleUniverse() {
         )}
       </div>
 
-      {/* ── Orbit Customizer Modal ───────────────────────────────────────────── */}
+      {/* ── Modals ───────────────────────────────────────────────────────────── */}
+      {showPulse && (
+        <PulsePicker
+          activeRoomName={activeRoomName}
+          onPulse={pulseEcho}
+          onClose={() => setShowPulse(false)}
+        />
+      )}
+
+      {viewEcho && (
+        <EchoProfileModal
+          echo={viewEcho}
+          isOnline={!!onlineUsers[viewEcho.userId]}
+          onDm={() => openDm(viewEcho.userId)}
+          onClose={() => setViewEcho(null)}
+        />
+      )}
+
       {showCustomizer && (
         <OrbitCustomizerModal
           rooms={sortedRooms}
@@ -822,11 +1011,10 @@ export default function BubbleUniverse() {
         />
       )}
 
-      {/* ── Avatar picker modal ──────────────────────────────────────────────── */}
       {editingAvatar && (
         <AvatarPickerModal
           current={me?.avatar}
-          onSave={(seed) => { socket.emit('avatar:change', { avatar: seed }); setEditingAvatar(false); }}
+          onSave={seed => { socket.emit('avatar:change', { avatar: seed }); setEditingAvatar(false); }}
           onClose={() => setEditingAvatar(false)}
         />
       )}

@@ -291,6 +291,26 @@ export function getMessageSeenBy(messageId) {
   return [...seen.values()];
 }
 
+// ─── Echoes ───────────────────────────────────────────────────────────────────
+// Ephemeral short-lived signals users can pulse. Not persisted to DB.
+
+const echoes = {}; // echoId → echo object
+
+export function addEcho(echoData) {
+  echoes[echoData.id] = echoData;
+}
+
+export function removeEcho(echoId) {
+  const had = !!echoes[echoId];
+  delete echoes[echoId];
+  return had;
+}
+
+export function getActiveEchoes() {
+  const now = Date.now();
+  return Object.values(echoes).filter(e => e.expiresAt > now);
+}
+
 // ─── Serializers ──────────────────────────────────────────────────────────────
 
 export function serializeRoom(room) {

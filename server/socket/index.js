@@ -1,8 +1,9 @@
-import { addUser, removeUser, getAllRooms, joinRoom, updateUserAvatar } from '../store/index.js';
+import { addUser, removeUser, getAllRooms, joinRoom, updateUserAvatar, getActiveEchoes } from '../store/index.js';
 import { dbGetUser, dbUpdateUserAvatar } from '../db/index.js';
 import { registerRoomHandlers } from './roomHandlers.js';
 import { registerMessageHandlers } from './messageHandlers.js';
 import { registerDmHandlers } from './dmHandlers.js';
+import { registerEchoHandlers } from './echoHandlers.js';
 
 const GENERAL_ROOM_ID = 'general';
 
@@ -23,6 +24,7 @@ export function initSocket(io) {
     socket.emit('connected', {
       user,
       rooms: getAllRooms(),
+      echoes: getActiveEchoes(),
     });
 
     // Notify everyone that a new user is online
@@ -32,6 +34,7 @@ export function initSocket(io) {
     registerRoomHandlers(io, socket);
     registerMessageHandlers(io, socket);
     registerDmHandlers(io, socket);
+    registerEchoHandlers(io, socket);
 
     // ── Avatar change ────────────────────────────────────────────────────────
 

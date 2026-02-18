@@ -25,8 +25,8 @@ export function useSocket(dispatch, authUser, stateRef) {
 
     // ── Connection lifecycle ────────────────────────────────────────────────
 
-    socket.on('connected', ({ user, rooms }) => {
-      dispatch({ type: 'CONNECTED', user, rooms });
+    socket.on('connected', ({ user, rooms, echoes }) => {
+      dispatch({ type: 'CONNECTED', user, rooms, echoes: echoes ?? [] });
     });
 
     socket.on('disconnect', () => {
@@ -109,6 +109,16 @@ export function useSocket(dispatch, authUser, stateRef) {
 
     socket.on('dm:received', ({ dmId, participants, message }) => {
       dispatch({ type: 'DM_RECEIVED', dmId, participants, message });
+    });
+
+    // ── Echoes ──────────────────────────────────────────────────────────────
+
+    socket.on('echo:new', ({ echo }) => {
+      dispatch({ type: 'ECHO_NEW', echo });
+    });
+
+    socket.on('echo:expire', ({ echoId }) => {
+      dispatch({ type: 'ECHO_EXPIRE', echoId });
     });
 
     // ── Typing ──────────────────────────────────────────────────────────────

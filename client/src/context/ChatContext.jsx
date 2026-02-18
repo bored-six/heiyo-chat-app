@@ -27,6 +27,7 @@ const initialState = {
   typing: {},
   unread: {},
   dmUnread: {},
+  echoes: [],
 };
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -39,8 +40,19 @@ function reducer(state, action) {
         connected: true,
         me: action.user,
         rooms: action.rooms,
+        echoes: action.echoes ?? [],
         onlineUsers: {},
       };
+
+    case 'ECHO_NEW': {
+      // Avoid duplicates (e.g. own echo after reconnect)
+      const already = state.echoes.some(e => e.id === action.echo.id);
+      if (already) return state;
+      return { ...state, echoes: [...state.echoes, action.echo] };
+    }
+
+    case 'ECHO_EXPIRE':
+      return { ...state, echoes: state.echoes.filter(e => e.id !== action.echoId) };
 
     case 'DISCONNECTED':
       return { ...state, connected: false };
