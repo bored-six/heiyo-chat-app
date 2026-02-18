@@ -62,11 +62,15 @@ export function getRoom(roomId) { ... }
 ```js
 {
   id: uuid,
-  userId: socket.id,
-  username: 'SwiftOtter',
-  color: '#e74c3c',
+  senderId: socket.id,
+  senderName: 'SwiftOtter',
+  senderColor: '#e74c3c',
+  senderAvatar: 'Stargazer',  // avatar seed string
+  senderTag: '1234',          // 4-digit discriminator tag
   text: 'Hello',
-  timestamp: Date.now()
+  timestamp: Date.now(),
+  reactions: { '👍': ['socketId1', 'socketId2'] }, // empty {} if none
+  replyTo: { id: uuid, text: 'quoted text', senderName: 'Name' } | null
 }
 ```
 
@@ -76,18 +80,23 @@ export function getRoom(roomId) { ... }
 {
   id: socket.id,
   username: 'SwiftOtter',
-  color: '#e74c3c'
+  color: '#e74c3c',
+  avatar: 'Stargazer',
+  tag: '1234',
+  connectedAt: Date.now()
 }
 ```
 
-### Room Object Shape
+### Room Object Shape (serialized — sent to client)
 
 ```js
 {
   id: uuid,
   name: 'General',
-  members: [socket.id, ...],
-  messages: [/* message objects, max 100 */]
+  description: 'optional subtitle',  // '' if not set
+  type: 'room',
+  memberCount: 3,
+  createdAt: Date.now()
 }
 ```
 

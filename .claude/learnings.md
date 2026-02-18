@@ -10,6 +10,18 @@
 - `server/store/index.js` is the single source of truth — import from here, never duplicate state.
 - Message trimming (keeping last 100) happens inside the store on every `addMessage` call.
 
+## [2026-02-18] - Quick-win features batch (search, reply, online panel, room desc)
+
+- **Message search is purely client-side** — no new socket events; just filter `roomMessages[roomId]` on `searchQuery` before passing to `MessageList`. Works identically for DMs.
+- **Text highlighting** requires splitting on a regex with a capture group so React can wrap matches in `<mark>` elements. Pattern: `text.split(new RegExp('(query)', 'gi'))`.
+- **Reply/quote is a two-layer concern** — the quoted block is stored as `replyTo: { id, text, senderName }` on the message; the server sanitizes it server-side (cap text, cast to string) before persisting. Client only holds `replyingTo` in local state, not global context.
+- **DB migrations follow the existing try/catch ALTER TABLE pattern** — add new nullable columns that way; never change the `CREATE TABLE` definition (breaks existing DBs).
+- **`replyTo` must be serialized as plain fields** in the DB (reply_to_id, reply_to_text, reply_to_sender) — SQLite can't store objects; reconstruct the object in `dbRowToMessage`.
+- **Online users panel in BubbleUniverse** reuses `onlineUsers` from context directly — no new socket events needed.
+- **Room description** flows through the full stack: client form → `room:create` payload → roomHandlers → `createRoom(name, desc)` → `serializeRoom` includes it → `room:created` broadcast → RoomBubble renders it.
+- **Escape key to cancel reply** is a good UX pattern — handled in MessageInput's `onKeyDown`.
+- **`Esc` to cancel reply info hint** shown conditionally in the footer hint line — only when `replyingTo` is active.
+
 ## [2026-02-18] - Client UI (Step 4)
 
 - Tailwind CSS v4 uses `@import "tailwindcss"` in CSS + `@tailwindcss/vite` plugin — no `tailwind.config.js` needed.
