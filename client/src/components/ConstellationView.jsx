@@ -244,7 +244,7 @@ export default function ConstellationView({ messages, myId, accent = '#FF3AF2' }
                 />
               </div>
               <span
-                className="whitespace-nowrap font-heading text-[9px] font-black uppercase tracking-widest"
+                className="whitespace-nowrap font-heading text-[9px] font-black tracking-widest"
                 style={{
                   color: a.color,
                   textShadow: `0 0 10px ${a.color}`,
@@ -328,7 +328,7 @@ export default function ConstellationView({ messages, myId, accent = '#FF3AF2' }
                         style={{ border: `1.5px solid ${anchor.color}` }}
                       />
                       <span
-                        className="font-heading text-[10px] font-black uppercase tracking-tight"
+                        className="font-heading text-[10px] font-black tracking-tight"
                         style={{ color: anchor.color }}
                       >
                         {anchor.name}

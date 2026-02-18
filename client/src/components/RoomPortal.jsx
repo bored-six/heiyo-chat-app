@@ -315,7 +315,7 @@ function Portal({
                   style={{ border: `1.5px solid ${m.color ?? accent}` }}
                 />
                 <span
-                  className="font-heading text-[11px] font-black uppercase tracking-tight"
+                  className="font-heading text-[11px] font-black tracking-tight"
                   style={{ color: m.color ?? accent }}
                 >
                   {m.username}

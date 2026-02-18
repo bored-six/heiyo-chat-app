@@ -33,7 +33,7 @@ export default function OnlineUsersPanel({ onClose }) {
             className="h-8 w-8 flex-shrink-0 rounded-full"
             style={{ border: `2px solid ${me.color}`, boxShadow: `0 0 8px ${me.color}88` }}
           />
-          <span className="flex-1 truncate font-heading text-sm font-black uppercase text-white">
+          <span className="flex-1 truncate font-heading text-sm font-black text-white">
             {me.username}
             {me.tag && (
               <span className="font-heading text-[9px] font-bold normal-case tracking-normal text-white/35 ml-0.5">
@@ -66,7 +66,7 @@ export default function OnlineUsersPanel({ onClose }) {
                   className="h-8 w-8 flex-shrink-0 rounded-full"
                   style={{ border: `2px solid ${user.color}`, boxShadow: `0 0 8px ${user.color}88` }}
                 />
-                <span className="flex-1 truncate font-heading text-sm font-black uppercase text-white">
+                <span className="flex-1 truncate font-heading text-sm font-black text-white">
                   {user.username}
                   {user.tag && (
                     <span className="font-heading text-[9px] font-bold normal-case tracking-normal text-white/35 ml-0.5">

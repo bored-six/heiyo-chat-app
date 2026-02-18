@@ -33,7 +33,7 @@ export default function TypingIndicator({ roomId }) {
           />
         ))}
       </span>
-      <span className="font-heading text-[10px] font-black uppercase tracking-widest text-[#FF3AF2]/65">
+      <span className="font-heading text-[10px] font-black tracking-widest text-[#FF3AF2]/65">
         {label}
       </span>
     </div>

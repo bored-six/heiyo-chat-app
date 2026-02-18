@@ -71,7 +71,7 @@ export default function UserBadge() {
               </div>
               <div className="min-w-0">
                 <p
-                  className="font-heading text-sm font-black uppercase tracking-tight text-white truncate"
+                  className="font-heading text-sm font-black tracking-tight text-white truncate"
                   style={{ textShadow: `1px 1px 0 ${me.color}` }}
                 >
                   {me.username}
@@ -170,7 +170,7 @@ export default function UserBadge() {
           {/* Name */}
           <div>
             <p
-              className="font-heading text-sm font-black uppercase leading-none tracking-tight text-white"
+              className="font-heading text-sm font-black leading-none tracking-tight text-white"
               style={{ textShadow: `1px 1px 0 ${me.color}` }}
             >
               {me.username}

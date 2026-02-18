@@ -271,7 +271,7 @@ export default function BubbleUniverse() {
                   className="h-2 w-2 flex-shrink-0 rounded-full"
                   style={{ backgroundColor: me.color, boxShadow: `0 0 6px ${me.color}` }}
                 />
-                <span className="flex-1 truncate font-heading text-[11px] font-black uppercase text-white">
+                <span className="flex-1 truncate font-heading text-[11px] font-black text-white">
                   {me.username}
                 </span>
                 <span className="font-heading text-[9px] font-black text-[#FFE600]">you</span>
@@ -284,7 +284,7 @@ export default function BubbleUniverse() {
                   className="h-2 w-2 flex-shrink-0 rounded-full"
                   style={{ backgroundColor: user.color, boxShadow: `0 0 6px ${user.color}` }}
                 />
-                <span className="flex-1 truncate font-heading text-[11px] font-black uppercase text-white/80">
+                <span className="flex-1 truncate font-heading text-[11px] font-black text-white/80">
                   {user.username}
                 </span>
               </div>

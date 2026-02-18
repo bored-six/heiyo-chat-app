@@ -91,7 +91,7 @@ export default function MessageInput({
           <span className="flex-shrink-0 text-sm opacity-60">↩</span>
           <div className="min-w-0 flex-1">
             <span
-              className="block font-heading text-[10px] font-black uppercase tracking-tight"
+              className="block font-heading text-[10px] font-black tracking-tight"
               style={{ color: accent }}
             >
               {replyingTo.senderName}
@@ -128,7 +128,7 @@ export default function MessageInput({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder={roomId ? 'TRANSMIT…' : 'DIRECT TRANSMISSION…'}
-          className="flex-1 resize-none bg-transparent font-heading text-sm font-bold uppercase tracking-wide text-white placeholder-white/20 outline-none"
+          className="flex-1 resize-none bg-transparent font-heading text-sm font-bold tracking-wide text-white placeholder-white/20 outline-none"
           style={{ minHeight: '24px', maxHeight: '120px' }}
         />
         {/* SVG ring + circular send button + counter */}

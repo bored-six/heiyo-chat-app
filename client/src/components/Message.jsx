@@ -75,7 +75,7 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
       <div className={`min-w-0 flex-1 ${isOwn ? 'text-right' : ''}`}>
         <div className={`flex items-baseline gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}>
           <span
-            className="font-heading text-sm font-black uppercase tracking-tight"
+            className="font-heading text-sm font-black tracking-tight"
             style={{
               color: senderColor,
               textShadow: `1px 1px 0 #0D0D1A, 2px 2px 0 ${senderColor}55`,
@@ -102,7 +102,7 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
             <span className="flex-shrink-0 text-[10px] opacity-50">↩</span>
             <div className="min-w-0">
               <span
-                className="block font-heading text-[10px] font-black uppercase tracking-tight"
+                className="block font-heading text-[10px] font-black tracking-tight"
                 style={{ color: senderColor }}
               >
                 {replyTo.senderName}
