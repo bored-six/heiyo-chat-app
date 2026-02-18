@@ -74,6 +74,7 @@ npm install -D tailwindcss @tailwindcss/vite
 | `room:create` | `{ name }` | Create new room |
 | `room:list` | — | Request room list |
 | `message:send` | `{ roomId, text }` | Send room message (max 2000 chars) |
+| `message:seen` | `{ roomId, messageId }` | Mark message as seen |
 | `dm:open` | `{ toUserId }` | Open DM thread |
 | `dm:send` | `{ toUserId, text }` | Send DM |
 | `typing:start` | `{ roomId }` | Typing indicator on |
@@ -91,6 +92,8 @@ npm install -D tailwindcss @tailwindcss/vite
 | `room:list` | `{ rooms }` | Room list response |
 | `room:left` | `{ roomId }` | Leave confirmation |
 | `message:received` | `{ roomId, message }` | Room message broadcast |
+| `message:seen` | `{ roomId, messageId, seenBy }` | Seen receipt broadcast to room |
+| `room:updated` | `{ room }` | Room stats update (heat, lurkerCount, lastMessage) |
 | `dm:opened` | `{ dm }` | DM thread opened |
 | `dm:received` | `{ dmId, participants, message }` | DM to both parties |
 | `typing:update` | `{ roomId, typers }` | Typing socket IDs |
