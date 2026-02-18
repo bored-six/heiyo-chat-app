@@ -95,6 +95,16 @@ initDb();
 hydrateFromDb();
 initSocket(io);
 
+httpServer.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[server] Port ${PORT} in use — waiting for it to free up…`);
+    // Exit cleanly so node --watch retries once the previous process releases the port
+    process.exit(1);
+  } else {
+    throw err;
+  }
+});
+
 httpServer.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
