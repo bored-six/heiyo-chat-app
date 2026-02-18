@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import { avatarUrl } from '../utils/avatar.js';
+import ConstellationView from './ConstellationView.jsx';
 import MessageList from './MessageList.jsx';
 import MessageInput from './MessageInput.jsx';
 import TypingIndicator from './TypingIndicator.jsx';
@@ -17,6 +18,15 @@ export default function RoomPortal() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen]   = useState(false);
   const [replyingTo, setReplyingTo]   = useState(null); // { id, text, senderName }
+  const [viewMode,   setViewMode]     = useState('list'); // 'list' | 'constellation'
+
+  // Reset to list view whenever the active conversation changes
+  useEffect(() => {
+    setViewMode('list');
+    setSearchOpen(false);
+    setSearchQuery('');
+    setReplyingTo(null);
+  }, [activeRoomId, activeDmId]);
 
   function exitToVoid() {
     dispatch({ type: 'SET_ACTIVE_ROOM', roomId: null });
@@ -29,6 +39,10 @@ export default function RoomPortal() {
 
   function handleReply(msg) {
     setReplyingTo({ id: msg.id, text: msg.text, senderName: msg.senderName });
+  }
+
+  function toggleView() {
+    setViewMode((v) => (v === 'list' ? 'constellation' : 'list'));
   }
 
   // ── Active room ────────────────────────────────────────────────────────────
@@ -56,15 +70,23 @@ export default function RoomPortal() {
         onSearchOpen={() => setSearchOpen(true)}
         onSearchClose={closeSearch}
         onSearchChange={setSearchQuery}
+        viewMode={viewMode}
+        onToggleView={toggleView}
       >
-        <MessageList
-          messages={messages}
-          myId={me?.id}
-          highlight={searchQuery}
-          onReply={handleReply}
-          label={room?.name ?? ''}
-        />
-        <TypingIndicator roomId={activeRoomId} />
+        {viewMode === 'constellation' ? (
+          <ConstellationView messages={allMessages} myId={me?.id} accent={accent} />
+        ) : (
+          <>
+            <MessageList
+              messages={messages}
+              myId={me?.id}
+              highlight={searchQuery}
+              onReply={handleReply}
+              label={room?.name ?? ''}
+            />
+            <TypingIndicator roomId={activeRoomId} />
+          </>
+        )}
         <MessageInput
           roomId={activeRoomId}
           toUserId={null}
@@ -99,14 +121,20 @@ export default function RoomPortal() {
       onSearchOpen={() => setSearchOpen(true)}
       onSearchClose={closeSearch}
       onSearchChange={setSearchQuery}
+      viewMode={viewMode}
+      onToggleView={toggleView}
     >
-      <MessageList
-        messages={dmMessages}
-        myId={me?.id}
-        highlight={searchQuery}
-        onReply={handleReply}
-        label={`@ ${other.username}`}
-      />
+      {viewMode === 'constellation' ? (
+        <ConstellationView messages={allDmMessages} myId={me?.id} accent={accent} />
+      ) : (
+        <MessageList
+          messages={dmMessages}
+          myId={me?.id}
+          highlight={searchQuery}
+          onReply={handleReply}
+          label={`@ ${other.username}`}
+        />
+      )}
       <div className="h-6 flex-shrink-0" />
       <MessageInput
         roomId={null}
@@ -126,6 +154,7 @@ const MEMBER_MAX = 5;
 function Portal({
   title, accent, clash, onExit, children, members = [],
   searchOpen, searchQuery, onSearchOpen, onSearchClose, onSearchChange,
+  viewMode = 'list', onToggleView,
 }) {
   const [showMembers, setShowMembers] = useState(false);
   const searchInputRef = useRef(null);
@@ -200,8 +229,23 @@ function Portal({
             )}
           </div>
 
-          {/* Right: search + exit */}
+          {/* Right: constellation toggle + search + exit */}
           <div className="ml-4 flex flex-shrink-0 items-center gap-2">
+            {/* Constellation toggle */}
+            <button
+              onClick={onToggleView}
+              className="rounded-full border-2 border-dashed px-3 py-1.5 font-heading text-xs font-black uppercase tracking-widest transition-all duration-200 hover:scale-105"
+              style={{
+                borderColor: viewMode === 'constellation' ? accent : `${accent}55`,
+                color: viewMode === 'constellation' ? accent : `${accent}88`,
+                backgroundColor: viewMode === 'constellation' ? `${accent}15` : 'transparent',
+              }}
+              aria-label="Toggle constellation view"
+              title={viewMode === 'constellation' ? 'Switch to list view' : 'Switch to constellation view'}
+            >
+              ✦
+            </button>
+
             {/* Search toggle */}
             <button
               onClick={handleSearchToggle}
