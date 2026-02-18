@@ -243,7 +243,13 @@ export function ChatProvider({ children }) {
   const [authUser, setAuthUserRaw] = useState(() => {
     try {
       const saved = localStorage.getItem('heiyo_session');
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      if (parsed?.isGuest) {
+        localStorage.removeItem('heiyo_session');
+        return null;
+      }
+      return parsed;
     } catch {
       return null;
     }
