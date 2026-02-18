@@ -57,7 +57,7 @@ export default function BubbleUniverse() {
       {/* ── Universe title ── */}
       <div className="absolute top-7 left-1/2 z-10 -translate-x-1/2 text-center">
         <h1 className="font-heading text-6xl font-black uppercase tracking-tighter text-gradient">
-          THE VOID
+          HEIYO
         </h1>
         <p className="mt-1 font-heading text-xs font-black uppercase tracking-[0.3em] text-[#FF3AF2]/50">
           {rooms.length} {rooms.length === 1 ? 'room' : 'rooms'} drifting · click to enter

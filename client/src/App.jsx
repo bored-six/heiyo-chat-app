@@ -21,7 +21,7 @@ export default function App() {
         <div className="pointer-events-none absolute inset-0 pattern-stripes" />
         <div className="text-center animate-appear">
           <p className="font-heading text-5xl font-black uppercase tracking-tighter text-gradient">
-            Entering the Void…
+            Entering Heiyo…
           </p>
           <div className="mt-6 flex justify-center gap-2">
             {[0, 1, 2].map((i) => (
@@ -52,7 +52,7 @@ export default function App() {
         className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden select-none"
       >
         <span className="font-heading text-[20rem] font-black uppercase leading-none text-[#FF3AF2] opacity-[0.035]">
-          VOID
+          HEIYO
         </span>
       </div>
 
