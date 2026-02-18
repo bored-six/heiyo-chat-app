@@ -45,7 +45,7 @@ function relativeTime(ts) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function RoomBubble({ room, index, style, onEnter, unread = 0, parallaxX = 0, parallaxY = 0, isPinned = false, onPin, centered = false }) {
+export default function RoomBubble({ room, index, style, onEnter, unread = 0, parallaxX = 0, parallaxY = 0, isPinned = false, onPin, centered = false, sizeScale = 1 }) {
   const accent      = ACCENTS[index % ACCENTS.length];
   const borderColor = CLASH[index % CLASH.length];
   const floatAnim   = FLOAT_ANIMS[index % FLOAT_ANIMS.length];
@@ -67,7 +67,7 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
 
   // Base size from member count (130–200px), then apply heat boost
   const baseSize = Math.max(130, Math.min(200, 130 + (room.memberCount ?? 0) * 5));
-  const size     = Math.max(100, baseSize + heat.sizeBoost);
+  const size     = Math.max(80, Math.round((baseSize + heat.sizeBoost) * sizeScale));
 
   // Glow intensity scales with heat
   const glow = `0 0 ${Math.round(40 * heat.glowMult)}px ${accent}${Math.round(60 * heat.glowMult).toString(16).padStart(2, '0')}, 0 0 ${Math.round(200 * heat.glowMult)}px ${accent}${Math.round(14 * heat.glowMult).toString(16).padStart(2, '0')}`;
