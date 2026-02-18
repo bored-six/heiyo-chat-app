@@ -95,20 +95,25 @@ initDb();
 hydrateFromDb();
 initSocket(io);
 
-function startListening() {
-  httpServer.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
-
-httpServer.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`[server] Port ${PORT} in use — retrying in 1 s…`);
-    httpServer.close();
-    setTimeout(startListening, 1000);
-  } else {
-    throw err;
-  }
+// Log once when the port is successfully bound
+httpServer.once('listening', () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 
-startListening();
+// Retry up to 5 times (handles node --watch restart race); exit after that
+function startListening(attemptsLeft) {
+  httpServer.once('error', (err) => {
+    if (err.code === 'EADDRINUSE' && attemptsLeft > 0) {
+      console.error(`[server] Port ${PORT} in use — retrying in 1 s…`);
+      setTimeout(() => startListening(attemptsLeft - 1), 1000);
+    } else if (err.code === 'EADDRINUSE') {
+      console.error(`[server] Port ${PORT} still occupied — kill the other server process and restart.`);
+      process.exit(1);
+    } else {
+      throw err;
+    }
+  });
+  httpServer.listen(PORT);
+}
+
+startListening(5);
