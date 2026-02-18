@@ -39,6 +39,7 @@ function reducer(state, action) {
         connected: true,
         me: action.user,
         rooms: action.rooms,
+        onlineUsers: { [action.user.id]: action.user },
       };
 
     case 'DISCONNECTED':
