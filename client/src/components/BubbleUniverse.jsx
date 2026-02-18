@@ -4,7 +4,6 @@ import RoomBubble from './RoomBubble.jsx';
 import { useRoomOrder } from '../hooks/useRoomOrder.js';
 
 // Ambient particle field — 20 tiny slow-rising dots spread across the bg.
-// Opacity is very low (0.2) so they feel like space dust, not noise.
 const PARTICLES = [
   { top: '94%', left: '6%',  color: '#FF3AF2', cls: 'w-1 h-1',     anim: 'animate-float',      delay: '0s'    },
   { top: '91%', left: '19%', color: '#00F5D4', cls: 'w-1 h-1',     anim: 'animate-float-slow', delay: '1.2s'  },
@@ -28,26 +27,7 @@ const PARTICLES = [
   { top: '22%', left: '71%', color: '#FF3AF2', cls: 'w-1.5 h-1.5', anim: 'animate-float-slow', delay: '2.9s'  },
 ];
 
-// Pre-defined grid positions — 3 columns × 4 rows, filling top-to-bottom
-// left-to-right. Slot 0 is the "prime" active slot (top-left); the most
-// recently active room always lands here. Center top is left clear for the
-// HEIYO title, top-right for the online panel.
-const BUBBLE_POSITIONS = [
-  { top: '10%', left: '5%'  },   // 0 ← PRIME — most recently active room
-  { top: '10%', left: '68%' },   // 1
-  { top: '35%', left: '5%'  },   // 2
-  { top: '35%', left: '37%' },   // 3
-  { top: '35%', left: '68%' },   // 4
-  { top: '60%', left: '5%'  },   // 5
-  { top: '60%', left: '37%' },   // 6
-  { top: '60%', left: '68%' },   // 7
-  { top: '80%', left: '16%' },   // 8
-  { top: '80%', left: '44%' },   // 9
-  { top: '80%', left: '72%' },   // 10
-  { top: '10%', left: '37%' },   // 11 (below HEIYO title, used when >10 rooms)
-];
-
-// Floating decorative geometric shapes scattered across the void — exported so AuthScreen can reuse them
+// Floating decorative shapes — exported so AuthScreen can reuse them
 export const DECORATIONS = [
   { char: '◆', top: '6%',  left: '30%', anim: 'animate-wiggle',        size: 'text-2xl', color: '#FF3AF2', delay: '0s'   },
   { char: '○', top: '80%', left: '84%', anim: 'animate-bounce-subtle', size: 'text-3xl', color: '#00F5D4', delay: '0.5s' },
@@ -60,8 +40,40 @@ export const DECORATIONS = [
   { char: '★', top: '72%', left: '8%',  anim: 'animate-float-slow',    size: 'text-2xl', color: '#FF6B35', delay: '1.4s' },
 ];
 
+// ── Orbital ring system ────────────────────────────────────────────────────────
+//
+//  Hub sits at (CX%, CY%) in the viewport. Three concentric elliptical orbits
+//  radiate outward. Positions are percentage-based so they scale with any window.
+//
+//  Inner  — DMs (your personal conversations, closest to you)
+//  Middle — Active rooms (rooms that have had at least one message)
+//  Outer  — Quiet rooms (freshly created rooms with no messages yet)
+//
+//  When a quiet room gets its first message it migrates from outer → middle.
+
+const CX = 50;   // hub center — % from left
+const CY = 52;   // hub center — % from top (slightly below true center for control clearance)
+
+const RING = {
+  inner:  { rX: 13, rY:  9.5 },   // DMs
+  middle: { rX: 26, rY: 19   },   // active rooms
+  outer:  { rX: 40, rY: 27   },   // quiet rooms
+};
+
+// Distribute `count` items evenly around an ellipse, starting from 12 o'clock.
+function orbitalPositions(count, rX, rY) {
+  if (count === 0) return [];
+  return Array.from({ length: count }, (_, i) => {
+    const angle = (2 * Math.PI * i / count) - Math.PI / 2;
+    return {
+      left: `${CX + rX * Math.cos(angle)}%`,
+      top:  `${CY + rY * Math.sin(angle)}%`,
+    };
+  });
+}
+
 export default function BubbleUniverse() {
-  const { rooms, socket, dispatch, unread, onlineUsers, me } = useChat();
+  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me } = useChat();
   const { sortedRooms, pinnedId, togglePin } = useRoomOrder(rooms);
   const [creating, setCreating] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
@@ -96,20 +108,107 @@ export default function BubbleUniverse() {
     setCreating(false);
   }
 
-  return (
-    <div className="relative h-full w-full" onMouseMove={handleMouseMove}>
+  // ── Categorise rooms by activity ──────────────────────────────────────────
+  const activeRooms = sortedRooms.filter(r => r.lastMessageAt != null);
+  const quietRooms  = sortedRooms.filter(r => r.lastMessageAt == null);
 
-      {/* ── Universe title ── */}
+  // ── DMs sorted by most recent message ─────────────────────────────────────
+  const dmList = Object.values(dms ?? {}).sort((a, b) => {
+    const aLast = a.messages.at(-1)?.timestamp ?? 0;
+    const bLast = b.messages.at(-1)?.timestamp ?? 0;
+    return bLast - aLast;
+  });
+
+  // ── Orbital positions ──────────────────────────────────────────────────────
+  const innerPos  = orbitalPositions(dmList.length,      RING.inner.rX,  RING.inner.rY);
+  const middlePos = orbitalPositions(activeRooms.length, RING.middle.rX, RING.middle.rY);
+  const outerPos  = orbitalPositions(quietRooms.length,  RING.outer.rX,  RING.outer.rY);
+
+  return (
+    <div className="relative h-full w-full overflow-hidden" onMouseMove={handleMouseMove}>
+
+      {/* ── SVG orbital ring guides ─────────────────────────────────────────── */}
+      {/* viewBox 0 0 100 100 + preserveAspectRatio="none" maps coords directly  */}
+      {/* to viewport %, so rX/rY values match the CSS-positioned bubbles exactly */}
+      <svg
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        style={{ zIndex: 1 }}
+      >
+        <defs>
+          {/* Soft hub glow gradient */}
+          <radialGradient id="hub-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stopColor={me?.color ?? '#FF3AF2'} stopOpacity="0.18" />
+            <stop offset="100%" stopColor={me?.color ?? '#FF3AF2'} stopOpacity="0"    />
+          </radialGradient>
+        </defs>
+
+        {/* Hub ambient glow blob */}
+        <ellipse cx={CX} cy={CY} rx="10" ry="7" fill="url(#hub-glow)" />
+
+        {/* Outer ring — quiet rooms */}
+        <ellipse
+          cx={CX} cy={CY}
+          rx={RING.outer.rX}  ry={RING.outer.rY}
+          fill="none"
+          stroke="rgba(0,245,212,0.08)"
+          strokeWidth="0.3"
+          strokeDasharray="2 5"
+        />
+        {/* Middle ring — active rooms */}
+        <ellipse
+          cx={CX} cy={CY}
+          rx={RING.middle.rX} ry={RING.middle.rY}
+          fill="none"
+          stroke="rgba(255,58,242,0.12)"
+          strokeWidth="0.3"
+          strokeDasharray="2 4"
+        />
+        {/* Inner ring — DMs */}
+        <ellipse
+          cx={CX} cy={CY}
+          rx={RING.inner.rX}  ry={RING.inner.rY}
+          fill="none"
+          stroke="rgba(255,230,0,0.10)"
+          strokeWidth="0.3"
+          strokeDasharray="1.5 4"
+        />
+      </svg>
+
+      {/* ── Zone labels (faint watermarks above each ring) ─────────────────── */}
+      <div
+        className="absolute pointer-events-none select-none z-10"
+        style={{ top: `${CY - RING.outer.rY - 3.5}%`, left: '50%', transform: 'translateX(-50%)' }}
+      >
+        <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#00F5D4]/22">
+          channels
+        </span>
+      </div>
+      {dmList.length > 0 && (
+        <div
+          className="absolute pointer-events-none select-none z-10"
+          style={{ top: `${CY - RING.inner.rY - 3}%`, left: '50%', transform: 'translateX(-50%)' }}
+        >
+          <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#FFE600]/22">
+            direct
+          </span>
+        </div>
+      )}
+
+      {/* ── Universe title ──────────────────────────────────────────────────── */}
       <div className="absolute top-7 left-1/2 z-10 -translate-x-1/2 text-center">
         <h1 className="font-heading text-6xl font-black uppercase tracking-tighter text-gradient">
           HEIYO
         </h1>
         <p className="mt-1 font-heading text-xs font-black uppercase tracking-[0.3em] text-[#FF3AF2]/50">
-          {rooms.length} {rooms.length === 1 ? 'room' : 'rooms'} drifting · click to enter
+          {rooms.length} {rooms.length === 1 ? 'room' : 'rooms'}
+          {dmList.length > 0 ? ` · ${dmList.length} dm${dmList.length !== 1 ? 's' : ''}` : ''}
+          {' · click to enter'}
         </p>
       </div>
 
-      {/* ── Decorative floating elements ── */}
+      {/* ── Decorative floating elements ────────────────────────────────────── */}
       {DECORATIONS.map((d, i) => (
         <span
           key={i}
@@ -121,7 +220,7 @@ export default function BubbleUniverse() {
         </span>
       ))}
 
-      {/* ── Ambient particle field ── */}
+      {/* ── Ambient particle field ──────────────────────────────────────────── */}
       {PARTICLES.map((p, i) => (
         <div
           key={`p${i}`}
@@ -131,30 +230,154 @@ export default function BubbleUniverse() {
         />
       ))}
 
-      {/* ── Room bubbles ── */}
-      {sortedRooms.map((room, i) => {
-        const pos = BUBBLE_POSITIONS[i % BUBBLE_POSITIONS.length];
-        const depth = 8 + (i % 5) * 3.5;
-        const parallaxX = (mouse.x - 0.5) * depth * -1;
-        const parallaxY = (mouse.y - 0.5) * depth * -1;
+      {/* ── Center hub (pulsing vortex = you) ──────────────────────────────── */}
+      <div
+        className="absolute z-20 pointer-events-none"
+        style={{ left: `${CX}%`, top: `${CY}%`, transform: 'translate(-50%, -50%)' }}
+      >
+        {/* Wide ambient glow */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: '-36px',
+            background: `radial-gradient(circle, ${me?.color ?? '#FF3AF2'}1A, transparent 70%)`,
+          }}
+        />
+        {/* Slow-spinning outer ring */}
+        <div
+          className="absolute rounded-full border animate-spin-slow"
+          style={{
+            inset: '-12px',
+            borderColor: `${me?.color ?? '#FF3AF2'}33`,
+          }}
+        />
+        {/* Static inner ring */}
+        <div
+          className="absolute rounded-full border"
+          style={{
+            inset: '-4px',
+            borderColor: `${me?.color ?? '#00F5D4'}22`,
+            borderStyle: 'dashed',
+          }}
+        />
+        {/* Core orb */}
+        <div
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            background: `radial-gradient(circle, ${me?.color ?? '#FF3AF2'}77 0%, transparent 72%)`,
+            boxShadow: `0 0 18px ${me?.color ?? '#FF3AF2'}55, 0 0 44px ${me?.color ?? '#FF3AF2'}1A`,
+          }}
+        />
+      </div>
+
+      {/* ── DM bubbles — inner ring ─────────────────────────────────────────── */}
+      {dmList.map((dm, i) => {
+        const other       = dm.participants?.find(p => p.id !== me?.id);
+        const unreadCount = dmUnread?.[dm.id] ?? 0;
+        const lastMsg     = dm.messages.at(-1);
+        const pos         = innerPos[i];
+        const parallaxX   = (mouse.x - 0.5) * 5 * -1;
+        const parallaxY   = (mouse.y - 0.5) * 5 * -1;
+        const color       = other?.color ?? '#FFE600';
+
+        return (
+          <button
+            key={dm.id}
+            className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
+            style={{
+              left: pos.left,
+              top: pos.top,
+              transform: `translate(calc(-50% + ${parallaxX}px), calc(-50% + ${parallaxY}px))`,
+              transition: 'transform 0.12s ease-out',
+              animationDelay: `${i * 0.9}s`,
+            }}
+            onClick={() => dispatch({ type: 'SET_ACTIVE_DM', dmId: dm.id })}
+            title={lastMsg ? `${other?.username}: ${lastMsg.text}` : other?.username}
+          >
+            {/* Rounded-square avatar bubble */}
+            <div
+              className="relative flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+              style={{
+                width: '78px',
+                height: '78px',
+                background: `${color}18`,
+                border: `3px solid ${color}88`,
+                borderRadius: '28%',
+                boxShadow: `0 0 16px ${color}44, 0 0 40px ${color}18`,
+              }}
+            >
+              <span className="font-heading text-xl font-black text-white select-none">
+                {other?.username?.[0]?.toUpperCase() ?? '?'}
+              </span>
+
+              {/* Unread badge */}
+              {unreadCount > 0 && (
+                <span
+                  className="absolute -top-2 -right-2 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1 font-heading text-[9px] font-black text-black animate-pulse"
+                  style={{ backgroundColor: '#FFE600', boxShadow: '0 0 8px #FFE600' }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+
+            {/* Username label */}
+            <span
+              className="font-heading text-[9px] font-black uppercase tracking-widest"
+              style={{ color: `${color}cc` }}
+            >
+              {other?.username ?? '…'}
+            </span>
+          </button>
+        );
+      })}
+
+      {/* ── Active rooms — middle ring ──────────────────────────────────────── */}
+      {activeRooms.map((room, i) => {
+        const pos    = middlePos[i];
+        const depth  = 9 + (i % 4) * 2.5;
         return (
           <RoomBubble
             key={room.id}
             room={room}
             index={i}
-            style={{ top: pos.top, left: pos.left }}
+            style={{ left: pos.left, top: pos.top }}
+            centered
             onEnter={() => enterRoom(room.id)}
             unread={unread[room.id] ?? 0}
-            parallaxX={parallaxX}
-            parallaxY={parallaxY}
+            parallaxX={(mouse.x - 0.5) * depth * -1}
+            parallaxY={(mouse.y - 0.5) * depth * -1}
             isPinned={pinnedId === room.id}
             onPin={() => togglePin(room.id)}
           />
         );
       })}
 
-      {/* ── Online users panel — top-right ── */}
-      <div className="absolute top-6 right-6 z-10 w-52">
+      {/* ── Quiet rooms — outer ring ────────────────────────────────────────── */}
+      {quietRooms.map((room, i) => {
+        const pos   = outerPos[i];
+        const depth = 14 + (i % 4) * 2.5;
+        return (
+          <RoomBubble
+            key={room.id}
+            room={room}
+            index={activeRooms.length + i}
+            style={{ left: pos.left, top: pos.top }}
+            centered
+            onEnter={() => enterRoom(room.id)}
+            unread={unread[room.id] ?? 0}
+            parallaxX={(mouse.x - 0.5) * depth * -1}
+            parallaxY={(mouse.y - 0.5) * depth * -1}
+            isPinned={pinnedId === room.id}
+            onPin={() => togglePin(room.id)}
+          />
+        );
+      })}
+
+      {/* ── Online users panel — top-right ─────────────────────────────────── */}
+      <div className="absolute top-6 right-6 z-30 w-52">
         <button
           onClick={() => setShowOnline((v) => !v)}
           className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-[#00F5D4]/60 bg-[#0D0D1A]/70 px-3 py-2 backdrop-blur-sm transition-all hover:border-[#00F5D4]"
@@ -166,7 +389,6 @@ export default function BubbleUniverse() {
         </button>
         {showOnline && (
           <div className="animate-appear mt-1 space-y-0.5 rounded-2xl border-2 border-dashed border-[#00F5D4]/40 bg-[#0D0D1A]/80 p-2 backdrop-blur-sm">
-            {/* Self */}
             {me && (
               <div className="flex items-center gap-2 rounded-xl px-2 py-1.5">
                 <span
@@ -179,7 +401,6 @@ export default function BubbleUniverse() {
                 <span className="font-heading text-[9px] font-black text-[#FFE600]">you</span>
               </div>
             )}
-            {/* Others */}
             {Object.values(onlineUsers).map((user) => (
               <div key={user.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5">
                 <span
@@ -200,8 +421,8 @@ export default function BubbleUniverse() {
         )}
       </div>
 
-      {/* ── Create room control — bottom-right ── */}
-      <div className="absolute bottom-8 right-8 z-10">
+      {/* ── Create room control — bottom-right ─────────────────────────────── */}
+      <div className="absolute bottom-8 right-8 z-30">
         {creating ? (
           <form
             onSubmit={createRoom}

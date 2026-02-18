@@ -45,7 +45,7 @@ function relativeTime(ts) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function RoomBubble({ room, index, style, onEnter, unread = 0, parallaxX = 0, parallaxY = 0, isPinned = false, onPin }) {
+export default function RoomBubble({ room, index, style, onEnter, unread = 0, parallaxX = 0, parallaxY = 0, isPinned = false, onPin, centered = false }) {
   const accent      = ACCENTS[index % ACCENTS.length];
   const borderColor = CLASH[index % CLASH.length];
   const floatAnim   = FLOAT_ANIMS[index % FLOAT_ANIMS.length];
@@ -80,7 +80,7 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
       className="absolute z-10"
       style={{
         ...style,
-        transform: `translate(${parallaxX}px, ${parallaxY}px)`,
+        transform: `${centered ? 'translate(-50%, -50%) ' : ''}translate(${parallaxX}px, ${parallaxY}px)`,
         transition: 'transform 0.12s ease-out',
       }}
     >
