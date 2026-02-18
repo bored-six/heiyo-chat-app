@@ -176,35 +176,135 @@ docs(claude): update architecture map with client structure
 
 ---
 
-## MANDATORY: Doc Updates After Every Task
+## MANDATORY: Task Completion Checklist
 
-After completing any task in this project, you MUST update all of the following docs to reflect what changed:
+**YOU MUST complete ALL steps below before reporting a task as done. Skipping any step is a workflow violation.**
+
+### Step 1 — Commit the code
+
+```
+{type}({scope}): {description}
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+```
+
+Commit BEFORE touching any docs.
+
+---
+
+### Step 2 — Update the PRD (when required)
+
+Use the table below to decide whether a PRD update is needed. Not every task requires one.
+
+| Change | Record where |
+|--------|-------------|
+| New feature or capability | PRD — full entry (create one if it doesn't exist) |
+| Architecture decision | PRD — Design Decisions section |
+| New file or component | PRD — Component Inventory |
+| Bug fix that changes observable behavior | PRD — changelog entry only |
+| Routine bug fix (typo, wrong URL, null check, missing import) | Git commit only — no PRD needed |
+| Pure visual / cosmetic change (colours, spacing, decorations) | Git commit only — no PRD needed |
+
+**When a PRD is needed, do the following:**
+
+1. List files in `.claude/prds/`
+2. Open the PRD that covers the area you changed
+3. If none exists → create one at `.claude/prds/<feature-name>.md` using the template below
+
+#### What to update in the PRD
+
+| Did you... | Section to update |
+|---|---|
+| Add or change any UI component | Component Inventory — add file path + purpose |
+| Add or change any server-side logic | Component Inventory + Business Rules if behavior changed |
+| Change how a socket event works | Update the relevant event description |
+| Discover a new requirement during implementation | Add to "Discovered Requirements" |
+| Make an architecture decision | Add to "Design Decisions" with the reason |
+| Change a business rule | Update "Business Rules" section |
+| Add a new file | Add to Component Inventory |
+
+#### Append a changelog entry (for every PRD update)
+
+```markdown
+## Changelog
+
+### [LABEL] <short description> — YYYY-MM-DD
+- What changed
+- Files affected
+- Commit: <hash>
+```
+
+**Labels:**
+| Label | Use for |
+|---|---|
+| `[FEAT]` | New feature or capability |
+| `[FIX]` | Bug fix that changes observable behavior |
+| `[REFACTOR]` | Restructured without behavior change |
+| `[STYLE]` | Visual / UI-only change |
+| `[CHORE]` | Config, tooling, deps |
+| `[DOCS]` | Documentation only |
+
+#### New PRD template (use when creating from scratch)
+
+```markdown
+# PRD: <Feature Name>
+
+**Status:** In Progress | Complete
+**Created:** YYYY-MM-DD
+**Last Updated:** YYYY-MM-DD
+
+## Summary
+What this feature does.
+
+## Requirements
+### Original Requirements
+What was requested.
+
+### Discovered Requirements
+Requirements found during implementation (add as you go).
+
+## Architecture
+### Design Decisions
+Why this approach was chosen.
+
+## Component Inventory
+| Component | Type | Path | Purpose |
+|-----------|------|------|---------|
+
+## Business Rules
+Rules enforced by this feature.
+
+## Changelog
+### [FEAT] Initial implementation — YYYY-MM-DD
+- What was built
+- Files created/changed
+- Commit: <hash>
+```
+
+---
+
+### Step 3 — Update steering docs (review each one)
 
 | Doc | Update when... |
-|-----|---------------|
+|-----|----------------|
 | `CLAUDE.md` | Architecture changes, new tech, new event contracts, new business rules |
 | `.claude/steering/product.md` | New features, changed business rules, new non-goals |
 | `.claude/steering/tech.md` | New dependencies, new files, changed ports/config, new constraints |
-| `.claude/steering/structure.md` | New patterns, new conventions, new object shapes, client structure established |
-| `.claude/learnings.md` | Any insight discovered during implementation — always append here |
+| `.claude/steering/structure.md` | New patterns, new conventions, new object shapes |
+| `.claude/learnings.md` | Any insight discovered — always append something here |
 
-**This is not optional.** Docs must stay in sync with the code at all times.
+---
 
-### What to capture in learnings.md
+### Step 4 — Report to the user
 
-- New patterns discovered (e.g. "client uses X pattern for socket reconnection")
-- Anti-patterns to avoid (e.g. "don't mutate store directly outside store functions")
-- Framework/library quirks encountered
-- Business rule clarifications
-- Architecture decisions and why they were made
+Your report MUST include a doc update summary. No exceptions.
 
-### After every task, explicitly tell the user
-
-List which docs were updated and what changed. Example:
 ```
 ## Doc Updates
-- CLAUDE.md: Updated architecture map (added client/ structure)
-- steering/tech.md: Added React + Zustand to client dependencies
-- steering/structure.md: Added client component conventions
-- learnings.md: Socket reconnection uses exponential backoff
+- prds/<name>.md: [FEAT/FIX/etc] <what changed> — <date>  ← or "no PRD update needed"
+- steering/tech.md: <what changed>                         ← or "no update needed"
+- steering/product.md: <what changed>                      ← or "no update needed"
+- steering/structure.md: <what changed>                    ← or "no update needed"
+- CLAUDE.md: <what changed>                                ← or "no update needed"
+- learnings.md: <what was captured>
 ```
