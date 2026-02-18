@@ -21,7 +21,7 @@ export default function AvatarPickerModal({ currentAvatar, onSave, onClose }) {
     >
       <div
         className="relative w-full max-w-sm rounded-3xl border-4 border-dashed border-[#FF3AF2] bg-[#0D0D1A] p-5 animate-appear"
-        style={{ boxShadow: '0 0 40px #FF3AF244, 8px 8px 0 #00F5D4' }}
+        style={{ boxShadow: '0 0 40px #FF3AF244' }}
       >
         {/* Close button */}
         <button

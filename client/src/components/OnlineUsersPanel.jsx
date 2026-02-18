@@ -14,7 +14,7 @@ export default function OnlineUsersPanel({ onClose }) {
   return (
     <div
       className="absolute bottom-full left-0 mb-3 w-64 rounded-2xl border-4 border-dashed border-[#00F5D4] bg-[#2D1B4E]/95 backdrop-blur-sm animate-appear"
-      style={{ boxShadow: '0 0 24px rgba(0,245,212,0.3), 6px 6px 0 #FF3AF2' }}
+      style={{ boxShadow: '0 0 24px rgba(0,245,212,0.3)' }}
     >
       {/* Header */}
       <div className="border-b-2 border-dashed border-[#00F5D4]/40 px-4 py-3">

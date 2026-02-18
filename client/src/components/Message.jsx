@@ -32,8 +32,8 @@ export default function Message({ message, isOwn }) {
       style={{
         backgroundColor: isOwn ? `${senderColor}22` : `${senderColor}12`,
         ...(isOwn
-          ? { borderRight: `4px solid ${senderColor}`, boxShadow: `-3px 3px 0 ${senderColor}33` }
-          : { borderLeft: `4px solid ${senderColor}`, boxShadow: `3px 3px 0 ${senderColor}33` }),
+          ? { borderRight: `4px solid ${senderColor}` }
+          : { borderLeft: `4px solid ${senderColor}` }),
       }}
       onMouseLeave={() => setPickerVisible(false)}
     >

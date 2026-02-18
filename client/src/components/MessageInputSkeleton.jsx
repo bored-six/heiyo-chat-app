@@ -7,7 +7,7 @@ export default function MessageInputSkeleton({ accent = '#FF3AF2', clash = '#FFE
         style={{
           borderColor: accent,
           backgroundColor: 'rgba(45,27,78,0.6)',
-          boxShadow: `0 0 20px ${accent}44, 4px 4px 0 ${clash}`,
+          boxShadow: `0 0 20px ${accent}44`,
         }}
       >
         {/* Textarea placeholder */}

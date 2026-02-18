@@ -53,7 +53,7 @@ export default function UserBadge() {
         <button
           onClick={() => setOpen((v) => !v)}
           className="flex items-center gap-3 rounded-full border-4 border-dashed border-[#FFE600] bg-[#2D1B4E]/90 px-4 py-2 backdrop-blur-sm animate-slide-up cursor-pointer transition-transform hover:scale-105 active:scale-95"
-          style={{ boxShadow: open ? '0 0 28px rgba(255,230,0,0.6), 4px 4px 0 #FF3AF2' : '0 0 20px rgba(255,230,0,0.4), 4px 4px 0 #FF3AF2' }}
+          style={{ boxShadow: open ? '0 0 28px rgba(255,230,0,0.6)' : '0 0 20px rgba(255,230,0,0.4)' }}
           aria-label="Show online users"
         >
           {/* Avatar with edit overlay on hover */}

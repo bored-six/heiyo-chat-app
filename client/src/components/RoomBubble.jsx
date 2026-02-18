@@ -42,7 +42,7 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
             className="absolute -top-2 -right-2 z-20 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full px-1 font-heading text-xs font-black text-[#0D0D1A] animate-pulse"
             style={{
               backgroundColor: '#FFE600',
-              boxShadow: '0 0 10px #FFE600, 0 0 22px #FFE60066, 2px 2px 0 #FF3AF2',
+              boxShadow: '0 0 10px #FFE600, 0 0 22px #FFE60066',
               border: '2px solid #FF3AF2',
             }}
           >
@@ -66,11 +66,7 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
             height: `${size}px`,
             backgroundColor: `${accent}1A`,
             border: `4px solid ${borderColor}`,
-            boxShadow: `
-              0 0 40px ${accent}99,
-              0 0 80px ${accent}44,
-              8px 8px 0 ${borderColor}
-            `,
+            boxShadow: `0 0 40px ${accent}99, 0 0 80px ${accent}44`,
             focusRingColor: accent,
           }}
           aria-label={`Enter room: ${room.name}`}

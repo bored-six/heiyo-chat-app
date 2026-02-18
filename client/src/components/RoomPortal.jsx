@@ -75,12 +75,7 @@ function Portal({ title, accent, clash, onExit, children, members = [] }) {
         style={{
           backgroundColor: 'rgba(13,13,26,0.88)',
           border: `4px solid ${clash}`,
-          boxShadow: `
-            0 0 60px ${accent}55,
-            0 0 120px ${accent}22,
-            12px 12px 0 ${clash},
-            24px 24px 0 ${accent}66
-          `,
+          boxShadow: `0 0 60px ${accent}55, 0 0 120px ${accent}22`,
         }}
       >
         {/* ── Header ── */}

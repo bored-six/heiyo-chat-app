@@ -115,7 +115,7 @@ export default function BubbleUniverse() {
           <form
             onSubmit={createRoom}
             className="animate-appear flex flex-col gap-3 rounded-3xl border-4 border-[#FFE600] bg-[#2D1B4E]/95 p-6 backdrop-blur-sm"
-            style={{ boxShadow: '8px 8px 0 #FF3AF2, 16px 16px 0 #00F5D4' }}
+            style={{ boxShadow: '0 0 20px rgba(255,58,242,0.4)' }}
           >
             <label className="font-heading text-xs font-black uppercase tracking-widest text-[#FFE600]">
               Room name
@@ -148,7 +148,7 @@ export default function BubbleUniverse() {
           <button
             onClick={() => setCreating(true)}
             className="animate-pulse-glow rounded-full border-4 border-[#FFE600] bg-gradient-to-r from-[#FF3AF2] via-[#7B2FFF] to-[#00F5D4] px-8 py-4 font-heading text-base font-black uppercase tracking-widest text-white transition-all duration-300 hover:scale-110"
-            style={{ boxShadow: '0 0 30px rgba(255,58,242,0.6), 8px 8px 0 #FFE600' }}
+            style={{ boxShadow: '0 0 30px rgba(255,58,242,0.6)' }}
           >
             + NEW ROOM
           </button>

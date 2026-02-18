@@ -76,7 +76,7 @@ export default function MessageInput({ roomId, toUserId, accent = '#FF3AF2', cla
           backgroundColor: 'rgba(45,27,78,0.6)',
           boxShadow: overLimit
             ? '0 0 20px rgba(255,68,68,0.5)'
-            : `0 0 20px ${accent}44, 4px 4px 0 ${clash}`,
+            : `0 0 20px ${accent}44`,
         }}
       >
         <textarea
