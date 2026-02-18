@@ -4,7 +4,7 @@
 
 Real-time multi-user chat application. Users connect anonymously, receive a generated identity, and can chat in shared rooms or via direct messages. No authentication, no database — ephemeral in-memory state only.
 
-**Status:** Server complete. Client not yet built.
+**Status:** Server complete. Client scaffolded (Vite + React + socket.io-client installed; Zustand + Tailwind pending).
 
 ---
 
@@ -24,7 +24,7 @@ Chat app/                         ← monorepo root
 │   │   └── index.js              ← in-memory state (users, rooms, DMs)
 │   └── utils/
 │       └── nameGenerator.js      ← random username + color
-└── client/                       ← Vite frontend (NOT YET CREATED)
+└── client/                       ← Vite + React frontend (scaffolded, in progress)
 ```
 
 ---
@@ -36,9 +36,31 @@ Chat app/                         ← monorepo root
 | Runtime | Node.js (ESM — `"type": "module"`) |
 | Server framework | Express 4 |
 | Real-time | Socket.IO 4 |
-| Client (planned) | Vite + [TBD framework] |
+| Client framework | Vite + React 18 |
+| Client state | Zustand |
+| Socket client | socket.io-client 4.x |
+| Styling | Tailwind CSS |
 | Database | None — in-memory only |
 | Dev runner | `concurrently` (root), `node --watch` (server) |
+
+---
+
+## Client Tech Stack
+
+| Layer | Choice | Notes |
+|-------|--------|-------|
+| Bundler | Vite 6 | Already installed (`client/package.json`) |
+| Framework | React 18 | Already installed |
+| State | Zustand | Decided — not yet installed |
+| Socket client | socket.io-client 4.7.4 | Already installed — matches server Socket.IO 4 |
+| Styling | Tailwind CSS | Decided — not yet installed |
+
+**Install remaining dependencies:**
+```bash
+cd client
+npm install zustand
+npm install -D tailwindcss @tailwindcss/vite
+```
 
 ---
 
@@ -75,14 +97,26 @@ Chat app/                         ← monorepo root
 
 ---
 
+
 ## Key Business Rules
 
-- Users are anonymous — no login, auto-assigned `AdjectiveAnimal` username + color
-- Default room "General" always exists (seeded on startup)
-- Messages capped at 100 per channel (room or DM)
-- Messages max 2000 characters
-- DM thread ID is deterministic: `[userIdA, userIdB].sort().join('--')`
-- State is ephemeral — all data lost on server restart
+**Users are anonymous — no login, auto-assigned `AdjectiveAnimal` username + color** *(current phase only — auth planned)*
+On connect, the server generates a random username (e.g. `"SilentOtter"`) and a hex color for the avatar. There's no registration, no login flow, and no way for a user to choose their name. The client just displays whatever the server sends in the `connected` event. When auth is added, this entire identity model will be replaced — along with the `socket.id`-as-identity and reconnect gotchas above.
+
+**Default room "General" always exists (seeded on startup)**
+The server creates "General" on boot and never deletes it. The client can assume at least one room always exists — no need to handle an empty room list state. Don't allow users to delete "General" in the UI.
+
+**Messages capped at 100 per channel (room or DM)**
+The server stores only the last 100 messages per room or DM thread. When a new message arrives and the cap is hit, the oldest drops off. The client should not paginate or fetch history beyond what's delivered in `room:joined` — that's all there is.
+
+**Messages max 2000 characters**
+Enforced server-side. The client should validate and block send if `text.length > 2000` to give immediate feedback, but the server will silently drop oversized messages anyway.
+
+**DM thread ID is deterministic: `[userIdA, userIdB].sort().join('--')`**
+Both sides of a DM share the same thread ID, computed by sorting the two socket IDs alphabetically and joining with `--`. The client doesn't need to compute this — the server sends `dm:opened` with the `dm` object which includes the ID. But knowing the formula helps debug duplicate thread issues.
+
+**State is ephemeral — all data lost on server restart**
+No database. Restarting the server clears all users, rooms (except "General" which is re-seeded), messages, and DM threads. Don't build any persistence layer or "load from server" logic — there's nothing to load.
 
 ---
 
@@ -111,6 +145,34 @@ Client: `http://localhost:5173` (Vite default)
 - `.claude/steering/structure.md` — Code patterns and conventions
 - `.claude/learnings.md` — Discovered patterns and insights
 - `.claude/prds/` — Feature PRDs (one per feature)
+
+---
+
+## MANDATORY: Commit After Every Completed Task
+
+After completing any task, you MUST commit immediately — before reporting done to the user.
+
+**Commit format:**
+```
+{type}({scope}): {description}
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+```
+
+**Types:** `feat` | `fix` | `refactor` | `test` | `docs` | `chore`
+
+**Rules:**
+- One commit per task — never batch multiple tasks into one commit
+- Stage only files changed by the task (avoid `git add .` if unrelated files are dirty)
+- Commit BEFORE updating docs or reporting completion
+- Never skip the commit — it is required even for small changes
+
+**Example commits:**
+```
+feat(client): add socket connection hook
+fix(server): guard against empty room name on create
+docs(claude): update architecture map with client structure
+```
 
 ---
 
