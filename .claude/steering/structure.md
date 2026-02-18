@@ -96,7 +96,10 @@ export function getRoom(roomId) { ... }
   description: 'optional subtitle',  // '' if not set
   type: 'room',
   memberCount: 3,
-  createdAt: Date.now()
+  createdAt: Date.now(),
+  lastMessageAt: timestamp | null,    // for heat tier computation
+  lurkerCount: number,                // members silent for 5+ min
+  lastMessage: { text, senderName, timestamp } | null
 }
 ```
 
