@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import OnlineUsersPanel from './OnlineUsersPanel.jsx';
+import { avatarUrl } from '../utils/avatar.js';
 
 export default function UserBadge() {
   const { me, onlineUsers } = useChat();
@@ -9,8 +10,6 @@ export default function UserBadge() {
 
   if (!me) return null;
 
-  const displayAvatar = me.avatar ?? me.username?.[0]?.toUpperCase() ?? '?';
-  const isEmoji = me.avatar != null;
   const count = Object.keys(onlineUsers).length + 1;
 
   // Close panel on outside click
@@ -37,18 +36,16 @@ export default function UserBadge() {
         style={{ boxShadow: open ? '0 0 28px rgba(255,230,0,0.6), 4px 4px 0 #FF3AF2' : '0 0 20px rgba(255,230,0,0.4), 4px 4px 0 #FF3AF2' }}
         aria-label="Show online users"
       >
-        {/* Avatar */}
-        <div
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full font-heading font-black text-white"
+        {/* Chibi avatar */}
+        <img
+          src={avatarUrl(me.avatar)}
+          alt={me.username}
+          className="h-10 w-10 flex-shrink-0 rounded-full"
           style={{
-            backgroundColor: isEmoji ? 'rgba(255,58,242,0.2)' : me.color,
-            boxShadow: isEmoji ? `0 0 14px #FF3AF288` : `0 0 14px ${me.color}bb`,
             border: '2px solid #FFE600',
-            fontSize: isEmoji ? '1.2rem' : '0.875rem',
+            boxShadow: `0 0 14px #FF3AF288`,
           }}
-        >
-          {displayAvatar}
-        </div>
+        />
 
         {/* Name + count */}
         <div>

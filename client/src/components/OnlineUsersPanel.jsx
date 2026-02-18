@@ -1,4 +1,5 @@
 import { useChat } from '../context/ChatContext.jsx';
+import { avatarUrl } from '../utils/avatar.js';
 
 export default function OnlineUsersPanel({ onClose }) {
   const { onlineUsers, me, socket } = useChat();
@@ -26,12 +27,12 @@ export default function OnlineUsersPanel({ onClose }) {
       <div className="max-h-60 overflow-y-auto p-2 space-y-0.5">
         {/* Self — no DM button */}
         <div className="flex items-center gap-2 rounded-xl px-2 py-2">
-          <div
-            className="h-7 w-7 flex-shrink-0 rounded-full flex items-center justify-center font-heading text-xs font-black text-white"
-            style={{ backgroundColor: me.color, boxShadow: `0 0 8px ${me.color}88` }}
-          >
-            {me.username[0].toUpperCase()}
-          </div>
+          <img
+            src={avatarUrl(me.avatar)}
+            alt={me.username}
+            className="h-8 w-8 flex-shrink-0 rounded-full"
+            style={{ border: `2px solid ${me.color}`, boxShadow: `0 0 8px ${me.color}88` }}
+          />
           <span className="flex-1 truncate font-heading text-sm font-black uppercase text-white">
             {me.username}
           </span>
@@ -51,12 +52,12 @@ export default function OnlineUsersPanel({ onClose }) {
               key={user.id}
               className="flex items-center gap-2 rounded-xl px-2 py-2 hover:bg-white/5 transition-colors"
             >
-              <div
-                className="h-7 w-7 flex-shrink-0 rounded-full flex items-center justify-center font-heading text-xs font-black text-white"
-                style={{ backgroundColor: user.color, boxShadow: `0 0 8px ${user.color}88` }}
-              >
-                {user.username[0].toUpperCase()}
-              </div>
+              <img
+                src={avatarUrl(user.avatar)}
+                alt={user.username}
+                className="h-8 w-8 flex-shrink-0 rounded-full"
+                style={{ border: `2px solid ${user.color}`, boxShadow: `0 0 8px ${user.color}88` }}
+              />
               <span className="flex-1 truncate font-heading text-sm font-black uppercase text-white">
                 {user.username}
               </span>

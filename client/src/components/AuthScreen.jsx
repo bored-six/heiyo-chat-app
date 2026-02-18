@@ -1,12 +1,7 @@
 import { useState } from 'react';
+import { AVATAR_SEEDS, avatarUrl } from '../utils/avatar.js';
 
 const API = 'http://localhost:3001';
-
-const AVATARS = [
-  '🌟', '💫', '⚡', '🔥', '🌈', '💎',
-  '🔮', '🌙', '☄️', '🪐', '✨', '🎆',
-  '🦋', '🐙', '🦄', '👾', '🚀', '🎸',
-];
 
 // ─── Shared input style ───────────────────────────────────────────────────────
 const inputCls =
@@ -30,14 +25,14 @@ export default function AuthScreen({ onAuth }) {
   const [view, setView] = useState('landing'); // 'landing' | 'login' | 'register'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [avatar, setAvatar] = useState(AVATARS[0]);
+  const [avatar, setAvatar] = useState(AVATAR_SEEDS[0]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   function resetForm() {
     setUsername('');
     setPassword('');
-    setAvatar(AVATARS[0]);
+    setAvatar(AVATAR_SEEDS[0]);
     setError('');
   }
 
@@ -72,7 +67,7 @@ export default function AuthScreen({ onAuth }) {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
-      onAuth({ username: data.username, color: data.color, avatar: data.avatar ?? '🌟', isGuest: false });
+      onAuth({ username: data.username, color: data.color, avatar: data.avatar ?? 'Stargazer', isGuest: false });
     } catch {
       setError('Could not connect to server.');
     } finally {
@@ -159,28 +154,54 @@ export default function AuthScreen({ onAuth }) {
               {view === 'login' ? 'Welcome back' : 'New account'}
             </p>
 
-            {/* Avatar picker — register only */}
+            {/* ── Chibi avatar picker — register only ─────────────────────── */}
             {view === 'register' && (
-              <div>
-                <p className="mb-2 text-center text-[10px] uppercase tracking-widest text-white/30">
+              <div
+                className="rounded-2xl border-2 border-dashed border-white/10 p-3"
+                style={{ background: 'rgba(255,255,255,0.03)' }}
+              >
+                {/* Selected avatar preview */}
+                <div className="mb-3 flex flex-col items-center gap-1">
+                  <img
+                    src={avatarUrl(avatar)}
+                    alt={avatar}
+                    className="h-16 w-16 rounded-full"
+                    style={{
+                      border: '3px solid #FF3AF2',
+                      boxShadow: '0 0 18px #FF3AF288, 0 0 40px #FF3AF233',
+                    }}
+                  />
+                  <p className="font-heading text-[9px] font-black uppercase tracking-widest text-[#FF3AF2]">
+                    {avatar}
+                  </p>
+                </div>
+
+                {/* Grid of all options */}
+                <p className="mb-2 text-center text-[9px] uppercase tracking-widest text-white/25">
                   Pick your avatar
                 </p>
                 <div className="grid grid-cols-6 gap-1.5">
-                  {AVATARS.map((em) => (
+                  {AVATAR_SEEDS.map((seed) => (
                     <button
-                      key={em}
+                      key={seed}
                       type="button"
-                      onClick={() => setAvatar(em)}
-                      className="flex items-center justify-center rounded-xl text-xl transition-all"
+                      onClick={() => setAvatar(seed)}
+                      title={seed}
+                      className="relative overflow-hidden rounded-xl transition-all duration-150"
                       style={{
                         aspectRatio: '1',
-                        background: avatar === em ? 'rgba(255,58,242,0.25)' : 'rgba(255,255,255,0.04)',
-                        border: avatar === em ? '2px solid #FF3AF2' : '2px solid transparent',
-                        boxShadow: avatar === em ? '0 0 10px #FF3AF288' : 'none',
-                        transform: avatar === em ? 'scale(1.15)' : 'scale(1)',
+                        border: avatar === seed ? '2px solid #FF3AF2' : '2px solid transparent',
+                        boxShadow: avatar === seed ? '0 0 10px #FF3AF288' : 'none',
+                        transform: avatar === seed ? 'scale(1.12)' : 'scale(1)',
+                        background: avatar === seed ? 'rgba(255,58,242,0.15)' : 'transparent',
                       }}
                     >
-                      {em}
+                      <img
+                        src={avatarUrl(seed)}
+                        alt={seed}
+                        className="h-full w-full rounded-xl"
+                        loading="lazy"
+                      />
                     </button>
                   ))}
                 </div>

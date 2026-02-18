@@ -1,12 +1,12 @@
-// Message shape: { id, senderId, senderName, senderColor, text, timestamp }
+// Message shape: { id, senderId, senderName, senderColor, senderAvatar, text, timestamp }
+import { avatarUrl } from '../utils/avatar.js';
 
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function Message({ message, isOwn }) {
-  const { senderName, senderColor, text, timestamp } = message;
-  const initial = senderName?.[0]?.toUpperCase() ?? '?';
+  const { senderName, senderColor, senderAvatar, text, timestamp } = message;
 
   return (
     <div
@@ -18,17 +18,16 @@ export default function Message({ message, isOwn }) {
           : { borderLeft: `4px solid ${senderColor}`, boxShadow: `3px 3px 0 ${senderColor}33` }),
       }}
     >
-      {/* Avatar */}
-      <div
-        className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full font-heading text-sm font-black text-white"
+      {/* Chibi avatar */}
+      <img
+        src={avatarUrl(senderAvatar)}
+        alt={senderName}
+        className="mt-0.5 h-9 w-9 flex-shrink-0 rounded-full"
         style={{
-          backgroundColor: senderColor,
-          boxShadow: `0 0 12px ${senderColor}88`,
-          border: '2px solid rgba(255,230,0,0.5)',
+          border: `2px solid ${senderColor}`,
+          boxShadow: `0 0 10px ${senderColor}88`,
         }}
-      >
-        {initial}
-      </div>
+      />
 
       {/* Body */}
       <div className={`min-w-0 flex-1 ${isOwn ? 'text-right' : ''}`}>

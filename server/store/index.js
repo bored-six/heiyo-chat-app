@@ -61,6 +61,7 @@ function dbRowToMessage(row) {
     senderId: row.sender_id,
     senderName: row.sender_name,
     senderColor: row.sender_color,
+    senderAvatar: row.sender_avatar ?? 'Stargazer',
     text: row.text,
     timestamp: row.timestamp,
   };
@@ -136,7 +137,7 @@ export function getRoomMembers(roomId) {
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
-export function addMessage(roomId, { senderId, senderName, senderColor, text }) {
+export function addMessage(roomId, { senderId, senderName, senderColor, senderAvatar, text }) {
   const room = state.rooms[roomId];
   if (!room) return null;
 
@@ -145,6 +146,7 @@ export function addMessage(roomId, { senderId, senderName, senderColor, text }) 
     senderId,
     senderName,
     senderColor,
+    senderAvatar: senderAvatar ?? 'Stargazer',
     text,
     timestamp: Date.now(),
   };
@@ -182,7 +184,7 @@ export function getOrCreateDm(userIdA, userIdB) {
   return state.dms[dmId];
 }
 
-export function addDmMessage(dmId, { senderId, senderName, senderColor, text }) {
+export function addDmMessage(dmId, { senderId, senderName, senderColor, senderAvatar, text }) {
   const dm = state.dms[dmId];
   if (!dm) return null;
 
@@ -191,6 +193,7 @@ export function addDmMessage(dmId, { senderId, senderName, senderColor, text }) 
     senderId,
     senderName,
     senderColor,
+    senderAvatar: senderAvatar ?? 'Stargazer',
     text,
     timestamp: Date.now(),
   };

@@ -13,6 +13,7 @@ export function registerMessageHandlers(io, socket) {
       senderId: user.id,
       senderName: user.username,
       senderColor: user.color,
+      senderAvatar: user.avatar,
       text: trimmed,
     });
 

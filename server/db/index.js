@@ -25,7 +25,7 @@ export function initDb() {
       username     TEXT PRIMARY KEY,
       password_hash TEXT NOT NULL,
       color        TEXT NOT NULL,
-      avatar       TEXT NOT NULL DEFAULT '🌟',
+      avatar       TEXT NOT NULL DEFAULT 'Stargazer',
       created_at   INTEGER NOT NULL
     );
 
@@ -36,13 +36,14 @@ export function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS messages (
-      id           TEXT PRIMARY KEY,
-      room_id      TEXT NOT NULL,
-      sender_id    TEXT NOT NULL,
-      sender_name  TEXT NOT NULL,
-      sender_color TEXT NOT NULL,
-      text         TEXT NOT NULL,
-      timestamp    INTEGER NOT NULL,
+      id             TEXT PRIMARY KEY,
+      room_id        TEXT NOT NULL,
+      sender_id      TEXT NOT NULL,
+      sender_name    TEXT NOT NULL,
+      sender_color   TEXT NOT NULL,
+      sender_avatar  TEXT NOT NULL DEFAULT 'Stargazer',
+      text           TEXT NOT NULL,
+      timestamp      INTEGER NOT NULL,
       FOREIGN KEY (room_id) REFERENCES rooms(id)
     );
 
@@ -56,23 +57,24 @@ export function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS dm_messages (
-      id           TEXT PRIMARY KEY,
-      dm_id        TEXT NOT NULL,
-      sender_id    TEXT NOT NULL,
-      sender_name  TEXT NOT NULL,
-      sender_color TEXT NOT NULL,
-      text         TEXT NOT NULL,
-      timestamp    INTEGER NOT NULL,
+      id             TEXT PRIMARY KEY,
+      dm_id          TEXT NOT NULL,
+      sender_id      TEXT NOT NULL,
+      sender_name    TEXT NOT NULL,
+      sender_color   TEXT NOT NULL,
+      sender_avatar  TEXT NOT NULL DEFAULT 'Stargazer',
+      text           TEXT NOT NULL,
+      timestamp      INTEGER NOT NULL,
       FOREIGN KEY (dm_id) REFERENCES dms(id)
     );
 
     CREATE INDEX IF NOT EXISTS idx_dm_messages_dm ON dm_messages(dm_id, timestamp);
   `);
 
-  // Migrate: add avatar column if missing (safe to run on existing DBs)
-  try {
-    db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT '🌟'`);
-  } catch (_) { /* column already exists */ }
+  // Migrate: add new columns if missing (safe to run on existing DBs)
+  try { db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
+  try { db.exec(`ALTER TABLE messages ADD COLUMN sender_avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
+  try { db.exec(`ALTER TABLE dm_messages ADD COLUMN sender_avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
 
   // Seed General room (upsert — safe to call on every boot)
   db.prepare(`
@@ -97,11 +99,11 @@ export function dbLoadRooms() {
 
 // ─── Room messages ────────────────────────────────────────────────────────────
 
-export function dbAddMessage(roomId, { id, senderId, senderName, senderColor, text, timestamp }) {
+export function dbAddMessage(roomId, { id, senderId, senderName, senderColor, senderAvatar, text, timestamp }) {
   db.prepare(`
-    INSERT INTO messages (id, room_id, sender_id, sender_name, sender_color, text, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, roomId, senderId, senderName, senderColor, text, timestamp);
+    INSERT INTO messages (id, room_id, sender_id, sender_name, sender_color, sender_avatar, text, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, roomId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', text, timestamp);
 
   // Enforce 100-message cap per room
   db.prepare(`
@@ -134,11 +136,11 @@ export function dbLoadDms() {
 
 // ─── DM messages ──────────────────────────────────────────────────────────────
 
-export function dbAddDmMessage(dmId, { id, senderId, senderName, senderColor, text, timestamp }) {
+export function dbAddDmMessage(dmId, { id, senderId, senderName, senderColor, senderAvatar, text, timestamp }) {
   db.prepare(`
-    INSERT INTO dm_messages (id, dm_id, sender_id, sender_name, sender_color, text, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, dmId, senderId, senderName, senderColor, text, timestamp);
+    INSERT INTO dm_messages (id, dm_id, sender_id, sender_name, sender_color, sender_avatar, text, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, dmId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', text, timestamp);
 
   // Enforce 100-message cap per DM thread
   db.prepare(`
