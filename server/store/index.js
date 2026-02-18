@@ -68,8 +68,8 @@ function dbRowToMessage(row) {
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export function addUser(socketId, { username, color }) {
-  const user = { id: socketId, username, color, connectedAt: Date.now() };
+export function addUser(socketId, { username, color, avatar = '🌟' }) {
+  const user = { id: socketId, username, color, avatar, connectedAt: Date.now() };
   state.users[socketId] = user;
   return user;
 }

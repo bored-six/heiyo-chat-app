@@ -26,8 +26,14 @@ const COLORS = [
 ];
 function randomColor() { return COLORS[Math.floor(Math.random() * COLORS.length)]; }
 
+const VALID_AVATARS = new Set([
+  '🌟', '💫', '⚡', '🔥', '🌈', '💎',
+  '🔮', '🌙', '☄️', '🪐', '✨', '🎆',
+  '🦋', '🐙', '🦄', '👾', '🚀', '🎸',
+]);
+
 app.post('/auth/register', async (req, res) => {
-  const { username, password } = req.body ?? {};
+  const { username, password, avatar } = req.body ?? {};
 
   if (!username || typeof username !== 'string' || username.trim().length === 0)
     return res.status(400).json({ error: 'Username is required.' });
@@ -40,11 +46,12 @@ app.post('/auth/register', async (req, res) => {
   if (dbUsernameExists(name))
     return res.status(409).json({ error: 'Username already taken.' });
 
+  const chosenAvatar = VALID_AVATARS.has(avatar) ? avatar : '🌟';
   const hash = await bcrypt.hash(password, 10);
   const color = randomColor();
-  dbCreateUser(name, hash, color);
+  dbCreateUser(name, hash, color, chosenAvatar);
 
-  return res.json({ username: name, color });
+  return res.json({ username: name, color, avatar: chosenAvatar });
 });
 
 app.post('/auth/login', async (req, res) => {
@@ -61,12 +68,14 @@ app.post('/auth/login', async (req, res) => {
   if (!match)
     return res.status(401).json({ error: 'Invalid username or password.' });
 
-  return res.json({ username: row.username, color: row.color });
+  return res.json({ username: row.username, color: row.color, avatar: row.avatar ?? '🌟' });
 });
 
 app.post('/auth/guest', (_req, res) => {
   const { username, color } = generateUser();
-  return res.json({ username, color, isGuest: true });
+  const guestAvatars = [...VALID_AVATARS];
+  const avatar = guestAvatars[Math.floor(Math.random() * guestAvatars.length)];
+  return res.json({ username, color, avatar, isGuest: true });
 });
 
 const httpServer = createServer(app);

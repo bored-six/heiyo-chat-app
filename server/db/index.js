@@ -25,6 +25,7 @@ export function initDb() {
       username     TEXT PRIMARY KEY,
       password_hash TEXT NOT NULL,
       color        TEXT NOT NULL,
+      avatar       TEXT NOT NULL DEFAULT '🌟',
       created_at   INTEGER NOT NULL
     );
 
@@ -67,6 +68,11 @@ export function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_dm_messages_dm ON dm_messages(dm_id, timestamp);
   `);
+
+  // Migrate: add avatar column if missing (safe to run on existing DBs)
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT '🌟'`);
+  } catch (_) { /* column already exists */ }
 
   // Seed General room (upsert — safe to call on every boot)
   db.prepare(`
@@ -152,11 +158,11 @@ export function dbGetDmMessages(dmId) {
 
 // ─── Auth / Users ─────────────────────────────────────────────────────────────
 
-export function dbCreateUser(username, passwordHash, color) {
+export function dbCreateUser(username, passwordHash, color, avatar = '🌟') {
   db.prepare(`
-    INSERT INTO users (username, password_hash, color, created_at)
-    VALUES (?, ?, ?, ?)
-  `).run(username, passwordHash, color, Date.now());
+    INSERT INTO users (username, password_hash, color, avatar, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(username, passwordHash, color, avatar, Date.now());
 }
 
 export function dbGetUser(username) {

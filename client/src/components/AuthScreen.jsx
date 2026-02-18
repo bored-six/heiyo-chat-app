@@ -2,6 +2,12 @@ import { useState } from 'react';
 
 const API = 'http://localhost:3001';
 
+const AVATARS = [
+  '🌟', '💫', '⚡', '🔥', '🌈', '💎',
+  '🔮', '🌙', '☄️', '🪐', '✨', '🎆',
+  '🦋', '🐙', '🦄', '👾', '🚀', '🎸',
+];
+
 // ─── Shared input style ───────────────────────────────────────────────────────
 const inputCls =
   'w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white ' +
@@ -24,12 +30,14 @@ export default function AuthScreen({ onAuth }) {
   const [view, setView] = useState('landing'); // 'landing' | 'login' | 'register'
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [avatar, setAvatar] = useState(AVATARS[0]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   function resetForm() {
     setUsername('');
     setPassword('');
+    setAvatar(AVATARS[0]);
     setError('');
   }
 
@@ -43,7 +51,7 @@ export default function AuthScreen({ onAuth }) {
     try {
       const res = await fetch(`${API}/auth/guest`, { method: 'POST' });
       const data = await res.json();
-      onAuth({ username: data.username, color: data.color, isGuest: true });
+      onAuth({ username: data.username, color: data.color, avatar: data.avatar, isGuest: true });
     } catch {
       setError('Could not connect to server.');
     } finally {
@@ -64,7 +72,7 @@ export default function AuthScreen({ onAuth }) {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
-      onAuth({ username: data.username, color: data.color, isGuest: false });
+      onAuth({ username: data.username, color: data.color, avatar: data.avatar ?? '🌟', isGuest: false });
     } catch {
       setError('Could not connect to server.');
     } finally {
@@ -85,11 +93,11 @@ export default function AuthScreen({ onAuth }) {
       const res = await fetch(`${API}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password }),
+        body: JSON.stringify({ username: username.trim(), password, avatar }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
-      onAuth({ username: data.username, color: data.color, isGuest: false });
+      onAuth({ username: data.username, color: data.color, avatar: data.avatar, isGuest: false });
     } catch {
       setError('Could not connect to server.');
     } finally {
@@ -150,6 +158,34 @@ export default function AuthScreen({ onAuth }) {
             <p className="text-center text-xs uppercase tracking-widest text-white/40 mb-1">
               {view === 'login' ? 'Welcome back' : 'New account'}
             </p>
+
+            {/* Avatar picker — register only */}
+            {view === 'register' && (
+              <div>
+                <p className="mb-2 text-center text-[10px] uppercase tracking-widest text-white/30">
+                  Pick your avatar
+                </p>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {AVATARS.map((em) => (
+                    <button
+                      key={em}
+                      type="button"
+                      onClick={() => setAvatar(em)}
+                      className="flex items-center justify-center rounded-xl text-xl transition-all"
+                      style={{
+                        aspectRatio: '1',
+                        background: avatar === em ? 'rgba(255,58,242,0.25)' : 'rgba(255,255,255,0.04)',
+                        border: avatar === em ? '2px solid #FF3AF2' : '2px solid transparent',
+                        boxShadow: avatar === em ? '0 0 10px #FF3AF288' : 'none',
+                        transform: avatar === em ? 'scale(1.15)' : 'scale(1)',
+                      }}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="relative">
               <input

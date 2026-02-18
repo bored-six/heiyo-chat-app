@@ -9,7 +9,8 @@ export default function UserBadge() {
 
   if (!me) return null;
 
-  const initial = me.username?.[0]?.toUpperCase() ?? '?';
+  const displayAvatar = me.avatar ?? me.username?.[0]?.toUpperCase() ?? '?';
+  const isEmoji = me.avatar != null;
   const count = Object.keys(onlineUsers).length + 1;
 
   // Close panel on outside click
@@ -36,16 +37,17 @@ export default function UserBadge() {
         style={{ boxShadow: open ? '0 0 28px rgba(255,230,0,0.6), 4px 4px 0 #FF3AF2' : '0 0 20px rgba(255,230,0,0.4), 4px 4px 0 #FF3AF2' }}
         aria-label="Show online users"
       >
-        {/* Colored avatar */}
+        {/* Avatar */}
         <div
-          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full font-heading text-sm font-black text-white"
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full font-heading font-black text-white"
           style={{
-            backgroundColor: me.color,
-            boxShadow: `0 0 14px ${me.color}bb`,
+            backgroundColor: isEmoji ? 'rgba(255,58,242,0.2)' : me.color,
+            boxShadow: isEmoji ? `0 0 14px #FF3AF288` : `0 0 14px ${me.color}bb`,
             border: '2px solid #FFE600',
+            fontSize: isEmoji ? '1.2rem' : '0.875rem',
           }}
         >
-          {initial}
+          {displayAvatar}
         </div>
 
         {/* Name + count */}
