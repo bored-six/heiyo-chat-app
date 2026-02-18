@@ -74,13 +74,13 @@ function Portal({ title, accent, clash, onExit, children, members = [] }) {
         className="animate-portal-in flex h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl backdrop-blur-sm"
         style={{
           backgroundColor: 'rgba(13,13,26,0.88)',
-          border: `4px solid ${clash}`,
+          border: `2px solid ${accent}55`,
           boxShadow: `0 0 60px ${accent}55, 0 0 120px ${accent}22`,
         }}
       >
         {/* ── Header ── */}
         <div
-          className="flex flex-shrink-0 items-center justify-between border-b-4 border-dashed px-6 py-4"
+          className="flex flex-shrink-0 items-center justify-between border-b-2 px-6 py-4"
           style={{
             borderColor: accent,
             background: `linear-gradient(135deg, ${accent}18, transparent)`,

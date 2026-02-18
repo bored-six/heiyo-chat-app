@@ -75,7 +75,7 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
           <span
             className="font-heading px-3 text-center text-sm font-black uppercase leading-tight tracking-tighter text-white"
             style={{
-              textShadow: `2px 2px 0 ${accent}, 4px 4px 0 ${borderColor}`,
+              textShadow: `0 0 10px ${accent}99`,
             }}
           >
             {room.name}
