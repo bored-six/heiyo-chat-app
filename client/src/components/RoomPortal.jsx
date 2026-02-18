@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import { avatarUrl } from '../utils/avatar.js';
 import MessageList from './MessageList.jsx';
@@ -63,6 +64,7 @@ export default function RoomPortal() {
 const MEMBER_MAX = 5;
 
 function Portal({ title, accent, clash, onExit, children, members = [] }) {
+  const [showMembers, setShowMembers] = useState(false);
   const visible  = members.slice(0, MEMBER_MAX);
   const overflow = members.length - MEMBER_MAX;
 
@@ -96,7 +98,11 @@ function Portal({ title, accent, clash, onExit, children, members = [] }) {
             </h2>
 
             {visible.length > 0 && (
-              <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowMembers((v) => !v)}
+                className="flex items-center gap-1 transition-opacity hover:opacity-80"
+                title="Toggle member list"
+              >
                 {visible.map((m) => (
                   <img
                     key={m.id}
@@ -115,7 +121,13 @@ function Portal({ title, accent, clash, onExit, children, members = [] }) {
                     +{overflow}
                   </span>
                 )}
-              </div>
+                <span
+                  className="ml-1 font-heading text-[9px] font-bold uppercase tracking-widest"
+                  style={{ color: accent }}
+                >
+                  {members.length} {showMembers ? '▴' : '▾'}
+                </span>
+              </button>
             )}
           </div>
 
@@ -132,6 +144,34 @@ function Portal({ title, accent, clash, onExit, children, members = [] }) {
             ← EXIT
           </button>
         </div>
+
+        {/* ── Member list panel ── */}
+        {showMembers && members.length > 0 && (
+          <div
+            className="flex flex-shrink-0 flex-wrap gap-2 border-b-2 border-dashed px-6 py-3 animate-appear"
+            style={{ borderColor: `${accent}44`, background: `${accent}08` }}
+          >
+            {members.map((m) => (
+              <div key={m.id} className="flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1">
+                <img
+                  src={avatarUrl(m.avatar ?? m.username)}
+                  alt={m.username}
+                  className="h-5 w-5 rounded-full"
+                  style={{ border: `1.5px solid ${m.color ?? accent}` }}
+                />
+                <span
+                  className="font-heading text-[11px] font-black uppercase tracking-tight"
+                  style={{ color: m.color ?? accent }}
+                >
+                  {m.username}
+                </span>
+                {m.tag && (
+                  <span className="font-heading text-[9px] text-white/30">#{m.tag}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Scrollable chat area ── */}
         <div className="flex flex-1 flex-col overflow-hidden">
