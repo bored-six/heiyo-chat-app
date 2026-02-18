@@ -4,25 +4,29 @@ import Message from './Message.jsx';
 export default function MessageList({ messages }) {
   const bottomRef = useRef(null);
 
-  // Scroll to bottom whenever the message count changes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-[#6d6f78]">
-        No messages yet — say hello!
+      <div className="flex flex-1 flex-col items-center justify-center gap-3">
+        <span className="animate-bounce-subtle text-6xl" aria-hidden="true">
+          💬
+        </span>
+        <p className="font-heading text-base font-black uppercase tracking-[0.25em] text-[#FF3AF2]/50">
+          Nothing yet — break the silence
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-2 py-2">
+    <div className="flex-1 overflow-y-auto py-2">
       {messages.map((msg) => (
         <Message key={msg.id} message={msg} />
       ))}
-      {/* Invisible anchor kept at the bottom for auto-scroll */}
+      {/* Invisible scroll anchor */}
       <div ref={bottomRef} />
     </div>
   );

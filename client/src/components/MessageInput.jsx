@@ -4,14 +4,14 @@ import { useChat } from '../context/ChatContext.jsx';
 const MAX_CHARS = 2000;
 const TYPING_TIMEOUT_MS = 2000;
 
-export default function MessageInput({ roomId, toUserId }) {
+export default function MessageInput({ roomId, toUserId, accent = '#FF3AF2', clash = '#FFE600' }) {
   const { socket } = useChat();
   const [text, setText] = useState('');
   const textareaRef = useRef(null);
   const isTypingRef = useRef(false);
   const typingTimerRef = useRef(null);
 
-  // ── Typing indicator helpers ────────────────────────────────────────────────
+  // ── Typing indicator helpers ─────────────────────────────────────────────
 
   function emitTypingStart() {
     if (!roomId || isTypingRef.current) return;
@@ -26,40 +26,26 @@ export default function MessageInput({ roomId, toUserId }) {
     socket.emit('typing:stop', { roomId });
   }
 
-  // ── Change handler ──────────────────────────────────────────────────────────
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
   function handleChange(e) {
     setText(e.target.value);
-
-    // Auto-grow textarea up to ~5 lines
     const ta = textareaRef.current;
     ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
-
+    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
     emitTypingStart();
     clearTimeout(typingTimerRef.current);
     typingTimerRef.current = setTimeout(emitTypingStop, TYPING_TIMEOUT_MS);
   }
 
-  // ── Send ───────────────────────────────────────────────────────────────────
-
   function send() {
     const trimmed = text.trim();
     if (!trimmed || trimmed.length > MAX_CHARS) return;
-
     emitTypingStop();
-
-    if (roomId) {
-      socket.emit('message:send', { roomId, text: trimmed });
-    } else if (toUserId) {
-      socket.emit('dm:send', { toUserId, text: trimmed });
-    }
-
+    if (roomId)      socket.emit('message:send', { roomId, text: trimmed });
+    else if (toUserId) socket.emit('dm:send', { toUserId, text: trimmed });
     setText('');
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
   }
 
   function handleKeyDown(e) {
@@ -69,19 +55,24 @@ export default function MessageInput({ roomId, toUserId }) {
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Derived state ────────────────────────────────────────────────────────
 
   const remaining = MAX_CHARS - text.length;
   const nearLimit = text.length > 1800;
   const overLimit = text.length > MAX_CHARS;
-  const placeholder = roomId ? 'Message…' : 'Direct message…';
 
   return (
-    <div className="flex-shrink-0 px-4 pb-4 pt-1">
+    <div className="flex-shrink-0 p-4">
+      {/* Input container */}
       <div
-        className={`flex items-end gap-2 rounded-lg bg-[#383a40] px-3 py-2.5 ${
-          overLimit ? 'ring-1 ring-red-500' : ''
-        }`}
+        className="flex items-end gap-3 rounded-3xl border-4 p-3 transition-all duration-300"
+        style={{
+          borderColor: overLimit ? '#ff4444' : accent,
+          backgroundColor: 'rgba(45,27,78,0.6)',
+          boxShadow: overLimit
+            ? '0 0 20px rgba(255,68,68,0.5)'
+            : `0 0 20px ${accent}44, 4px 4px 0 ${clash}`,
+        }}
       >
         <textarea
           ref={textareaRef}
@@ -89,22 +80,36 @@ export default function MessageInput({ roomId, toUserId }) {
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="flex-1 resize-none bg-transparent text-sm leading-5 text-[#dcddde] placeholder-[#6d6f78] outline-none"
-          style={{ minHeight: '20px', maxHeight: '160px' }}
+          placeholder={roomId ? 'TRANSMIT…' : 'DIRECT TRANSMISSION…'}
+          className="flex-1 resize-none bg-transparent font-heading text-sm font-bold uppercase tracking-wide text-white placeholder-white/20 outline-none"
+          style={{ minHeight: '24px', maxHeight: '120px' }}
         />
         {nearLimit && (
           <span
-            className={`flex-shrink-0 text-xs tabular-nums ${
-              overLimit ? 'text-red-400' : 'text-[#949ba4]'
+            className={`flex-shrink-0 font-heading text-xs font-black tabular-nums ${
+              overLimit ? 'text-red-400' : 'text-white/35'
             }`}
           >
             {remaining}
           </span>
         )}
+        <button
+          onClick={send}
+          disabled={!text.trim() || overLimit}
+          className="flex-shrink-0 rounded-full border-4 px-5 py-2 font-heading text-sm font-black uppercase tracking-widest text-white transition-all duration-200 hover:scale-110 disabled:cursor-not-allowed disabled:opacity-30"
+          style={{
+            background: `linear-gradient(135deg, ${accent}, ${clash})`,
+            borderColor: clash,
+            boxShadow: `0 0 14px ${accent}66`,
+          }}
+          aria-label="Send message"
+        >
+          SEND
+        </button>
       </div>
-      <p className="mt-1 px-1 text-xs text-[#6d6f78]">
-        Enter to send&ensp;·&ensp;Shift+Enter for new line
+
+      <p className="mt-1.5 px-2 font-heading text-[10px] font-bold uppercase tracking-widest text-white/18">
+        Enter to send · Shift+Enter for line break
       </p>
     </div>
   );
