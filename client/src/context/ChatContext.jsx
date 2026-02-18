@@ -252,7 +252,7 @@ export function ChatProvider({ children }) {
   const setAuthUser = useCallback((updaterOrUser) => {
     setAuthUserRaw((prev) => {
       const next = typeof updaterOrUser === 'function' ? updaterOrUser(prev) : updaterOrUser;
-      if (next) {
+      if (next && !next.isGuest) {
         localStorage.setItem('heiyo_session', JSON.stringify(next));
       } else {
         localStorage.removeItem('heiyo_session');
