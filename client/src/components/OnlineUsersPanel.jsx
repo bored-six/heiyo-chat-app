@@ -4,7 +4,7 @@ import { avatarUrl } from '../utils/avatar.js';
 export default function OnlineUsersPanel({ onClose }) {
   const { onlineUsers, me, socket, dmUnread } = useChat();
 
-  const users = Object.values(onlineUsers);
+  const users = Object.values(onlineUsers).filter((u) => u.id !== me?.id);
 
   function openDm(userId) {
     socket.emit('dm:open', { toUserId: userId });
