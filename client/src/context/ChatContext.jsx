@@ -243,13 +243,7 @@ export function ChatProvider({ children }) {
   const [authUser, setAuthUserRaw] = useState(() => {
     try {
       const saved = localStorage.getItem('heiyo_session');
-      if (!saved) return null;
-      const parsed = JSON.parse(saved);
-      if (parsed?.isGuest) {
-        localStorage.removeItem('heiyo_session');
-        return null;
-      }
-      return parsed;
+      return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
@@ -258,7 +252,7 @@ export function ChatProvider({ children }) {
   const setAuthUser = useCallback((updaterOrUser) => {
     setAuthUserRaw((prev) => {
       const next = typeof updaterOrUser === 'function' ? updaterOrUser(prev) : updaterOrUser;
-      if (next && !next.isGuest) {
+      if (next) {
         localStorage.setItem('heiyo_session', JSON.stringify(next));
       } else {
         localStorage.removeItem('heiyo_session');
