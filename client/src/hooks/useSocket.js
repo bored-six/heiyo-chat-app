@@ -1,0 +1,97 @@
+import { useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
+
+/**
+ * Creates and manages the Socket.IO connection.
+ * Wires every server→client event to dispatch so ChatContext state stays current.
+ * Returns the socket instance (stable ref, safe to call .emit() on).
+ */
+export function useSocket(dispatch) {
+  const socketRef = useRef(null);
+
+  // Initialise synchronously so the ref is never null after first render
+  if (!socketRef.current) {
+    socketRef.current = io({ autoConnect: false });
+  }
+
+  useEffect(() => {
+    const socket = socketRef.current;
+
+    // ── Connection lifecycle ────────────────────────────────────────────────
+
+    socket.on('connected', ({ user, rooms }) => {
+      dispatch({ type: 'CONNECTED', user, rooms });
+    });
+
+    socket.on('disconnect', () => {
+      dispatch({ type: 'DISCONNECTED' });
+    });
+
+    socket.on('connect_error', () => {
+      dispatch({ type: 'DISCONNECTED' });
+    });
+
+    // ── Users ───────────────────────────────────────────────────────────────
+
+    socket.on('user:online', ({ user }) => {
+      dispatch({ type: 'USER_ONLINE', user });
+    });
+
+    socket.on('user:offline', ({ userId }) => {
+      dispatch({ type: 'USER_OFFLINE', userId });
+    });
+
+    // ── Rooms ───────────────────────────────────────────────────────────────
+
+    socket.on('room:list', ({ rooms }) => {
+      dispatch({ type: 'SET_ROOMS', rooms });
+    });
+
+    socket.on('room:created', ({ room }) => {
+      dispatch({ type: 'ROOM_CREATED', room });
+    });
+
+    socket.on('room:joined', ({ room, messages, members }) => {
+      dispatch({ type: 'ROOM_JOINED', room, messages, members });
+    });
+
+    socket.on('room:members', ({ roomId, members }) => {
+      dispatch({ type: 'ROOM_MEMBERS', roomId, members });
+    });
+
+    socket.on('room:left', ({ roomId }) => {
+      dispatch({ type: 'ROOM_LEFT', roomId });
+    });
+
+    // ── Messages ────────────────────────────────────────────────────────────
+
+    socket.on('message:received', ({ roomId, message }) => {
+      dispatch({ type: 'MESSAGE_RECEIVED', roomId, message });
+    });
+
+    // ── DMs ─────────────────────────────────────────────────────────────────
+
+    socket.on('dm:opened', ({ dm }) => {
+      dispatch({ type: 'DM_OPENED', dm });
+    });
+
+    socket.on('dm:received', ({ dmId, participants, message }) => {
+      dispatch({ type: 'DM_RECEIVED', dmId, participants, message });
+    });
+
+    // ── Typing ──────────────────────────────────────────────────────────────
+
+    socket.on('typing:update', ({ roomId, typers }) => {
+      dispatch({ type: 'TYPING_UPDATE', roomId, typers });
+    });
+
+    socket.connect();
+
+    return () => {
+      socket.removeAllListeners();
+      socket.disconnect();
+    };
+  }, [dispatch]);
+
+  return socketRef.current;
+}
