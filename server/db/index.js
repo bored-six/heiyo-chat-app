@@ -22,11 +22,12 @@ export function initDb() {
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
-      username     TEXT PRIMARY KEY,
+      username      TEXT PRIMARY KEY,
       password_hash TEXT NOT NULL,
-      color        TEXT NOT NULL,
-      avatar       TEXT NOT NULL DEFAULT 'Stargazer',
-      created_at   INTEGER NOT NULL
+      color         TEXT NOT NULL,
+      avatar        TEXT NOT NULL DEFAULT 'Stargazer',
+      tag           TEXT NOT NULL DEFAULT '',
+      created_at    INTEGER NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS rooms (
@@ -42,6 +43,7 @@ export function initDb() {
       sender_name    TEXT NOT NULL,
       sender_color   TEXT NOT NULL,
       sender_avatar  TEXT NOT NULL DEFAULT 'Stargazer',
+      sender_tag     TEXT NOT NULL DEFAULT '',
       text           TEXT NOT NULL,
       timestamp      INTEGER NOT NULL,
       FOREIGN KEY (room_id) REFERENCES rooms(id)
@@ -63,6 +65,7 @@ export function initDb() {
       sender_name    TEXT NOT NULL,
       sender_color   TEXT NOT NULL,
       sender_avatar  TEXT NOT NULL DEFAULT 'Stargazer',
+      sender_tag     TEXT NOT NULL DEFAULT '',
       text           TEXT NOT NULL,
       timestamp      INTEGER NOT NULL,
       FOREIGN KEY (dm_id) REFERENCES dms(id)
@@ -73,8 +76,11 @@ export function initDb() {
 
   // Migrate: add new columns if missing (safe to run on existing DBs)
   try { db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN tag TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.exec(`ALTER TABLE messages ADD COLUMN sender_avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
+  try { db.exec(`ALTER TABLE messages ADD COLUMN sender_tag TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.exec(`ALTER TABLE dm_messages ADD COLUMN sender_avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
+  try { db.exec(`ALTER TABLE dm_messages ADD COLUMN sender_tag TEXT NOT NULL DEFAULT ''`); } catch (_) {}
 
   // Seed General room (upsert — safe to call on every boot)
   db.prepare(`
@@ -99,11 +105,11 @@ export function dbLoadRooms() {
 
 // ─── Room messages ────────────────────────────────────────────────────────────
 
-export function dbAddMessage(roomId, { id, senderId, senderName, senderColor, senderAvatar, text, timestamp }) {
+export function dbAddMessage(roomId, { id, senderId, senderName, senderColor, senderAvatar, senderTag, text, timestamp }) {
   db.prepare(`
-    INSERT INTO messages (id, room_id, sender_id, sender_name, sender_color, sender_avatar, text, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, roomId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', text, timestamp);
+    INSERT INTO messages (id, room_id, sender_id, sender_name, sender_color, sender_avatar, sender_tag, text, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, roomId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', senderTag ?? '', text, timestamp);
 
   // Enforce 100-message cap per room
   db.prepare(`
@@ -136,11 +142,11 @@ export function dbLoadDms() {
 
 // ─── DM messages ──────────────────────────────────────────────────────────────
 
-export function dbAddDmMessage(dmId, { id, senderId, senderName, senderColor, senderAvatar, text, timestamp }) {
+export function dbAddDmMessage(dmId, { id, senderId, senderName, senderColor, senderAvatar, senderTag, text, timestamp }) {
   db.prepare(`
-    INSERT INTO dm_messages (id, dm_id, sender_id, sender_name, sender_color, sender_avatar, text, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, dmId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', text, timestamp);
+    INSERT INTO dm_messages (id, dm_id, sender_id, sender_name, sender_color, sender_avatar, sender_tag, text, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, dmId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', senderTag ?? '', text, timestamp);
 
   // Enforce 100-message cap per DM thread
   db.prepare(`
@@ -160,11 +166,11 @@ export function dbGetDmMessages(dmId) {
 
 // ─── Auth / Users ─────────────────────────────────────────────────────────────
 
-export function dbCreateUser(username, passwordHash, color, avatar = '🌟') {
+export function dbCreateUser(username, passwordHash, color, avatar = 'Stargazer', tag = '') {
   db.prepare(`
-    INSERT INTO users (username, password_hash, color, avatar, created_at)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(username, passwordHash, color, avatar, Date.now());
+    INSERT INTO users (username, password_hash, color, avatar, tag, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(username, passwordHash, color, avatar, tag, Date.now());
 }
 
 export function dbGetUser(username) {

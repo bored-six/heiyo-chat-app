@@ -21,7 +21,7 @@ export function useSocket(dispatch, authUser) {
     const socket = socketRef.current;
 
     // Pass identity in the handshake so server knows who this is
-    socket.auth = { username: authUser.username, color: authUser.color, avatar: authUser.avatar };
+    socket.auth = { username: authUser.username, color: authUser.color, avatar: authUser.avatar, tag: authUser.tag ?? '' };
 
     // ── Connection lifecycle ────────────────────────────────────────────────
 

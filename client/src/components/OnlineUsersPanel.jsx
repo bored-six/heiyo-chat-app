@@ -35,6 +35,11 @@ export default function OnlineUsersPanel({ onClose }) {
           />
           <span className="flex-1 truncate font-heading text-sm font-black uppercase text-white">
             {me.username}
+            {me.tag && (
+              <span className="font-heading text-[9px] font-bold normal-case tracking-normal text-white/35 ml-0.5">
+                #{me.tag}
+              </span>
+            )}
           </span>
           <span className="font-heading text-[9px] font-black uppercase tracking-wider text-[#FFE600]">
             you
@@ -60,6 +65,11 @@ export default function OnlineUsersPanel({ onClose }) {
               />
               <span className="flex-1 truncate font-heading text-sm font-black uppercase text-white">
                 {user.username}
+                {user.tag && (
+                  <span className="font-heading text-[9px] font-bold normal-case tracking-normal text-white/35 ml-0.5">
+                    #{user.tag}
+                  </span>
+                )}
               </span>
               <button
                 onClick={() => openDm(user.id)}

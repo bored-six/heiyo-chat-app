@@ -12,8 +12,8 @@ const typing = {};
 export function initSocket(io) {
   io.on('connection', (socket) => {
     // Use identity provided by client auth handshake
-    const { username, color, avatar } = socket.handshake.auth ?? {};
-    const user = addUser(socket.id, { username, color, avatar });
+    const { username, color, avatar, tag } = socket.handshake.auth ?? {};
+    const user = addUser(socket.id, { username, color, avatar, tag });
 
     // Auto-join General
     socket.join(GENERAL_ROOM_ID);

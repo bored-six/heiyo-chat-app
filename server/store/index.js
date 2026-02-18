@@ -62,6 +62,7 @@ function dbRowToMessage(row) {
     senderName: row.sender_name,
     senderColor: row.sender_color,
     senderAvatar: row.sender_avatar ?? 'Stargazer',
+    senderTag: row.sender_tag ?? '',
     text: row.text,
     timestamp: row.timestamp,
   };
@@ -69,8 +70,8 @@ function dbRowToMessage(row) {
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export function addUser(socketId, { username, color, avatar = '🌟' }) {
-  const user = { id: socketId, username, color, avatar, connectedAt: Date.now() };
+export function addUser(socketId, { username, color, avatar = 'Stargazer', tag = '' }) {
+  const user = { id: socketId, username, color, avatar, tag, connectedAt: Date.now() };
   state.users[socketId] = user;
   return user;
 }
@@ -144,7 +145,7 @@ export function getRoomMembers(roomId) {
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
-export function addMessage(roomId, { senderId, senderName, senderColor, senderAvatar, text }) {
+export function addMessage(roomId, { senderId, senderName, senderColor, senderAvatar, senderTag, text }) {
   const room = state.rooms[roomId];
   if (!room) return null;
 
@@ -154,6 +155,7 @@ export function addMessage(roomId, { senderId, senderName, senderColor, senderAv
     senderName,
     senderColor,
     senderAvatar: senderAvatar ?? 'Stargazer',
+    senderTag: senderTag ?? '',
     text,
     timestamp: Date.now(),
   };
@@ -191,7 +193,7 @@ export function getOrCreateDm(userIdA, userIdB) {
   return state.dms[dmId];
 }
 
-export function addDmMessage(dmId, { senderId, senderName, senderColor, senderAvatar, text }) {
+export function addDmMessage(dmId, { senderId, senderName, senderColor, senderAvatar, senderTag, text }) {
   const dm = state.dms[dmId];
   if (!dm) return null;
 
@@ -201,6 +203,7 @@ export function addDmMessage(dmId, { senderId, senderName, senderColor, senderAv
     senderName,
     senderColor,
     senderAvatar: senderAvatar ?? 'Stargazer',
+    senderTag: senderTag ?? '',
     text,
     timestamp: Date.now(),
   };

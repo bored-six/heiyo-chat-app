@@ -14,6 +14,7 @@ export function registerMessageHandlers(io, socket) {
       senderName: user.username,
       senderColor: user.color,
       senderAvatar: user.avatar,
+      senderTag: user.tag,
       text: trimmed,
     });
 

@@ -51,9 +51,10 @@ app.post('/auth/register', async (req, res) => {
   const chosenAvatar = VALID_AVATARS.has(avatar) ? avatar : 'Stargazer';
   const hash = await bcrypt.hash(password, 10);
   const color = randomColor();
-  dbCreateUser(name, hash, color, chosenAvatar);
+  const tag = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+  dbCreateUser(name, hash, color, chosenAvatar, tag);
 
-  return res.json({ username: name, color, avatar: chosenAvatar });
+  return res.json({ username: name, color, avatar: chosenAvatar, tag });
 });
 
 app.post('/auth/login', async (req, res) => {
@@ -70,7 +71,7 @@ app.post('/auth/login', async (req, res) => {
   if (!match)
     return res.status(401).json({ error: 'Invalid username or password.' });
 
-  return res.json({ username: row.username, color: row.color, avatar: row.avatar ?? 'Stargazer' });
+  return res.json({ username: row.username, color: row.color, avatar: row.avatar ?? 'Stargazer', tag: row.tag ?? '' });
 });
 
 app.post('/auth/guest', (_req, res) => {

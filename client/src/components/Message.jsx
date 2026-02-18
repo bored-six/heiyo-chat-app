@@ -1,4 +1,4 @@
-// Message shape: { id, senderId, senderName, senderColor, senderAvatar, text, timestamp }
+// Message shape: { id, senderId, senderName, senderColor, senderAvatar, senderTag, text, timestamp }
 import { avatarUrl } from '../utils/avatar.js';
 
 function formatTime(ts) {
@@ -6,7 +6,7 @@ function formatTime(ts) {
 }
 
 export default function Message({ message, isOwn }) {
-  const { senderName, senderColor, senderAvatar, text, timestamp } = message;
+  const { senderName, senderColor, senderAvatar, senderTag, text, timestamp } = message;
 
   return (
     <div
@@ -40,6 +40,11 @@ export default function Message({ message, isOwn }) {
             }}
           >
             {senderName}
+            {senderTag && (
+              <span className="font-heading text-[10px] font-bold normal-case tracking-normal text-white/30 ml-0.5">
+                #{senderTag}
+              </span>
+            )}
           </span>
           <span className="font-heading text-[10px] font-bold uppercase tracking-widest text-white/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
             {formatTime(timestamp)}

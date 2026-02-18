@@ -26,6 +26,7 @@ export function registerDmHandlers(io, socket) {
       senderName: from.username,
       senderColor: from.color,
       senderAvatar: from.avatar,
+      senderTag: from.tag,
       text: trimmed,
     });
 

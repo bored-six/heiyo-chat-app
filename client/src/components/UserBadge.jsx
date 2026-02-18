@@ -74,6 +74,11 @@ export default function UserBadge() {
               style={{ textShadow: `1px 1px 0 ${me.color}` }}
             >
               {me.username}
+              {me.tag && (
+                <span className="font-heading text-[10px] font-bold normal-case tracking-normal text-white/40 ml-0.5">
+                  #{me.tag}
+                </span>
+              )}
             </p>
             <p className="mt-0.5 font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4]">
               {count} online ▴
