@@ -1,4 +1,5 @@
-import { addUser, removeUser, getAllRooms, joinRoom } from '../store/index.js';
+import { addUser, removeUser, getAllRooms, joinRoom, updateUserAvatar } from '../store/index.js';
+import { dbGetUser, dbUpdateUserAvatar } from '../db/index.js';
 import { registerRoomHandlers } from './roomHandlers.js';
 import { registerMessageHandlers } from './messageHandlers.js';
 import { registerDmHandlers } from './dmHandlers.js';
@@ -31,6 +32,18 @@ export function initSocket(io) {
     registerRoomHandlers(io, socket);
     registerMessageHandlers(io, socket);
     registerDmHandlers(io, socket);
+
+    // ── Avatar change ────────────────────────────────────────────────────────
+
+    socket.on('avatar:change', ({ avatar }) => {
+      if (!avatar || typeof avatar !== 'string') return;
+      const user = updateUserAvatar(socket.id, avatar);
+      if (!user) return;
+      // Persist for registered users (guests have no DB row — safe to ignore)
+      if (dbGetUser(user.username)) dbUpdateUserAvatar(user.username, avatar);
+      // Broadcast the updated user to everyone
+      io.emit('user:updated', { user });
+    });
 
     // ── Typing indicators ────────────────────────────────────────────────────
 

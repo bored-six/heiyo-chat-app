@@ -86,6 +86,13 @@ export function getUser(socketId) {
   return state.users[socketId] || null;
 }
 
+export function updateUserAvatar(socketId, avatar) {
+  const user = state.users[socketId];
+  if (!user) return null;
+  user.avatar = avatar;
+  return user;
+}
+
 export function getAllUsers() {
   return Object.values(state.users);
 }

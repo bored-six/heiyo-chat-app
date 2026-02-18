@@ -54,6 +54,17 @@ function reducer(state, action) {
       return { ...state, onlineUsers: rest };
     }
 
+    case 'USER_UPDATED': {
+      const u = action.user;
+      return {
+        ...state,
+        me: state.me?.id === u.id ? { ...state.me, ...u } : state.me,
+        onlineUsers: state.onlineUsers[u.id]
+          ? { ...state.onlineUsers, [u.id]: { ...state.onlineUsers[u.id], ...u } }
+          : state.onlineUsers,
+      };
+    }
+
     case 'SET_ROOMS':
       return { ...state, rooms: action.rooms };
 

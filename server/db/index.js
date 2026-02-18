@@ -171,6 +171,10 @@ export function dbGetUser(username) {
   return db.prepare('SELECT * FROM users WHERE username = ?').get(username) ?? null;
 }
 
+export function dbUpdateUserAvatar(username, avatar) {
+  db.prepare('UPDATE users SET avatar = ? WHERE username = ?').run(avatar, username);
+}
+
 export function dbUsernameExists(username) {
   return !!db.prepare('SELECT 1 FROM users WHERE username = ?').get(username);
 }

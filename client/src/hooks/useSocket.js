@@ -47,6 +47,10 @@ export function useSocket(dispatch, authUser) {
       dispatch({ type: 'USER_OFFLINE', userId });
     });
 
+    socket.on('user:updated', ({ user }) => {
+      dispatch({ type: 'USER_UPDATED', user });
+    });
+
     // ── Rooms ───────────────────────────────────────────────────────────────
 
     socket.on('room:list', ({ rooms }) => {
