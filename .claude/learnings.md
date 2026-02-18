@@ -1,5 +1,16 @@
 # Learnings — Chat App
 
+## [2026-02-19] - Echo orbit implementation
+
+- **Echo data is baked into the echo object** at pulse time (username, color, avatar, tag, fromRoom) — echoes display correctly even after the poster disconnects.
+- **Server auto-expire pattern**: `addEcho()` stores the echo; `setTimeout` calls `removeEcho()` + `io.emit('echo:expire', { echoId })` after 10 min. No interval needed.
+- **Ghost placeholders fill orbit 2 to MIN_ECHO_SLOTS (4)** when real echoes < 4, keeping the ring visually balanced. Positions are computed from `totalMiddle = realEchoes.length + ghostsNeeded`.
+- **EchoProfileModal uses a local `setInterval` for the countdown** (1-second tick, clears on unmount). Progress bar drives `timeLeft / totalDuration * 100%`.
+- **"Send DM" is conditional**: only shown when `onlineUsers[echo.userId]` exists — poster might have disconnected while their echo is still alive.
+- **PulsePicker anchors to bottom-left** (opposite the "+ NEW ROOM" button). `fromRoom` is the name of the first sortedRoom (most active), not the roomId — a display string only.
+- **Orbit labels staggered diagonally**: outer (rooms) at left 35%, middle (echoes) at 50%, inner (friends) at 65% — avoids vertical stacking, creates an intentional cascade.
+- **`echoes` from context** is always an array (initialState default `[]`, server sends `[]` if none active).
+
 ## [2026-02-19] - 3-orbit redesign + orbit customizer
 
 - **3 named orbits** replace the active/quiet room split: Friends (inner, cap 10), Echoes (middle, cap 6, under construction), Rooms (outer, cap 5 + 1 for "+").
