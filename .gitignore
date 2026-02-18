@@ -21,6 +21,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# SQLite database
+server/data/
+
 # Editor
 .vscode/
 .idea/

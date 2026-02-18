@@ -3,6 +3,8 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { initSocket } from './socket/index.js';
+import { initDb } from './db/index.js';
+import { hydrateFromDb } from './store/index.js';
 
 const PORT = 3001;
 
@@ -22,6 +24,9 @@ const io = new Server(httpServer, {
   },
 });
 
+// Boot sequence: DB first, then hydrate memory, then accept connections
+initDb();
+hydrateFromDb();
 initSocket(io);
 
 httpServer.listen(PORT, () => {
