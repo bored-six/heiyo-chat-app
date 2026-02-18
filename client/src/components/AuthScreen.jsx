@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AVATAR_SEEDS, avatarUrl } from '../utils/avatar.js';
+import { DECORATIONS } from './BubbleUniverse.jsx';
 
 const API = 'http://localhost:3001';
 
@@ -105,6 +106,18 @@ export default function AuthScreen({ onAuth }) {
       {/* Background layers */}
       <div className="pointer-events-none absolute inset-0 pattern-dots opacity-[0.08]" />
       <div className="pointer-events-none absolute inset-0 pattern-stripes" />
+
+      {/* Floating decorative emoji — same set as BubbleUniverse */}
+      {DECORATIONS.map((d, i) => (
+        <span
+          key={i}
+          aria-hidden="true"
+          className={`pointer-events-none absolute select-none ${d.anim} ${d.size}`}
+          style={{ top: d.top, left: d.left, animationDelay: d.delay }}
+        >
+          {d.emoji}
+        </span>
+      ))}
 
       {/* Big background word */}
       <div

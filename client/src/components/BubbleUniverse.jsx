@@ -19,8 +19,8 @@ const BUBBLE_POSITIONS = [
   { top: '50%',  left: '28%' },
 ];
 
-// Floating decorative emoji scattered across the void
-const DECORATIONS = [
+// Floating decorative emoji scattered across the void — exported so AuthScreen can reuse them
+export const DECORATIONS = [
   { emoji: '✨', top: '6%',  left: '30%', anim: 'animate-wiggle',        size: 'text-4xl', delay: '0s'   },
   { emoji: '💫', top: '80%', left: '84%', anim: 'animate-bounce-subtle', size: 'text-5xl', delay: '0.5s' },
   { emoji: '⚡', top: '44%', left: '88%', anim: 'animate-float',         size: 'text-3xl', delay: '1s'   },
