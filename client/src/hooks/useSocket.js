@@ -79,6 +79,7 @@ export function useSocket(dispatch, authUser) {
 
     socket.on('dm:opened', ({ dm }) => {
       dispatch({ type: 'DM_OPENED', dm });
+      dispatch({ type: 'SET_ACTIVE_DM', dmId: dm.id });
     });
 
     socket.on('dm:received', ({ dmId, participants, message }) => {
