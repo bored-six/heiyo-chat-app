@@ -29,6 +29,7 @@ export function hydrateFromDb() {
     state.rooms[row.id] = {
       id: row.id,
       name: row.name,
+      description: row.description ?? '',
       type: 'room',
       members: new Set(),
       messages,
@@ -66,6 +67,9 @@ function dbRowToMessage(row) {
     text: row.text,
     timestamp: row.timestamp,
     reactions: {},
+    replyTo: row.reply_to_id
+      ? { id: row.reply_to_id, text: row.reply_to_text ?? '', senderName: row.reply_to_sender ?? '' }
+      : null,
   };
 }
 
@@ -109,19 +113,20 @@ export function getAllUsers() {
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 
-export function createRoom(name) {
+export function createRoom(name, description = '') {
   const id = uuidv4();
   const createdAt = Date.now();
   const room = {
     id,
     name,
+    description,
     type: 'room',
     members: new Set(),
     messages: [],
     createdAt,
   };
   state.rooms[id] = room;
-  dbCreateRoom(id, name, createdAt); // persist
+  dbCreateRoom(id, name, createdAt, description); // persist
   return room;
 }
 
@@ -154,7 +159,7 @@ export function getRoomMembers(roomId) {
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
-export function addMessage(roomId, { senderId, senderName, senderColor, senderAvatar, senderTag, text }) {
+export function addMessage(roomId, { senderId, senderName, senderColor, senderAvatar, senderTag, text, replyTo }) {
   const room = state.rooms[roomId];
   if (!room) return null;
 
@@ -168,6 +173,7 @@ export function addMessage(roomId, { senderId, senderName, senderColor, senderAv
     text,
     timestamp: Date.now(),
     reactions: {},
+    replyTo: replyTo ?? null,
   };
 
   room.messages.push(message);
@@ -233,7 +239,7 @@ export function getOrCreateDm(userIdA, userIdB) {
   return state.dms[dmId];
 }
 
-export function addDmMessage(dmId, { senderId, senderName, senderColor, senderAvatar, senderTag, text }) {
+export function addDmMessage(dmId, { senderId, senderName, senderColor, senderAvatar, senderTag, text, replyTo }) {
   const dm = state.dms[dmId];
   if (!dm) return null;
 
@@ -247,6 +253,7 @@ export function addDmMessage(dmId, { senderId, senderName, senderColor, senderAv
     text,
     timestamp: Date.now(),
     reactions: {},
+    replyTo: replyTo ?? null,
   };
 
   dm.messages.push(message);
@@ -262,6 +269,7 @@ export function serializeRoom(room) {
   return {
     id: room.id,
     name: room.name,
+    description: room.description ?? '',
     type: room.type,
     memberCount: room.members.size,
     createdAt: room.createdAt,

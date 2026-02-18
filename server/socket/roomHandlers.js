@@ -46,11 +46,12 @@ export function registerRoomHandlers(io, socket) {
   });
 
   // Create a new room
-  socket.on('room:create', ({ name }) => {
+  socket.on('room:create', ({ name, description }) => {
     const trimmed = (name || '').trim().slice(0, 50);
     if (!trimmed) return;
+    const desc = (description || '').trim().slice(0, 120);
 
-    const room = createRoom(trimmed);
+    const room = createRoom(trimmed, desc);
 
     // Broadcast to everyone that a new room exists
     io.emit('room:created', { room: serializeRoom(room) });

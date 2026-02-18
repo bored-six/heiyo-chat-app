@@ -4,7 +4,11 @@ import { useChat } from '../context/ChatContext.jsx';
 const MAX_CHARS = 2000;
 const TYPING_TIMEOUT_MS = 2000;
 
-export default function MessageInput({ roomId, toUserId, accent = '#FF3AF2', clash = '#FFE600' }) {
+export default function MessageInput({
+  roomId, toUserId,
+  accent = '#FF3AF2', clash = '#FFE600',
+  replyingTo = null, onCancelReply,
+}) {
   const { socket } = useChat();
   const [text, setText] = useState('');
   const textareaRef = useRef(null);
@@ -42,16 +46,26 @@ export default function MessageInput({ roomId, toUserId, accent = '#FF3AF2', cla
     const trimmed = text.trim();
     if (!trimmed || trimmed.length > MAX_CHARS) return;
     emitTypingStop();
-    if (roomId)      socket.emit('message:send', { roomId, text: trimmed });
-    else if (toUserId) socket.emit('dm:send', { toUserId, text: trimmed });
+
+    const replyPayload = replyingTo
+      ? { id: replyingTo.id, text: replyingTo.text.slice(0, 200), senderName: replyingTo.senderName }
+      : undefined;
+
+    if (roomId)        socket.emit('message:send', { roomId, text: trimmed, replyTo: replyPayload });
+    else if (toUserId) socket.emit('dm:send', { toUserId, text: trimmed, replyTo: replyPayload });
+
     setText('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    onCancelReply?.();
   }
 
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       send();
+    }
+    if (e.key === 'Escape' && replyingTo) {
+      onCancelReply?.();
     }
   }
 
@@ -68,6 +82,34 @@ export default function MessageInput({ roomId, toUserId, accent = '#FF3AF2', cla
 
   return (
     <div className="flex-shrink-0 p-4">
+      {/* Reply-to preview banner */}
+      {replyingTo && (
+        <div
+          className="mb-2 flex items-center gap-2 rounded-2xl border-l-4 px-4 py-2 animate-appear"
+          style={{ borderColor: accent, background: `${accent}12` }}
+        >
+          <span className="flex-shrink-0 text-sm opacity-60">↩</span>
+          <div className="min-w-0 flex-1">
+            <span
+              className="block font-heading text-[10px] font-black uppercase tracking-tight"
+              style={{ color: accent }}
+            >
+              {replyingTo.senderName}
+            </span>
+            <p className="truncate font-heading text-[11px] text-white/50">
+              {replyingTo.text}
+            </p>
+          </div>
+          <button
+            onClick={onCancelReply}
+            className="flex-shrink-0 font-heading text-xs font-black text-white/30 transition-colors hover:text-white/70"
+            aria-label="Cancel reply"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Input container */}
       <div
         className="flex items-end gap-3 rounded-3xl border-4 p-3 transition-all duration-300"
@@ -137,7 +179,7 @@ export default function MessageInput({ roomId, toUserId, accent = '#FF3AF2', cla
       </div>
 
       <p className="mt-1.5 px-2 font-heading text-[10px] font-bold uppercase tracking-widest text-white/18">
-        Enter to send · Shift+Enter for line break
+        Enter to send · Shift+Enter for line break{replyingTo ? ' · Esc to cancel reply' : ''}
       </p>
     </div>
   );

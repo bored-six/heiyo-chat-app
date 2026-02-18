@@ -1,4 +1,4 @@
-// Message shape: { id, senderId, senderName, senderColor, senderAvatar, senderTag, text, timestamp, reactions }
+// Message shape: { id, senderId, senderName, senderColor, senderAvatar, senderTag, text, timestamp, reactions, replyTo }
 import { useState } from 'react';
 import { avatarUrl } from '../utils/avatar.js';
 import { useChat } from '../context/ChatContext.jsx';
@@ -9,9 +9,28 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function Message({ message, isOwn }) {
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function HighlightedText({ text, highlight }) {
+  if (!highlight) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${escapeRegex(highlight)})`, 'gi'));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === highlight.toLowerCase()
+          ? <mark key={i} className="rounded px-0.5" style={{ background: '#FFE600', color: '#0D0D1A' }}>{part}</mark>
+          : part
+      )}
+    </>
+  );
+}
+
+export default function Message({ message, isOwn, highlight = '', onReply }) {
   const { senderName, senderColor, senderAvatar, senderTag, text, timestamp } = message;
   const reactions = message.reactions ?? {};
+  const replyTo   = message.replyTo ?? null;
   const { socket, activeRoomId, activeDmId, me } = useChat();
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -69,8 +88,30 @@ export default function Message({ message, isOwn }) {
             {formatTime(timestamp)}
           </span>
         </div>
+
+        {/* Reply-to quote block */}
+        {replyTo && (
+          <div
+            className={`mb-1.5 mt-0.5 flex items-start gap-1.5 rounded-lg border-l-2 px-2 py-1 ${isOwn ? 'flex-row-reverse border-l-0 border-r-2' : ''}`}
+            style={{ borderColor: senderColor, background: `${senderColor}10` }}
+          >
+            <span className="flex-shrink-0 text-[10px] opacity-50">↩</span>
+            <div className="min-w-0">
+              <span
+                className="block font-heading text-[10px] font-black uppercase tracking-tight"
+                style={{ color: senderColor }}
+              >
+                {replyTo.senderName}
+              </span>
+              <p className="truncate font-heading text-[11px] text-white/50">
+                {replyTo.text}
+              </p>
+            </div>
+          </div>
+        )}
+
         <p className="mt-0.5 break-words text-sm leading-relaxed whitespace-pre-wrap text-white/85">
-          {text}
+          <HighlightedText text={text} highlight={highlight} />
         </p>
 
         {/* Reaction pills */}
@@ -98,9 +139,9 @@ export default function Message({ message, isOwn }) {
         )}
       </div>
 
-      {/* Emoji picker — appears on hover via group */}
+      {/* Hover toolbar — emoji picker + reply button */}
       <div
-        className={`absolute ${isOwn ? 'right-full mr-2' : 'left-full ml-2'} top-1 z-10 flex gap-1 rounded-full border-2 border-dashed border-white/20 bg-[#1a1a2e]/95 px-2 py-1 backdrop-blur-sm transition-all duration-150 ${pickerVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'} group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto`}
+        className={`absolute ${isOwn ? 'right-full mr-2' : 'left-full ml-2'} top-1 z-10 flex items-center gap-1 rounded-full border-2 border-dashed border-white/20 bg-[#1a1a2e]/95 px-2 py-1 backdrop-blur-sm transition-all duration-150 ${pickerVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'} group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto`}
       >
         {EMOJIS.map((emoji) => (
           <button
@@ -112,6 +153,14 @@ export default function Message({ message, isOwn }) {
             {emoji}
           </button>
         ))}
+        <div className="mx-0.5 h-4 w-px bg-white/20" />
+        <button
+          onClick={() => onReply?.(message)}
+          className="rounded px-1 font-heading text-[11px] font-black uppercase tracking-wide text-white/50 transition-colors hover:text-white"
+          title="Reply"
+        >
+          ↩
+        </button>
       </div>
     </div>
   );

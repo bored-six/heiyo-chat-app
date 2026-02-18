@@ -81,6 +81,13 @@ export function initDb() {
   try { db.exec(`ALTER TABLE messages ADD COLUMN sender_tag TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.exec(`ALTER TABLE dm_messages ADD COLUMN sender_avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
   try { db.exec(`ALTER TABLE dm_messages ADD COLUMN sender_tag TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+  try { db.exec(`ALTER TABLE rooms ADD COLUMN description TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+  try { db.exec(`ALTER TABLE messages ADD COLUMN reply_to_id TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE messages ADD COLUMN reply_to_text TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE messages ADD COLUMN reply_to_sender TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE dm_messages ADD COLUMN reply_to_id TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE dm_messages ADD COLUMN reply_to_text TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE dm_messages ADD COLUMN reply_to_sender TEXT`); } catch (_) {}
 
   // Seed General room (upsert — safe to call on every boot)
   db.prepare(`
@@ -93,10 +100,10 @@ export function initDb() {
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 
-export function dbCreateRoom(id, name, createdAt) {
+export function dbCreateRoom(id, name, createdAt, description = '') {
   db.prepare(`
-    INSERT OR IGNORE INTO rooms (id, name, created_at) VALUES (?, ?, ?)
-  `).run(id, name, createdAt);
+    INSERT OR IGNORE INTO rooms (id, name, description, created_at) VALUES (?, ?, ?, ?)
+  `).run(id, name, description, createdAt);
 }
 
 export function dbLoadRooms() {
@@ -105,11 +112,11 @@ export function dbLoadRooms() {
 
 // ─── Room messages ────────────────────────────────────────────────────────────
 
-export function dbAddMessage(roomId, { id, senderId, senderName, senderColor, senderAvatar, senderTag, text, timestamp }) {
+export function dbAddMessage(roomId, { id, senderId, senderName, senderColor, senderAvatar, senderTag, text, timestamp, replyTo }) {
   db.prepare(`
-    INSERT INTO messages (id, room_id, sender_id, sender_name, sender_color, sender_avatar, sender_tag, text, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, roomId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', senderTag ?? '', text, timestamp);
+    INSERT INTO messages (id, room_id, sender_id, sender_name, sender_color, sender_avatar, sender_tag, text, timestamp, reply_to_id, reply_to_text, reply_to_sender)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, roomId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', senderTag ?? '', text, timestamp, replyTo?.id ?? null, replyTo?.text ?? null, replyTo?.senderName ?? null);
 
   // Enforce 100-message cap per room
   db.prepare(`
@@ -142,11 +149,11 @@ export function dbLoadDms() {
 
 // ─── DM messages ──────────────────────────────────────────────────────────────
 
-export function dbAddDmMessage(dmId, { id, senderId, senderName, senderColor, senderAvatar, senderTag, text, timestamp }) {
+export function dbAddDmMessage(dmId, { id, senderId, senderName, senderColor, senderAvatar, senderTag, text, timestamp, replyTo }) {
   db.prepare(`
-    INSERT INTO dm_messages (id, dm_id, sender_id, sender_name, sender_color, sender_avatar, sender_tag, text, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, dmId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', senderTag ?? '', text, timestamp);
+    INSERT INTO dm_messages (id, dm_id, sender_id, sender_name, sender_color, sender_avatar, sender_tag, text, timestamp, reply_to_id, reply_to_text, reply_to_sender)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, dmId, senderId, senderName, senderColor, senderAvatar ?? 'Stargazer', senderTag ?? '', text, timestamp, replyTo?.id ?? null, replyTo?.text ?? null, replyTo?.senderName ?? null);
 
   // Enforce 100-message cap per DM thread
   db.prepare(`

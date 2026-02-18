@@ -81,6 +81,16 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
             {room.name}
           </span>
 
+          {/* Description */}
+          {room.description && (
+            <span
+              className="px-4 text-center font-heading text-[9px] font-bold leading-tight tracking-wide"
+              style={{ color: `${accent}cc` }}
+            >
+              {room.description}
+            </span>
+          )}
+
           {/* Member count badge */}
           <span
             className="rounded-full border-2 border-dashed px-3 py-0.5 font-heading text-[10px] font-black uppercase tracking-widest"

@@ -1,13 +1,18 @@
 import { getUser, getRoom, addMessage, toggleReaction, toggleDmReaction } from '../store/index.js';
 
 export function registerMessageHandlers(io, socket) {
-  socket.on('message:send', ({ roomId, text }) => {
+  socket.on('message:send', ({ roomId, text, replyTo }) => {
     const user = getUser(socket.id);
     const room = getRoom(roomId);
     if (!user || !room) return;
 
     const trimmed = (text || '').trim().slice(0, 2000);
     if (!trimmed) return;
+
+    // Sanitize replyTo — only keep safe fields, cap text length
+    const safeReplyTo = replyTo?.id
+      ? { id: replyTo.id, text: String(replyTo.text ?? '').slice(0, 200), senderName: String(replyTo.senderName ?? '').slice(0, 50) }
+      : null;
 
     const message = addMessage(roomId, {
       senderId: user.id,
@@ -16,6 +21,7 @@ export function registerMessageHandlers(io, socket) {
       senderAvatar: user.avatar,
       senderTag: user.tag,
       text: trimmed,
+      replyTo: safeReplyTo,
     });
 
     // Broadcast to everyone in the room (including sender)

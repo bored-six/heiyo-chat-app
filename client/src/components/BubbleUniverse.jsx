@@ -33,9 +33,11 @@ export const DECORATIONS = [
 ];
 
 export default function BubbleUniverse() {
-  const { rooms, socket, dispatch, unread } = useChat();
+  const { rooms, socket, dispatch, unread, onlineUsers, me } = useChat();
   const [creating, setCreating] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
+  const [newRoomDesc, setNewRoomDesc] = useState('');
+  const [showOnline, setShowOnline] = useState(true);
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
   const rafRef = useRef(null);
 
@@ -59,8 +61,9 @@ export default function BubbleUniverse() {
     e.preventDefault();
     const name = newRoomName.trim();
     if (!name) return;
-    socket.emit('room:create', { name });
+    socket.emit('room:create', { name, description: newRoomDesc.trim() });
     setNewRoomName('');
+    setNewRoomDesc('');
     setCreating(false);
   }
 
@@ -109,6 +112,53 @@ export default function BubbleUniverse() {
         );
       })}
 
+      {/* ── Online users panel — top-right ── */}
+      <div className="absolute top-6 right-6 z-10 w-52">
+        <button
+          onClick={() => setShowOnline((v) => !v)}
+          className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-[#00F5D4]/60 bg-[#0D0D1A]/70 px-3 py-2 backdrop-blur-sm transition-all hover:border-[#00F5D4]"
+        >
+          <span className="font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4]">
+            {Object.keys(onlineUsers).length + 1} online
+          </span>
+          <span className="font-heading text-[10px] text-[#00F5D4]/60">{showOnline ? '▴' : '▾'}</span>
+        </button>
+        {showOnline && (
+          <div className="animate-appear mt-1 space-y-0.5 rounded-2xl border-2 border-dashed border-[#00F5D4]/40 bg-[#0D0D1A]/80 p-2 backdrop-blur-sm">
+            {/* Self */}
+            {me && (
+              <div className="flex items-center gap-2 rounded-xl px-2 py-1.5">
+                <span
+                  className="h-2 w-2 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: me.color, boxShadow: `0 0 6px ${me.color}` }}
+                />
+                <span className="flex-1 truncate font-heading text-[11px] font-black uppercase text-white">
+                  {me.username}
+                </span>
+                <span className="font-heading text-[9px] font-black text-[#FFE600]">you</span>
+              </div>
+            )}
+            {/* Others */}
+            {Object.values(onlineUsers).map((user) => (
+              <div key={user.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5">
+                <span
+                  className="h-2 w-2 flex-shrink-0 rounded-full"
+                  style={{ backgroundColor: user.color, boxShadow: `0 0 6px ${user.color}` }}
+                />
+                <span className="flex-1 truncate font-heading text-[11px] font-black uppercase text-white/80">
+                  {user.username}
+                </span>
+              </div>
+            ))}
+            {Object.keys(onlineUsers).length === 0 && (
+              <p className="px-2 py-2 text-center font-heading text-[10px] text-white/30">
+                Just you so far
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* ── Create room control — bottom-right ── */}
       <div className="absolute bottom-8 right-8 z-10">
         {creating ? (
@@ -128,6 +178,16 @@ export default function BubbleUniverse() {
               maxLength={32}
               className="rounded-full border-4 border-[#FF3AF2] bg-[#0D0D1A] px-5 py-3 font-heading text-sm font-black uppercase tracking-widest text-white placeholder-white/25 outline-none transition-all duration-300 focus:border-[#00F5D4] focus:ring-4 focus:ring-[#FF3AF2]/30"
             />
+            <label className="font-heading text-xs font-black uppercase tracking-widest text-[#00F5D4]">
+              Description <span className="font-normal normal-case text-white/30">(optional)</span>
+            </label>
+            <input
+              value={newRoomDesc}
+              onChange={(e) => setNewRoomDesc(e.target.value)}
+              placeholder="What happens here…"
+              maxLength={120}
+              className="rounded-full border-4 border-[#00F5D4]/50 bg-[#0D0D1A] px-5 py-2.5 font-heading text-sm font-bold tracking-wide text-white placeholder-white/20 outline-none transition-all duration-300 focus:border-[#00F5D4] focus:ring-4 focus:ring-[#00F5D4]/20"
+            />
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -137,7 +197,7 @@ export default function BubbleUniverse() {
               </button>
               <button
                 type="button"
-                onClick={() => { setCreating(false); setNewRoomName(''); }}
+                onClick={() => { setCreating(false); setNewRoomName(''); setNewRoomDesc(''); }}
                 className="rounded-full border-4 border-dashed border-[#FF3AF2] px-5 py-2.5 font-heading text-sm font-black uppercase tracking-widest text-[#FF3AF2] transition-all duration-200 hover:scale-105"
               >
                 CANCEL

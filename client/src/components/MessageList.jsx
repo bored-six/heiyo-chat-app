@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Message from './Message.jsx';
 
-export default function MessageList({ messages, myId }) {
+export default function MessageList({ messages, myId, highlight = '', onReply }) {
   const containerRef   = useRef(null);
   const bottomRef      = useRef(null);
   const isAtBottomRef  = useRef(true);   // sync ref so effects don't go stale
@@ -72,7 +72,13 @@ export default function MessageList({ messages, myId }) {
         onScroll={handleScroll}
       >
         {messages.map((msg) => (
-          <Message key={msg.id} message={msg} isOwn={msg.senderId === myId} />
+          <Message
+            key={msg.id}
+            message={msg}
+            isOwn={msg.senderId === myId}
+            highlight={highlight}
+            onReply={onReply}
+          />
         ))}
         {/* Invisible anchor */}
         <div ref={bottomRef} />

@@ -12,13 +12,17 @@ export function registerDmHandlers(io, socket) {
   });
 
   // Send a DM
-  socket.on('dm:send', ({ toUserId, text }) => {
+  socket.on('dm:send', ({ toUserId, text, replyTo }) => {
     const from = getUser(socket.id);
     const to = getUser(toUserId);
     if (!from || !to) return;
 
     const trimmed = (text || '').trim().slice(0, 2000);
     if (!trimmed) return;
+
+    const safeReplyTo = replyTo?.id
+      ? { id: replyTo.id, text: String(replyTo.text ?? '').slice(0, 200), senderName: String(replyTo.senderName ?? '').slice(0, 50) }
+      : null;
 
     const dm = getOrCreateDm(socket.id, toUserId);
     const message = addDmMessage(dm.id, {
@@ -28,6 +32,7 @@ export function registerDmHandlers(io, socket) {
       senderAvatar: from.avatar,
       senderTag: from.tag,
       text: trimmed,
+      replyTo: safeReplyTo,
     });
 
     const payload = { dmId: dm.id, participants: dm.participants, message };

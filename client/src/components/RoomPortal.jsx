@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import { avatarUrl } from '../utils/avatar.js';
 import MessageList from './MessageList.jsx';
@@ -14,20 +14,35 @@ export default function RoomPortal() {
     roomMessages, roomMembers, onlineUsers, dispatch,
   } = useChat();
 
-  // Return to the Bubble Universe — SET_ACTIVE_ROOM with null clears both
-  // activeRoomId and activeDmId via the reducer.
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen]   = useState(false);
+  const [replyingTo, setReplyingTo]   = useState(null); // { id, text, senderName }
+
   function exitToVoid() {
     dispatch({ type: 'SET_ACTIVE_ROOM', roomId: null });
   }
 
+  function closeSearch() {
+    setSearchOpen(false);
+    setSearchQuery('');
+  }
+
+  function handleReply(msg) {
+    setReplyingTo({ id: msg.id, text: msg.text, senderName: msg.senderName });
+  }
+
   // ── Active room ────────────────────────────────────────────────────────────
   if (activeRoomId) {
-    const room      = rooms.find((r) => r.id === activeRoomId);
-    const roomIndex = rooms.findIndex((r) => r.id === activeRoomId);
-    const accent    = ACCENTS[roomIndex % ACCENTS.length];
-    const clash     = CLASH[roomIndex % CLASH.length];
-    const messages  = roomMessages[activeRoomId] ?? [];
-    const members   = roomMembers[activeRoomId]  ?? [];
+    const room        = rooms.find((r) => r.id === activeRoomId);
+    const roomIndex   = rooms.findIndex((r) => r.id === activeRoomId);
+    const accent      = ACCENTS[roomIndex % ACCENTS.length];
+    const clash       = CLASH[roomIndex % CLASH.length];
+    const allMessages = roomMessages[activeRoomId] ?? [];
+    const members     = roomMembers[activeRoomId]  ?? [];
+
+    const messages = searchQuery.trim()
+      ? allMessages.filter((m) => m.text.toLowerCase().includes(searchQuery.toLowerCase()))
+      : allMessages;
 
     return (
       <Portal
@@ -36,26 +51,69 @@ export default function RoomPortal() {
         clash={clash}
         onExit={exitToVoid}
         members={members}
+        searchOpen={searchOpen}
+        searchQuery={searchQuery}
+        onSearchOpen={() => setSearchOpen(true)}
+        onSearchClose={closeSearch}
+        onSearchChange={setSearchQuery}
       >
-        <MessageList messages={messages} myId={me?.id} />
+        <MessageList
+          messages={messages}
+          myId={me?.id}
+          highlight={searchQuery}
+          onReply={handleReply}
+        />
         <TypingIndicator roomId={activeRoomId} />
-        <MessageInput roomId={activeRoomId} toUserId={null} accent={accent} clash={clash} />
+        <MessageInput
+          roomId={activeRoomId}
+          toUserId={null}
+          accent={accent}
+          clash={clash}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
+        />
       </Portal>
     );
   }
 
   // ── Active DM ──────────────────────────────────────────────────────────────
-  const dm      = dms[activeDmId];
-  const otherId = dm?.participants.find((id) => id !== me.id);
-  const other   = onlineUsers[otherId] ?? { username: otherId ?? '…', color: '#FF3AF2' };
-  const messages = dm?.messages ?? [];
-  const accent  = other.color ?? '#FF3AF2';
+  const dm            = dms[activeDmId];
+  const otherId       = dm?.participants.find((id) => id !== me.id);
+  const other         = onlineUsers[otherId] ?? { username: otherId ?? '…', color: '#FF3AF2' };
+  const allDmMessages = dm?.messages ?? [];
+  const accent        = other.color ?? '#FF3AF2';
+
+  const dmMessages = searchQuery.trim()
+    ? allDmMessages.filter((m) => m.text.toLowerCase().includes(searchQuery.toLowerCase()))
+    : allDmMessages;
 
   return (
-    <Portal title={`@ ${other.username}`} accent={accent} clash="#FFE600" onExit={exitToVoid}>
-      <MessageList messages={messages} myId={me?.id} />
+    <Portal
+      title={`@ ${other.username}`}
+      accent={accent}
+      clash="#FFE600"
+      onExit={exitToVoid}
+      searchOpen={searchOpen}
+      searchQuery={searchQuery}
+      onSearchOpen={() => setSearchOpen(true)}
+      onSearchClose={closeSearch}
+      onSearchChange={setSearchQuery}
+    >
+      <MessageList
+        messages={dmMessages}
+        myId={me?.id}
+        highlight={searchQuery}
+        onReply={handleReply}
+      />
       <div className="h-6 flex-shrink-0" />
-      <MessageInput roomId={null} toUserId={otherId} accent={accent} clash="#FFE600" />
+      <MessageInput
+        roomId={null}
+        toUserId={otherId}
+        accent={accent}
+        clash="#FFE600"
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
+      />
     </Portal>
   );
 }
@@ -63,10 +121,24 @@ export default function RoomPortal() {
 // ── Shared portal shell ────────────────────────────────────────────────────
 const MEMBER_MAX = 5;
 
-function Portal({ title, accent, clash, onExit, children, members = [] }) {
+function Portal({
+  title, accent, clash, onExit, children, members = [],
+  searchOpen, searchQuery, onSearchOpen, onSearchClose, onSearchChange,
+}) {
   const [showMembers, setShowMembers] = useState(false);
+  const searchInputRef = useRef(null);
   const visible  = members.slice(0, MEMBER_MAX);
   const overflow = members.length - MEMBER_MAX;
+
+  function handleSearchToggle() {
+    if (searchOpen) {
+      onSearchClose();
+    } else {
+      onSearchOpen();
+      // Focus input on next tick
+      setTimeout(() => searchInputRef.current?.focus(), 0);
+    }
+  }
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center p-6">
@@ -126,19 +198,61 @@ function Portal({ title, accent, clash, onExit, children, members = [] }) {
             )}
           </div>
 
-          <button
-            onClick={onExit}
-            className="ml-4 flex-shrink-0 rounded-full border-4 border-dashed px-5 py-2 font-heading text-sm font-black uppercase tracking-widest transition-all duration-200 hover:scale-110 hover:brightness-125"
-            style={{
-              borderColor: clash,
-              color: clash,
-              boxShadow: `0 0 12px ${clash}55`,
-            }}
-            aria-label="Exit to void"
-          >
-            ← EXIT
-          </button>
+          {/* Right: search + exit */}
+          <div className="ml-4 flex flex-shrink-0 items-center gap-2">
+            {/* Search toggle */}
+            <button
+              onClick={handleSearchToggle}
+              className="rounded-full border-2 border-dashed px-3 py-1.5 font-heading text-xs font-black uppercase tracking-widest transition-all duration-200 hover:scale-105"
+              style={{
+                borderColor: searchOpen ? accent : `${accent}55`,
+                color: searchOpen ? accent : `${accent}88`,
+                backgroundColor: searchOpen ? `${accent}15` : 'transparent',
+              }}
+              aria-label="Toggle search"
+            >
+              🔍
+            </button>
+
+            <button
+              onClick={onExit}
+              className="rounded-full border-4 border-dashed px-5 py-2 font-heading text-sm font-black uppercase tracking-widest transition-all duration-200 hover:scale-110 hover:brightness-125"
+              style={{
+                borderColor: clash,
+                color: clash,
+                boxShadow: `0 0 12px ${clash}55`,
+              }}
+              aria-label="Exit to void"
+            >
+              ← EXIT
+            </button>
+          </div>
         </div>
+
+        {/* ── Search bar ── */}
+        {searchOpen && (
+          <div
+            className="flex flex-shrink-0 items-center gap-3 border-b-2 border-dashed px-5 py-2.5 animate-appear"
+            style={{ borderColor: `${accent}40`, background: `${accent}08` }}
+          >
+            <span style={{ color: accent }} className="flex-shrink-0 text-sm">🔍</span>
+            <input
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search messages…"
+              className="flex-1 bg-transparent font-heading text-sm font-bold uppercase tracking-wide text-white placeholder-white/25 outline-none"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="flex-shrink-0 font-heading text-xs font-black text-white/40 hover:text-white/70"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        )}
 
         {/* ── Member list panel ── */}
         {showMembers && members.length > 0 && (
