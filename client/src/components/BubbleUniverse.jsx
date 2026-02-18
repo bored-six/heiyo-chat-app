@@ -42,15 +42,6 @@ export const DECORATIONS = [
   { char: '★', top: '72%', left: '8%',  anim: 'animate-float-slow',    size: 'text-2xl', color: '#FF6B35', delay: '1.4s' },
 ];
 
-// Ghost placeholders shown in orbit 2 when fewer than MIN_ECHO_SLOTS real echoes exist
-const ECHO_GHOSTS = [
-  { id: 'g1', glyph: '🔮', color: '#FF6B35' },
-  { id: 'g2', glyph: '✦',  color: '#7B2FFF' },
-  { id: 'g3', glyph: '◈',  color: '#FF3AF2' },
-  { id: 'g4', glyph: '⟡',  color: '#00F5D4' },
-];
-const MIN_ECHO_SLOTS = 4; // keep at least 4 items in orbit 2 for visual balance
-
 // Preset emojis for the pulse picker
 const PULSE_PRESETS = ['🔥','✨','💬','🎵','😎','💭','⚡','🌊','🎯','🔮','💥','🌀'];
 
@@ -492,11 +483,9 @@ export default function BubbleUniverse() {
     (b.messages.at(-1)?.timestamp ?? 0) - (a.messages.at(-1)?.timestamp ?? 0)
   );
 
-  // Orbit 2 — Echoes: real echoes + ghost placeholders to fill MIN_ECHO_SLOTS
-  const realEchoes   = (echoes ?? []).slice(0, RING.middle.max);
-  const ghostsNeeded = Math.max(0, MIN_ECHO_SLOTS - realEchoes.length);
-  const ghostSlots   = ECHO_GHOSTS.slice(0, ghostsNeeded);
-  const totalMiddle  = realEchoes.length + ghostSlots.length;
+  // Orbit 2 — Echoes: real echoes only
+  const realEchoes  = (echoes ?? []).slice(0, RING.middle.max);
+  const totalMiddle = realEchoes.length;
 
   // Orbit 3 — Rooms (customizable)
   const visibleRooms  = sortedRooms.filter(r => !hiddenRooms.has(r.id));
@@ -758,101 +747,57 @@ export default function BubbleUniverse() {
       )}
 
       {/* ── Orbit 2: Echoes — middle ring (real echoes + ghost fill) ─────────── */}
-      {middlePos.map((pos, i) => {
-        const pX = (mouse.x - 0.5) * 8 * -1;
-        const pY = (mouse.y - 0.5) * 8 * -1;
-        const isReal = i < realEchoes.length;
-
-        if (isReal) {
-          const echo = realEchoes[i];
-          const sz   = Math.round(68 * scales.middle);
-          return (
-            <button
-              key={echo.id}
-              className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
-              style={{
-                left: pos.left, top: pos.top,
-                transform: `translate(calc(-50% + ${pX}px), calc(-50% + ${pY}px))`,
-                transition: 'transform 0.12s ease-out',
-                animationDelay: `${i * 0.8}s`,
-              }}
-              onClick={() => setViewEcho(echo)}
-              title={`${echo.username}: ${echo.text}`}
-            >
-              {/* Echo bubble */}
-              <div
-                className="relative flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-                style={{
-                  width: sz, height: sz,
-                  background: `${echo.color}15`,
-                  border: `2.5px solid ${echo.color}70`,
-                  borderRadius: '50%',
-                  boxShadow: `0 0 18px ${echo.color}44`,
-                }}
-              >
-                {/* User avatar or initial */}
-                {echo.avatar && echo.avatar !== 'Stargazer'
-                  ? <img src={avatarUrl(echo.avatar)} alt="" className="w-full h-full object-cover rounded-full" />
-                  : <span className="font-heading font-black text-white select-none" style={{ fontSize: sz * 0.3 }}>
-                      {echo.username?.[0]?.toUpperCase() ?? '?'}
-                    </span>
-                }
-                {/* Echo text badge */}
-                <div
-                  className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center rounded-full px-1.5 py-0.5"
-                  style={{
-                    background: `${echo.color}cc`,
-                    border: '1.5px solid rgba(13,13,26,0.8)',
-                    minWidth: 22,
-                    fontSize: 11,
-                    lineHeight: 1,
-                  }}
-                >
-                  {echo.text}
-                </div>
-              </div>
-              <span className="font-heading text-[8px] font-black uppercase tracking-widest mt-1"
-                style={{ color: `${echo.color}bb` }}>
-                {echo.username}
-              </span>
-            </button>
-          );
-        }
-
-        // Ghost placeholder
-        const ghost = ghostSlots[i - realEchoes.length];
-        if (!ghost) return null;
-        const sz = Math.round(60 * scales.middle);
+      {realEchoes.map((echo, i) => {
+        const pos = middlePos[i];
+        const pX  = (mouse.x - 0.5) * 8 * -1;
+        const pY  = (mouse.y - 0.5) * 8 * -1;
+        const sz  = Math.round(68 * scales.middle);
         return (
-          <div key={ghost.id}
-            className="absolute z-10 flex flex-col items-center gap-1 animate-float-slow"
+          <button
+            key={echo.id}
+            className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
             style={{
               left: pos.left, top: pos.top,
               transform: `translate(calc(-50% + ${pX}px), calc(-50% + ${pY}px))`,
               transition: 'transform 0.12s ease-out',
-              animationDelay: `${i * 1.1}s`,
+              animationDelay: `${i * 0.8}s`,
             }}
-            title="Echoes orbit — pulse something to appear here"
+            onClick={() => setViewEcho(echo)}
+            title={`${echo.username}: ${echo.text}`}
           >
             <div
-              className="relative flex items-center justify-center animate-pulse"
+              className="relative flex items-center justify-center transition-all duration-300 group-hover:scale-110"
               style={{
                 width: sz, height: sz,
-                background: `${ghost.color}07`,
-                border: `2px dashed ${ghost.color}28`,
+                background: `${echo.color}15`,
+                border: `2.5px solid ${echo.color}70`,
                 borderRadius: '50%',
-                boxShadow: `0 0 10px ${ghost.color}14`,
-                animationDelay: `${i * 0.7}s`,
-                animationDuration: '3.5s',
+                boxShadow: `0 0 18px ${echo.color}44`,
               }}
             >
-              <span style={{ fontSize: sz * 0.38, opacity: 0.22 }}>{ghost.glyph}</span>
-              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center"
-                style={{ background: 'rgba(13,13,26,0.9)', border: `1px solid ${ghost.color}28`, fontSize: 8 }}>
-                🚧
+              {echo.avatar && echo.avatar !== 'Stargazer'
+                ? <img src={avatarUrl(echo.avatar)} alt="" className="w-full h-full object-cover rounded-full" />
+                : <span className="font-heading font-black text-white select-none" style={{ fontSize: sz * 0.3 }}>
+                    {echo.username?.[0]?.toUpperCase() ?? '?'}
+                  </span>
+              }
+              {/* Echo text badge */}
+              <div
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex items-center justify-center rounded-full px-1.5 py-0.5"
+                style={{
+                  background: `${echo.color}cc`,
+                  border: '1.5px solid rgba(13,13,26,0.8)',
+                  minWidth: 22, fontSize: 11, lineHeight: 1,
+                }}
+              >
+                {echo.text}
               </div>
             </div>
-          </div>
+            <span className="font-heading text-[8px] font-black uppercase tracking-widest mt-1"
+              style={{ color: `${echo.color}bb` }}>
+              {echo.username}
+            </span>
+          </button>
         );
       })}
 
