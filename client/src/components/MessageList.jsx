@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Message from './Message.jsx';
 
-export default function MessageList({ messages }) {
+export default function MessageList({ messages, myId }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function MessageList({ messages }) {
   return (
     <div className="flex-1 overflow-y-auto py-2">
       {messages.map((msg) => (
-        <Message key={msg.id} message={msg} />
+        <Message key={msg.id} message={msg} isOwn={msg.senderId === myId} />
       ))}
       {/* Invisible scroll anchor */}
       <div ref={bottomRef} />

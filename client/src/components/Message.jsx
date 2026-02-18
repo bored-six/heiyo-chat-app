@@ -4,17 +4,18 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function Message({ message }) {
+export default function Message({ message, isOwn }) {
   const { senderName, senderColor, text, timestamp } = message;
   const initial = senderName?.[0]?.toUpperCase() ?? '?';
 
   return (
     <div
-      className="group mx-3 my-2 flex items-start gap-3 rounded-2xl p-3 transition-all duration-200 hover:scale-[1.015] hover:-rotate-[0.4deg]"
+      className={`group mx-3 my-2 flex items-start gap-3 rounded-2xl p-3 transition-all duration-200 hover:scale-[1.015] ${isOwn ? 'flex-row-reverse hover:rotate-[0.4deg]' : 'hover:-rotate-[0.4deg]'}`}
       style={{
-        backgroundColor: `${senderColor}12`,
-        borderLeft: `4px solid ${senderColor}`,
-        boxShadow: `3px 3px 0 ${senderColor}33`,
+        backgroundColor: isOwn ? `${senderColor}22` : `${senderColor}12`,
+        ...(isOwn
+          ? { borderRight: `4px solid ${senderColor}`, boxShadow: `-3px 3px 0 ${senderColor}33` }
+          : { borderLeft: `4px solid ${senderColor}`, boxShadow: `3px 3px 0 ${senderColor}33` }),
       }}
     >
       {/* Avatar */}
@@ -30,8 +31,8 @@ export default function Message({ message }) {
       </div>
 
       {/* Body */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
+      <div className={`min-w-0 flex-1 ${isOwn ? 'text-right' : ''}`}>
+        <div className={`flex items-baseline gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}>
           <span
             className="font-heading text-sm font-black uppercase tracking-tight"
             style={{

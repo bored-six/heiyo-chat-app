@@ -23,7 +23,7 @@ export default function ChatArea() {
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header title={`# ${room?.name ?? activeRoomId}`} />
-        <MessageList messages={messages} />
+        <MessageList messages={messages} myId={me?.id} />
         <TypingIndicator roomId={activeRoomId} />
         <MessageInput roomId={activeRoomId} toUserId={null} />
       </div>
