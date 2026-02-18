@@ -1,36 +1,20 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
-const ORDER_KEY = 'heiyo_room_order';
-const PIN_KEY   = 'heiyo_pinned_room';
+const PIN_KEY = 'heiyo_pinned_room';
 
 /**
- * Manages per-user room ordering + pinning via localStorage.
+ * Manages room ordering + pinning.
  *
- * - `sortedRooms` — rooms in the user's preferred order, pinned room always first.
+ * - `sortedRooms` — rooms auto-sorted by last activity (most recent message first).
+ *                   Rooms with no messages sort below active rooms, oldest first.
+ *                   Pinned room is always forced to position 0.
  * - `pinnedId`    — roomId of the currently pinned room (or null).
  * - `togglePin`   — pin/unpin a room (only one pinned at a time).
- * - `reorder`     — move a room from one index to another in the list.
  */
 export function useRoomOrder(rooms) {
-  const [order, setOrderRaw] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(ORDER_KEY) ?? '[]'); }
-    catch { return []; }
-  });
-
   const [pinnedId, setPinnedIdRaw] = useState(() => {
     return localStorage.getItem(PIN_KEY) ?? null;
   });
-
-  // Keep refs so effects always see the latest values without re-running
-  const orderRef = useRef(order);
-  orderRef.current = order;
-
-  const setOrder = useCallback((ids) => {
-    const arr = Array.isArray(ids) ? ids : ids(orderRef.current);
-    setOrderRaw(arr);
-    orderRef.current = arr;
-    localStorage.setItem(ORDER_KEY, JSON.stringify(arr));
-  }, []);
 
   const setPinnedId = useCallback((id) => {
     setPinnedIdRaw(id);
@@ -38,40 +22,29 @@ export function useRoomOrder(rooms) {
     else     localStorage.removeItem(PIN_KEY);
   }, []);
 
-  // Append any rooms the server added that aren't in the saved order yet
-  useEffect(() => {
-    const newIds = rooms.map(r => r.id).filter(id => !orderRef.current.includes(id));
-    if (newIds.length > 0) {
-      setOrder([...orderRef.current, ...newIds]);
-    }
-  }, [rooms.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Auto-sort by last activity:
+  //   1. Rooms with messages → most recent lastMessageAt first
+  //   2. Rooms with no messages → oldest createdAt first (new empty rooms stay at bottom)
+  const sorted = [...rooms].sort((a, b) => {
+    const aHas = a.lastMessageAt != null;
+    const bHas = b.lastMessageAt != null;
+    if (aHas && !bHas) return -1;
+    if (!aHas && bHas) return 1;
+    if (aHas && bHas)  return b.lastMessageAt - a.lastMessageAt;
+    return (a.createdAt ?? 0) - (b.createdAt ?? 0);
+  });
 
-  // Build the display order:
-  //   1. Everything sorted by user preference
-  //   2. Pinned room pulled to front regardless of its position in order
+  // Pinned room always comes first regardless of activity
   const sortedRooms = (() => {
-    const byId = Object.fromEntries(rooms.map(r => [r.id, r]));
-    const inOrder   = order.filter(id => byId[id]).map(id => byId[id]);
-    const notInOrder = rooms.filter(r => !order.includes(r.id));
-    const all = [...inOrder, ...notInOrder];
-
-    if (!pinnedId) return all;
-    const pinned = all.find(r => r.id === pinnedId);
-    const rest   = all.filter(r => r.id !== pinnedId);
-    return pinned ? [pinned, ...rest] : all;
+    if (!pinnedId) return sorted;
+    const pinned = sorted.find(r => r.id === pinnedId);
+    const rest   = sorted.filter(r => r.id !== pinnedId);
+    return pinned ? [pinned, ...rest] : sorted;
   })();
 
   function togglePin(roomId) {
     setPinnedId(pinnedId === roomId ? null : roomId);
   }
 
-  function reorder(fromIdx, toIdx) {
-    if (fromIdx === toIdx) return;
-    const ids = sortedRooms.map(r => r.id);
-    const [moved] = ids.splice(fromIdx, 1);
-    ids.splice(toIdx, 0, moved);
-    setOrder(ids);
-  }
-
-  return { sortedRooms, pinnedId, togglePin, reorder };
+  return { sortedRooms, pinnedId, togglePin };
 }

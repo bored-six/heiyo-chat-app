@@ -28,21 +28,23 @@ const PARTICLES = [
   { top: '22%', left: '71%', color: '#FF3AF2', cls: 'w-1.5 h-1.5', anim: 'animate-float-slow', delay: '2.9s'  },
 ];
 
-// Pre-defined scatter positions — spread across the viewport, avoiding
-// center (portal lives there) and bottom-left (user badge lives there).
+// Pre-defined grid positions — 3 columns × 4 rows, filling top-to-bottom
+// left-to-right. Slot 0 is the "prime" active slot (top-left); the most
+// recently active room always lands here. Center top is left clear for the
+// HEIYO title, top-right for the online panel.
 const BUBBLE_POSITIONS = [
-  { top: '14%',  left: '8%'  },
-  { top: '18%',  left: '56%' },
-  { top: '13%',  left: '80%' },
-  { top: '52%',  left: '70%' },
-  { top: '62%',  left: '50%' },
-  { top: '68%',  left: '20%' },
-  { top: '38%',  left: '4%'  },
-  { top: '35%',  left: '42%' },
-  { top: '76%',  left: '74%' },
-  { top: '10%',  left: '36%' },
-  { top: '80%',  left: '38%' },
-  { top: '50%',  left: '28%' },
+  { top: '10%', left: '5%'  },   // 0 ← PRIME — most recently active room
+  { top: '10%', left: '68%' },   // 1
+  { top: '35%', left: '5%'  },   // 2
+  { top: '35%', left: '37%' },   // 3
+  { top: '35%', left: '68%' },   // 4
+  { top: '60%', left: '5%'  },   // 5
+  { top: '60%', left: '37%' },   // 6
+  { top: '60%', left: '68%' },   // 7
+  { top: '80%', left: '16%' },   // 8
+  { top: '80%', left: '44%' },   // 9
+  { top: '80%', left: '72%' },   // 10
+  { top: '10%', left: '37%' },   // 11 (below HEIYO title, used when >10 rooms)
 ];
 
 // Floating decorative geometric shapes scattered across the void — exported so AuthScreen can reuse them
@@ -60,16 +62,13 @@ export const DECORATIONS = [
 
 export default function BubbleUniverse() {
   const { rooms, socket, dispatch, unread, onlineUsers, me } = useChat();
-  const { sortedRooms, pinnedId, togglePin, reorder } = useRoomOrder(rooms);
+  const { sortedRooms, pinnedId, togglePin } = useRoomOrder(rooms);
   const [creating, setCreating] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
   const [showOnline, setShowOnline] = useState(true);
-  const [reordering, setReordering] = useState(false);
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
   const rafRef = useRef(null);
-  const dragFrom = useRef(null);
-  const [dragOver, setDragOver] = useState(null);
 
   const handleMouseMove = useCallback((e) => {
     if (rafRef.current) return;
@@ -153,103 +152,6 @@ export default function BubbleUniverse() {
           />
         );
       })}
-
-      {/* ── Reorder panel ── */}
-      {reordering && (
-        <div
-          className="absolute left-6 top-1/2 -translate-y-1/2 z-40 w-64 rounded-2xl border-2 border-dashed border-[#7B2FFF]/70 bg-[#1a0f36]/95 backdrop-blur-md animate-appear"
-          style={{ boxShadow: '0 0 40px rgba(123,47,255,0.2), 0 8px 32px rgba(0,0,0,0.5)' }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <p className="font-heading text-xs font-black uppercase tracking-widest text-[#7B2FFF]">
-              Room Order
-            </p>
-            <button
-              onClick={() => { setReordering(false); setDragOver(null); }}
-              className="font-heading text-[11px] font-black text-white/40 hover:text-white transition-colors"
-            >
-              ✕
-            </button>
-          </div>
-
-          <p className="px-4 pt-2 pb-1 font-heading text-[9px] font-bold uppercase tracking-widest text-white/25">
-            Drag to reorder · 📌 to pin first
-          </p>
-
-          {/* Draggable room list */}
-          <ul className="px-2 pb-2 space-y-0.5">
-            {sortedRooms.map((room, i) => (
-              <li
-                key={room.id}
-                draggable
-                onDragStart={(e) => {
-                  dragFrom.current = i;
-                  e.dataTransfer.effectAllowed = 'move';
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'move';
-                  setDragOver(i);
-                }}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (dragFrom.current !== null) reorder(dragFrom.current, i);
-                  dragFrom.current = null;
-                  setDragOver(null);
-                }}
-                onDragEnd={() => { dragFrom.current = null; setDragOver(null); }}
-                className={`flex items-center gap-2 rounded-xl px-2 py-2 cursor-grab active:cursor-grabbing transition-all duration-100
-                  ${dragOver === i ? 'bg-[#7B2FFF]/20 scale-[1.02]' : 'hover:bg-white/5'}`}
-              >
-                {/* Drag handle */}
-                <span className="font-heading text-sm text-white/20 select-none">≡</span>
-
-                {/* Position badge */}
-                <span
-                  className="flex-shrink-0 flex h-5 w-5 items-center justify-center rounded-full font-heading text-[9px] font-black"
-                  style={{
-                    background: pinnedId === room.id ? '#7B2FFF' : 'rgba(255,255,255,0.08)',
-                    color: pinnedId === room.id ? '#fff' : 'rgba(255,255,255,0.35)',
-                  }}
-                >
-                  {i + 1}
-                </span>
-
-                {/* Room name */}
-                <span className="flex-1 truncate font-heading text-xs font-black uppercase tracking-tight text-white/80">
-                  {room.name}
-                </span>
-
-                {/* Pin toggle */}
-                <button
-                  onClick={() => togglePin(room.id)}
-                  title={pinnedId === room.id ? 'Unpin' : 'Pin to slot 1'}
-                  className={`flex-shrink-0 text-sm transition-all duration-150 hover:scale-125
-                    ${pinnedId === room.id ? 'opacity-100' : 'opacity-25 hover:opacity-80'}`}
-                >
-                  📌
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* ── Reorder toggle button — bottom-left area, above user badge ── */}
-      <button
-        onClick={() => setReordering((v) => !v)}
-        title="Reorder rooms"
-        className={`absolute bottom-6 left-[13rem] z-30 flex items-center gap-1.5 rounded-full border-2 border-dashed px-3 py-1.5 font-heading text-[10px] font-black uppercase tracking-widest backdrop-blur-sm transition-all duration-200 hover:scale-105
-          ${reordering
-            ? 'border-[#7B2FFF] bg-[#7B2FFF]/20 text-[#7B2FFF]'
-            : 'border-white/20 bg-[#0D0D1A]/60 text-white/40 hover:border-[#7B2FFF]/60 hover:text-[#7B2FFF]/80'
-          }`}
-      >
-        <span>⠿</span>
-        <span>Order</span>
-      </button>
 
       {/* ── Online users panel — top-right ── */}
       <div className="absolute top-6 right-6 z-10 w-52">
