@@ -65,7 +65,16 @@ function dbRowToMessage(row) {
     senderTag: row.sender_tag ?? '',
     text: row.text,
     timestamp: row.timestamp,
+    reactions: {},
   };
+}
+
+function serializeReactions(reactions) {
+  const result = {};
+  for (const [emoji, users] of Object.entries(reactions)) {
+    result[emoji] = [...users];
+  }
+  return result;
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────
@@ -158,6 +167,7 @@ export function addMessage(roomId, { senderId, senderName, senderColor, senderAv
     senderTag: senderTag ?? '',
     text,
     timestamp: Date.now(),
+    reactions: {},
   };
 
   room.messages.push(message);
@@ -169,6 +179,36 @@ export function addMessage(roomId, { senderId, senderName, senderColor, senderAv
 
 export function getMessages(roomId) {
   return state.rooms[roomId]?.messages ?? [];
+}
+
+export function toggleReaction(roomId, messageId, userId, emoji) {
+  const room = state.rooms[roomId];
+  if (!room) return null;
+  const msg = room.messages.find((m) => m.id === messageId);
+  if (!msg) return null;
+  if (!msg.reactions[emoji]) msg.reactions[emoji] = new Set();
+  if (msg.reactions[emoji].has(userId)) {
+    msg.reactions[emoji].delete(userId);
+    if (msg.reactions[emoji].size === 0) delete msg.reactions[emoji];
+  } else {
+    msg.reactions[emoji].add(userId);
+  }
+  return serializeReactions(msg.reactions);
+}
+
+export function toggleDmReaction(dmId, messageId, userId, emoji) {
+  const dm = state.dms[dmId];
+  if (!dm) return null;
+  const msg = dm.messages.find((m) => m.id === messageId);
+  if (!msg) return null;
+  if (!msg.reactions[emoji]) msg.reactions[emoji] = new Set();
+  if (msg.reactions[emoji].has(userId)) {
+    msg.reactions[emoji].delete(userId);
+    if (msg.reactions[emoji].size === 0) delete msg.reactions[emoji];
+  } else {
+    msg.reactions[emoji].add(userId);
+  }
+  return serializeReactions(msg.reactions);
 }
 
 // ─── DMs ──────────────────────────────────────────────────────────────────────
@@ -206,6 +246,7 @@ export function addDmMessage(dmId, { senderId, senderName, senderColor, senderAv
     senderTag: senderTag ?? '',
     text,
     timestamp: Date.now(),
+    reactions: {},
   };
 
   dm.messages.push(message);

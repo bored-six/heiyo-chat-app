@@ -79,6 +79,10 @@ export function useSocket(dispatch, authUser) {
       dispatch({ type: 'MESSAGE_RECEIVED', roomId, message });
     });
 
+    socket.on('reaction:update', ({ messageId, roomId, dmId, reactions }) => {
+      dispatch({ type: 'REACTION_UPDATE', messageId, roomId, dmId, reactions });
+    });
+
     // ── DMs ─────────────────────────────────────────────────────────────────
 
     socket.on('dm:opened', ({ dm }) => {

@@ -1,4 +1,4 @@
-import { getUser, getRoom, addMessage } from '../store/index.js';
+import { getUser, getRoom, addMessage, toggleReaction, toggleDmReaction } from '../store/index.js';
 
 export function registerMessageHandlers(io, socket) {
   socket.on('message:send', ({ roomId, text }) => {
@@ -20,5 +20,24 @@ export function registerMessageHandlers(io, socket) {
 
     // Broadcast to everyone in the room (including sender)
     io.to(roomId).emit('message:received', { roomId, message });
+  });
+
+  socket.on('reaction:toggle', ({ messageId, roomId, dmId, emoji }) => {
+    const user = getUser(socket.id);
+    if (!user || !messageId || !emoji) return;
+
+    if (roomId) {
+      const reactions = toggleReaction(roomId, messageId, user.id, emoji);
+      if (reactions !== null) {
+        io.to(roomId).emit('reaction:update', { messageId, roomId, reactions });
+      }
+    } else if (dmId) {
+      const reactions = toggleDmReaction(dmId, messageId, user.id, emoji);
+      if (reactions !== null) {
+        // dmId is "socketIdA--socketIdB" — emit to each participant directly
+        const [participantA, participantB] = dmId.split('--');
+        io.to(participantA).to(participantB).emit('reaction:update', { messageId, dmId, reactions });
+      }
+    }
   });
 }
