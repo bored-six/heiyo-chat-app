@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useState, useCallback } from 'react';
+import { createContext, useContext, useReducer, useRef, useState, useCallback } from 'react';
 import { useSocket } from '../hooks/useSocket.js';
 
 // ─── State shape ─────────────────────────────────────────────────────────────
@@ -182,6 +182,25 @@ function reducer(state, action) {
       return state;
     }
 
+    case 'ROOM_UPDATED':
+      return {
+        ...state,
+        rooms: state.rooms.map((r) => r.id === action.room.id ? action.room : r),
+      };
+
+    case 'MESSAGE_SEEN': {
+      const msgs = state.roomMessages[action.roomId] ?? [];
+      return {
+        ...state,
+        roomMessages: {
+          ...state.roomMessages,
+          [action.roomId]: msgs.map((m) =>
+            m.id === action.messageId ? { ...m, seenBy: action.seenBy } : m
+          ),
+        },
+      };
+    }
+
     case 'TYPING_UPDATE':
       return {
         ...state,
@@ -216,6 +235,10 @@ const ChatContext = createContext(null);
 export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // stateRef gives useSocket access to current state without stale closures
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   // Initialise from localStorage so returning users skip the auth screen immediately
   const [authUser, setAuthUserRaw] = useState(() => {
     try {
@@ -238,7 +261,7 @@ export function ChatProvider({ children }) {
     });
   }, []);
 
-  const socket = useSocket(dispatch, authUser);
+  const socket = useSocket(dispatch, authUser, stateRef);
 
   return (
     <ChatContext.Provider value={{ ...state, dispatch, socket, setAuthUser, authUser }}>

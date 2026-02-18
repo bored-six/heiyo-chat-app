@@ -27,11 +27,11 @@ export function registerRoomHandlers(io, socket) {
       members,
     });
 
-    // Notify everyone else in the room
-    socket.to(roomId).emit('room:members', {
-      roomId,
-      members,
-    });
+    // Notify everyone else in the room of the new member list
+    socket.to(roomId).emit('room:members', { roomId, members });
+
+    // Broadcast updated room stats (lurkerCount changes on join) to all clients
+    io.emit('room:updated', { room: serializeRoom(room) });
   });
 
   // Leave a room
@@ -39,10 +39,13 @@ export function registerRoomHandlers(io, socket) {
     socket.leave(roomId);
     leaveRoom(roomId, socket.id);
 
+    const room = getRoom(roomId);
     const members = getRoomMembers(roomId);
     io.to(roomId).emit('room:members', { roomId, members });
-
     socket.emit('room:left', { roomId });
+
+    // Broadcast updated room stats (lurkerCount changes on leave) to all clients
+    if (room) io.emit('room:updated', { room: serializeRoom(room) });
   });
 
   // Create a new room

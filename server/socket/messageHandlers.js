@@ -1,4 +1,7 @@
-import { getUser, getRoom, addMessage, toggleReaction, toggleDmReaction } from '../store/index.js';
+import {
+  getUser, getRoom, addMessage, toggleReaction, toggleDmReaction,
+  recordSpeaker, recordMessageSeen, getMessageSeenBy, serializeRoom,
+} from '../store/index.js';
 
 export function registerMessageHandlers(io, socket) {
   socket.on('message:send', ({ roomId, text, replyTo }) => {
@@ -24,8 +27,33 @@ export function registerMessageHandlers(io, socket) {
       replyTo: safeReplyTo,
     });
 
-    // Broadcast to everyone in the room (including sender)
+    // Track this user as an active speaker
+    recordSpeaker(roomId, socket.id);
+
+    // Broadcast message to everyone in the room (including sender)
     io.to(roomId).emit('message:received', { roomId, message });
+
+    // Broadcast updated room stats (heat via lastMessageAt, lurkerCount, lastMessage) to ALL clients
+    io.emit('room:updated', { room: serializeRoom(room) });
+  });
+
+  // Client marks a message as seen
+  socket.on('message:seen', ({ roomId, messageId }) => {
+    const user = getUser(socket.id);
+    if (!user || !roomId || !messageId) return;
+
+    recordMessageSeen(messageId, socket.id, {
+      id: socket.id,
+      username: user.username,
+      color: user.color,
+      avatar: user.avatar,
+    });
+
+    io.to(roomId).emit('message:seen', {
+      roomId,
+      messageId,
+      seenBy: getMessageSeenBy(messageId),
+    });
   });
 
   socket.on('reaction:toggle', ({ messageId, roomId, dmId, emoji }) => {

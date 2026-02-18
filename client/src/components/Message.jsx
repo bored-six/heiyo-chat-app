@@ -27,10 +27,14 @@ function HighlightedText({ text, highlight }) {
   );
 }
 
+const MAX_SEEN_AVATARS = 6;
+
 export default function Message({ message, isOwn, highlight = '', onReply }) {
   const { senderName, senderColor, senderAvatar, senderTag, text, timestamp } = message;
   const reactions = message.reactions ?? {};
   const replyTo   = message.replyTo ?? null;
+  // Exclude the sender from seenBy (they obviously saw their own message)
+  const seenBy    = (message.seenBy ?? []).filter((u) => u.id !== message.senderId);
   const { socket, activeRoomId, activeDmId, me } = useChat();
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -135,6 +139,33 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* Seen receipts — avatar row */}
+        {seenBy.length > 0 && (
+          <div className={`mt-1.5 flex items-center gap-0.5 ${isOwn ? 'justify-end' : ''}`}>
+            {seenBy.slice(0, MAX_SEEN_AVATARS).map((u) => (
+              <img
+                key={u.id}
+                src={avatarUrl(u.avatar)}
+                alt={u.username}
+                title={`Seen by ${u.username}`}
+                className="h-4 w-4 rounded-full"
+                style={{
+                  border: `1.5px solid ${u.color}`,
+                  boxShadow: `0 0 4px ${u.color}88`,
+                }}
+              />
+            ))}
+            {seenBy.length > MAX_SEEN_AVATARS && (
+              <span
+                className="font-heading text-[9px] font-black ml-0.5"
+                style={{ color: 'rgba(255,255,255,0.35)' }}
+              >
+                +{seenBy.length - MAX_SEEN_AVATARS}
+              </span>
+            )}
           </div>
         )}
       </div>

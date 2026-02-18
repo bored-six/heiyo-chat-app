@@ -20,6 +20,14 @@ const state = {
   dms: {},    // dmId    → { id, type:'dm', participants:[], messages:[], createdAt }
 };
 
+// ─── Ephemeral activity tracking (not persisted) ──────────────────────────────
+
+// roomId → Map<userId → lastSpokeAt (timestamp)>
+const roomSpeakers = new Map();
+
+// messageId → Map<userId → { id, username, color, avatar }>
+const messageSeen = new Map();
+
 // ─── Hydration (call once on boot, after initDb()) ───────────────────────────
 
 export function hydrateFromDb() {
@@ -263,9 +271,41 @@ export function addDmMessage(dmId, { senderId, senderName, senderColor, senderAv
   return message;
 }
 
+// ─── Activity helpers ─────────────────────────────────────────────────────────
+
+const LURKER_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+
+export function recordSpeaker(roomId, userId) {
+  if (!roomSpeakers.has(roomId)) roomSpeakers.set(roomId, new Map());
+  roomSpeakers.get(roomId).set(userId, Date.now());
+}
+
+export function recordMessageSeen(messageId, userId, userObj) {
+  if (!messageSeen.has(messageId)) messageSeen.set(messageId, new Map());
+  messageSeen.get(messageId).set(userId, userObj);
+}
+
+export function getMessageSeenBy(messageId) {
+  const seen = messageSeen.get(messageId);
+  if (!seen) return [];
+  return [...seen.values()];
+}
+
 // ─── Serializers ──────────────────────────────────────────────────────────────
 
 export function serializeRoom(room) {
+  const now = Date.now();
+  const speakers = roomSpeakers.get(room.id) ?? new Map();
+
+  let lurkerCount = 0;
+  for (const memberId of room.members) {
+    const lastSpoke = speakers.get(memberId);
+    if (!lastSpoke || now - lastSpoke > LURKER_THRESHOLD_MS) lurkerCount++;
+  }
+
+  const msgs = room.messages;
+  const last = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+
   return {
     id: room.id,
     name: room.name,
@@ -273,5 +313,10 @@ export function serializeRoom(room) {
     type: room.type,
     memberCount: room.members.size,
     createdAt: room.createdAt,
+    lastMessageAt: last?.timestamp ?? null,
+    lurkerCount,
+    lastMessage: last
+      ? { text: last.text.slice(0, 80), senderName: last.senderName, timestamp: last.timestamp }
+      : null,
   };
 }
