@@ -6,7 +6,7 @@
 |--------|-------|
 | Runtime | Node.js with ESM (`"type": "module"` in all package.json files) |
 | Server port | 3001 |
-| Client port | 5173 (Vite default — not yet created) |
+| Client port | 5173 (Vite default) |
 | Module system | ES Modules (`import`/`export`) — never use `require()` |
 
 ## Dependencies
@@ -24,9 +24,16 @@
 |---------|---------|---------|
 | concurrently | ^8.2.2 | Run server + client in parallel |
 
-### Client (not yet created)
-- Vite is implied by CORS origin `http://localhost:5173`
-- Framework not yet chosen
+### Client (`client/package.json`)
+| Package | Version | Purpose |
+|---------|---------|---------|
+| react | ^18.3.1 | UI framework |
+| react-dom | ^18.3.1 | DOM renderer |
+| socket.io-client | ^4.7.4 | WebSocket client |
+| vite | ^6.0.0 | Dev server + bundler |
+| @vitejs/plugin-react | ^4.3.4 | React fast refresh |
+| tailwindcss | ^4.1.x | Styling (v4, CSS-first) |
+| @tailwindcss/vite | ^4.1.x | Tailwind v4 Vite plugin |
 
 ## Key Technical Constraints
 
@@ -45,7 +52,7 @@ npm run dev
 # Server only (uses node --watch, no nodemon needed)
 npm run server
 
-# Client only (once created)
+# Client only
 npm run client
 ```
 
@@ -60,3 +67,12 @@ npm run client
 | `server/socket/dmHandlers.js` | DM event handlers |
 | `server/store/index.js` | All in-memory state + CRUD helpers |
 | `server/utils/nameGenerator.js` | Username + color generator |
+| `client/src/App.jsx` | Two-column layout shell, auto-joins General |
+| `client/src/context/ChatContext.jsx` | All client state (useReducer) + ChatProvider |
+| `client/src/hooks/useSocket.js` | Socket lifecycle + event→dispatch wiring |
+| `client/src/components/Sidebar.jsx` | Room list, DM list, user badge |
+| `client/src/components/ChatArea.jsx` | Header + message area + input |
+| `client/src/components/MessageList.jsx` | Scrollable list with auto-scroll |
+| `client/src/components/Message.jsx` | Avatar + name + text + timestamp |
+| `client/src/components/MessageInput.jsx` | Textarea, send on Enter, typing events |
+| `client/src/components/TypingIndicator.jsx` | "X is typing…" with bouncing dots |

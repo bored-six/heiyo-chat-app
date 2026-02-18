@@ -12,7 +12,7 @@ Anonymous real-time chat. No accounts, no login, no persistence. Users connect a
 | Room-based chat | Complete | Join/leave/create rooms |
 | Direct messages | Complete | Peer-to-peer via socket ID |
 | Typing indicators | Complete | Per-room, not per-DM |
-| Client UI | Not built | Server API ready |
+| Client UI | Complete | All core components built |
 
 ## Business Rules
 
