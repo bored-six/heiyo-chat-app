@@ -11,7 +11,7 @@ export function useSocket(dispatch, authUser) {
 
   // Initialise synchronously so the ref is never null after first render
   if (!socketRef.current) {
-    socketRef.current = io({ autoConnect: false });
+    socketRef.current = io('http://localhost:3001', { autoConnect: false });
   }
 
   useEffect(() => {
