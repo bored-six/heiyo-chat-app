@@ -1,18 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
-import OnlineUsersPanel from './OnlineUsersPanel.jsx';
 import AvatarPickerModal from './AvatarPickerModal.jsx';
 import { avatarUrl } from '../utils/avatar.js';
 
 export default function UserBadge() {
-  const { me, onlineUsers, socket, setAuthUser } = useChat();
+  const { me, socket, setAuthUser } = useChat();
   const [open, setOpen] = useState(false);
   const [editingAvatar, setEditingAvatar] = useState(false);
   const ref = useRef(null);
 
   if (!me) return null;
-
-  const count = Object.keys(onlineUsers).length + 1;
 
   // Close panel on outside click
   useEffect(() => {
@@ -26,13 +23,11 @@ export default function UserBadge() {
 
   function handleSaveAvatar(newAvatar) {
     socket.emit('avatar:change', { avatar: newAvatar });
-    // Also update authUser so the handshake stays in sync on reconnect
     setAuthUser((prev) => ({ ...prev, avatar: newAvatar }));
   }
 
   function handleSignOut() {
     setOpen(false);
-    // Passing null clears localStorage and triggers AuthScreen
     setAuthUser(null);
   }
 
@@ -47,33 +42,132 @@ export default function UserBadge() {
       )}
 
       <div ref={ref} className="absolute bottom-6 left-6 z-30">
-        {open && <OnlineUsersPanel onClose={() => setOpen(false)} />}
 
-        {/* Badge pill */}
+        {/* ── Profile toolbar ─────────────────────────────────────────── */}
+        {open && (
+          <div
+            className="absolute bottom-full left-0 mb-3 w-64 overflow-hidden rounded-2xl border-2 border-dashed border-[#FFE600]/60 bg-[#1a0f36]/95 backdrop-blur-md animate-slide-up"
+            style={{ boxShadow: '0 0 40px rgba(255,230,0,0.15), 0 8px 32px rgba(0,0,0,0.5)' }}
+          >
+            {/* Profile header */}
+            <div
+              className="flex items-center gap-3 p-4"
+              style={{ background: `linear-gradient(135deg, ${me.color}22, transparent)` }}
+            >
+              <div
+                className="relative h-14 w-14 flex-shrink-0 cursor-pointer group"
+                onClick={() => { setEditingAvatar(true); setOpen(false); }}
+                title="Edit avatar"
+              >
+                <img
+                  src={avatarUrl(me.avatar)}
+                  alt={me.username}
+                  className="h-14 w-14 rounded-full transition-all duration-150 group-hover:brightness-75"
+                  style={{ border: `2px solid ${me.color}`, boxShadow: `0 0 16px ${me.color}66` }}
+                />
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                  <span className="text-lg drop-shadow-lg">✏️</span>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p
+                  className="font-heading text-sm font-black uppercase tracking-tight text-white truncate"
+                  style={{ textShadow: `1px 1px 0 ${me.color}` }}
+                >
+                  {me.username}
+                </p>
+                {me.tag && (
+                  <p className="font-heading text-[10px] font-bold text-white/35">#{me.tag}</p>
+                )}
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#00F5D4] animate-pulse" />
+                  <span className="font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4]">
+                    Online
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="mx-4 h-px bg-white/10" />
+
+            {/* Profile actions */}
+            <div className="px-2 py-2">
+              <p className="mb-1 px-3 font-heading text-[9px] font-black uppercase tracking-widest text-white/30">
+                Profile
+              </p>
+
+              <button
+                onClick={() => { setEditingAvatar(true); setOpen(false); }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 hover:bg-white/8 active:scale-[0.98]"
+              >
+                <span className="text-base">🎨</span>
+                <div>
+                  <p className="font-heading text-xs font-black uppercase tracking-wide text-white/80">
+                    Edit Avatar
+                  </p>
+                  <p className="font-heading text-[9px] text-white/35">Change your chibi</p>
+                </div>
+              </button>
+
+              <button
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 hover:bg-white/8 active:scale-[0.98]"
+                disabled
+                title="Coming soon"
+              >
+                <span className="text-base opacity-40">⚙️</span>
+                <div>
+                  <p className="font-heading text-xs font-black uppercase tracking-wide text-white/30">
+                    Settings
+                  </p>
+                  <p className="font-heading text-[9px] text-white/20">Coming soon</p>
+                </div>
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="mx-4 h-px bg-white/10" />
+
+            {/* Account section */}
+            <div className="px-2 py-2">
+              <p className="mb-1 px-3 font-heading text-[9px] font-black uppercase tracking-widest text-white/30">
+                Account
+              </p>
+
+              <button
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 hover:bg-[#FF3AF2]/10 active:scale-[0.98] group/out"
+              >
+                <span className="text-base">🚪</span>
+                <div>
+                  <p className="font-heading text-xs font-black uppercase tracking-wide text-white/80 group-hover/out:text-[#FF3AF2] transition-colors">
+                    Sign Out
+                  </p>
+                  <p className="font-heading text-[9px] text-white/35">Leave the universe</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Badge pill ──────────────────────────────────────────────── */}
         <button
           onClick={() => setOpen((v) => !v)}
           className="flex items-center gap-3 rounded-full border-4 border-dashed border-[#FFE600] bg-[#2D1B4E]/90 px-4 py-2 backdrop-blur-sm animate-slide-up cursor-pointer transition-transform hover:scale-105 active:scale-95"
           style={{ boxShadow: open ? '0 0 28px rgba(255,230,0,0.6)' : '0 0 20px rgba(255,230,0,0.4)' }}
-          aria-label="Show online users"
+          aria-label="Open profile menu"
         >
-          {/* Avatar with edit overlay on hover */}
-          <div
-            className="group/avatar relative h-10 w-10 flex-shrink-0"
-            onClick={(e) => { e.stopPropagation(); setEditingAvatar(true); }}
-          >
+          {/* Avatar */}
+          <div className="relative h-10 w-10 flex-shrink-0">
             <img
               src={avatarUrl(me.avatar)}
               alt={me.username}
-              className="h-10 w-10 rounded-full transition-all duration-150 group-hover/avatar:brightness-75"
+              className="h-10 w-10 rounded-full"
               style={{ border: '2px solid #FFE600', boxShadow: '0 0 14px #FF3AF288' }}
             />
-            {/* Pencil icon overlay */}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity duration-150 group-hover/avatar:opacity-100">
-              <span className="text-base drop-shadow-lg">✏️</span>
-            </div>
           </div>
 
-          {/* Name + count */}
+          {/* Name */}
           <div>
             <p
               className="font-heading text-sm font-black uppercase leading-none tracking-tight text-white"
@@ -87,24 +181,14 @@ export default function UserBadge() {
               )}
             </p>
             <p className="mt-0.5 font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4]">
-              {count} online ▴
+              Profile ▴
             </p>
           </div>
 
           {/* Live pulse dot */}
-          <span
-            aria-label="Online"
-            className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-[#00F5D4] animate-pulse"
-          />
+          <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-[#00F5D4] animate-pulse" />
         </button>
 
-        {/* Sign-out link */}
-        <button
-          onClick={handleSignOut}
-          className="mt-1.5 w-full text-center font-heading text-[9px] font-bold uppercase tracking-widest text-white/25 transition-colors hover:text-[#FF3AF2]/70"
-        >
-          sign out
-        </button>
       </div>
     </>
   );
