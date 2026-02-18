@@ -57,9 +57,14 @@ export default function MessageInput({ roomId, toUserId, accent = '#FF3AF2', cla
 
   // ── Derived state ────────────────────────────────────────────────────────
 
-  const remaining = MAX_CHARS - text.length;
   const nearLimit = text.length > 1800;
   const overLimit = text.length > MAX_CHARS;
+
+  // SVG ring constants
+  const RING_RADIUS = 22;
+  const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+  const ringOffset = RING_CIRCUMFERENCE * (1 - text.length / MAX_CHARS);
+  const ringColor = overLimit ? '#ff4444' : nearLimit ? '#FFE600' : accent;
 
   return (
     <div className="flex-shrink-0 p-4">
@@ -84,28 +89,40 @@ export default function MessageInput({ roomId, toUserId, accent = '#FF3AF2', cla
           className="flex-1 resize-none bg-transparent font-heading text-sm font-bold uppercase tracking-wide text-white placeholder-white/20 outline-none"
           style={{ minHeight: '24px', maxHeight: '120px' }}
         />
-        {nearLimit && (
-          <span
-            className={`flex-shrink-0 font-heading text-xs font-black tabular-nums ${
-              overLimit ? 'text-red-400' : 'text-white/35'
-            }`}
+        {/* SVG ring + circular send button */}
+        <div className="relative flex-shrink-0" style={{ width: 52, height: 52 }}>
+          <svg
+            width="52" height="52" viewBox="0 0 52 52"
+            className="absolute inset-0 -rotate-90 pointer-events-none"
           >
-            {remaining}
-          </span>
-        )}
-        <button
-          onClick={send}
-          disabled={!text.trim() || overLimit}
-          className="flex-shrink-0 rounded-full border-4 px-5 py-2 font-heading text-sm font-black uppercase tracking-widest text-white transition-all duration-200 hover:scale-110 disabled:cursor-not-allowed disabled:opacity-30"
-          style={{
-            background: `linear-gradient(135deg, ${accent}, ${clash})`,
-            borderColor: clash,
-            boxShadow: `0 0 14px ${accent}66`,
-          }}
-          aria-label="Send message"
-        >
-          SEND
-        </button>
+            {/* Track */}
+            <circle cx="26" cy="26" r={RING_RADIUS} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+            {/* Progress */}
+            <circle
+              cx="26" cy="26" r={RING_RADIUS}
+              fill="none"
+              stroke={ringColor}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={RING_CIRCUMFERENCE}
+              strokeDashoffset={ringOffset}
+              style={{ transition: 'stroke-dashoffset 0.15s ease-out, stroke 0.2s' }}
+            />
+          </svg>
+          <button
+            onClick={send}
+            disabled={!text.trim() || overLimit}
+            className="absolute inset-[4px] rounded-full border-2 font-heading text-lg font-black text-white transition-all duration-200 hover:scale-110 disabled:cursor-not-allowed disabled:opacity-30"
+            style={{
+              background: `linear-gradient(135deg, ${accent}, ${clash})`,
+              borderColor: clash,
+              boxShadow: `0 0 14px ${accent}66`,
+            }}
+            aria-label="Send message"
+          >
+            ↑
+          </button>
+        </div>
       </div>
 
       <p className="mt-1.5 px-2 font-heading text-[10px] font-bold uppercase tracking-widest text-white/18">

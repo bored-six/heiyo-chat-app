@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import RoomBubble from './RoomBubble.jsx';
 
@@ -36,6 +36,19 @@ export default function BubbleUniverse() {
   const { rooms, socket, dispatch, unread } = useChat();
   const [creating, setCreating] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
+  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
+  const rafRef = useRef(null);
+
+  const handleMouseMove = useCallback((e) => {
+    if (rafRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    rafRef.current = requestAnimationFrame(() => {
+      setMouse({ x, y });
+      rafRef.current = null;
+    });
+  }, []);
 
   function enterRoom(roomId) {
     socket.emit('room:join', { roomId });
@@ -52,7 +65,7 @@ export default function BubbleUniverse() {
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full" onMouseMove={handleMouseMove}>
 
       {/* ── Universe title ── */}
       <div className="absolute top-7 left-1/2 z-10 -translate-x-1/2 text-center">
@@ -79,6 +92,9 @@ export default function BubbleUniverse() {
       {/* ── Room bubbles ── */}
       {rooms.map((room, i) => {
         const pos = BUBBLE_POSITIONS[i % BUBBLE_POSITIONS.length];
+        const depth = 8 + (i % 5) * 3.5;
+        const parallaxX = (mouse.x - 0.5) * depth * -1;
+        const parallaxY = (mouse.y - 0.5) * depth * -1;
         return (
           <RoomBubble
             key={room.id}
@@ -87,6 +103,8 @@ export default function BubbleUniverse() {
             style={{ top: pos.top, left: pos.left }}
             onEnter={() => enterRoom(room.id)}
             unread={unread[room.id] ?? 0}
+            parallaxX={parallaxX}
+            parallaxY={parallaxY}
           />
         );
       })}

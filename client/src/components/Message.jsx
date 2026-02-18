@@ -42,7 +42,7 @@ export default function Message({ message, isOwn }) {
           >
             {senderName}
           </span>
-          <span className="font-heading text-[10px] font-bold uppercase tracking-widest text-white/25">
+          <span className="font-heading text-[10px] font-bold uppercase tracking-widest text-white/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
             {formatTime(timestamp)}
           </span>
         </div>
