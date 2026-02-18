@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AVATAR_SEEDS, avatarUrl } from '../utils/avatar.js';
 import { DECORATIONS } from './BubbleUniverse.jsx';
 
@@ -29,6 +29,21 @@ export default function AuthScreen({ onAuth }) {
   const [avatar, setAvatar] = useState(AVATAR_SEEDS[0]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [serverReady, setServerReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function check() {
+      try {
+        await fetch(`${API}/health`);
+        if (!cancelled) setServerReady(true);
+      } catch {
+        if (!cancelled) setTimeout(check, 1500);
+      }
+    }
+    check();
+    return () => { cancelled = true; };
+  }, []);
 
   function resetForm() {
     setUsername('');
@@ -134,7 +149,22 @@ export default function AuthScreen({ onAuth }) {
           Heiyo
         </p>
 
-        {view === 'landing' && (
+        {!serverReady && (
+          <div className="flex flex-col items-center gap-4 py-6">
+            <div className="flex gap-2">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="h-2.5 w-2.5 rounded-full bg-[#FF3AF2] animate-bounce"
+                  style={{ animationDelay: `${i * 0.18}s` }}
+                />
+              ))}
+            </div>
+            <p className="text-xs uppercase tracking-widest text-white/30">Connecting…</p>
+          </div>
+        )}
+
+        {serverReady && view === 'landing' && (
           <div className="flex flex-col gap-3">
             <button className={btnPrimary} onClick={() => goTo('register')}>
               Create Account
@@ -157,7 +187,7 @@ export default function AuthScreen({ onAuth }) {
           </div>
         )}
 
-        {(view === 'login' || view === 'register') && (
+        {serverReady && (view === 'login' || view === 'register') && (
           <form
             onSubmit={view === 'login' ? handleLogin : handleRegister}
             className="flex flex-col gap-3"
