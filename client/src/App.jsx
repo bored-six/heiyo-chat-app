@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useChat } from './context/ChatContext.jsx';
 import BubbleUniverse from './components/BubbleUniverse.jsx';
 import RoomPortal from './components/RoomPortal.jsx';
@@ -8,6 +8,8 @@ import AuthScreen from './components/AuthScreen.jsx';
 export default function App() {
   const { connected, socket, activeRoomId, activeDmId, setAuthUser } = useChat();
   const [authed, setAuthed] = useState(false);
+  const everConnected = useRef(false);
+  if (connected) everConnected.current = true;
 
   function handleAuth(user) {
     setAuthed(true);
@@ -25,11 +27,10 @@ export default function App() {
     return <AuthScreen onAuth={handleAuth} />;
   }
 
-  if (!connected) {
+  if (!connected && !everConnected.current) {
     return (
       <div className="relative flex h-screen items-center justify-center overflow-hidden bg-[#0D0D1A]">
-        <div className="pointer-events-none absolute inset-0 pattern-dots opacity-[0.08]" />
-        <div className="pointer-events-none absolute inset-0 pattern-stripes" />
+        <div className="pointer-events-none absolute inset-0 pattern-dots opacity-[0.07]" />
         <div className="text-center animate-appear">
           <p className="font-heading text-5xl font-black uppercase tracking-tighter text-gradient">
             Entering Heiyo…
@@ -52,6 +53,15 @@ export default function App() {
 
   return (
     <div className="relative h-screen overflow-hidden bg-[#0D0D1A]">
+      {/* ── Reconnecting banner (only after initial connection is established) ── */}
+      {!connected && (
+        <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-2 border-b border-yellow-500/30 bg-yellow-500/10 py-1.5 backdrop-blur-sm">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-400" />
+          <span className="font-heading text-[10px] font-bold uppercase tracking-widest text-yellow-300">
+            Reconnecting…
+          </span>
+        </div>
+      )}
       {/* ── Global background layers ── */}
       <div className="pointer-events-none absolute inset-0 pattern-dots opacity-[0.07]" />
       <div className="pointer-events-none absolute inset-0 pattern-stripes" />
