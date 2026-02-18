@@ -45,7 +45,7 @@ function relativeTime(ts) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function RoomBubble({ room, index, style, onEnter, unread = 0, parallaxX = 0, parallaxY = 0, isPinned = false, onPin, centered = false, sizeScale = 1 }) {
+export default function RoomBubble({ room, index, style, onEnter, unread = 0, parallaxX = 0, parallaxY = 0, centered = false, sizeScale = 1 }) {
   const accent      = ACCENTS[index % ACCENTS.length];
   const borderColor = CLASH[index % CLASH.length];
   const floatAnim   = FLOAT_ANIMS[index % FLOAT_ANIMS.length];
@@ -116,26 +116,6 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
               style={{ borderTopColor: 'rgba(13,13,26,0.92)' }}
             />
           </div>
-        )}
-
-        {/* Pin button — top-left, visible on hover or when pinned */}
-        {onPin && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onPin(); }}
-            title={isPinned ? 'Unpin room' : 'Pin to first slot'}
-            className={`absolute -top-2 -left-2 z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-200
-              ${isPinned
-                ? 'opacity-100 scale-100'
-                : 'opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100'
-              }`}
-            style={{
-              backgroundColor: isPinned ? accent : 'rgba(13,13,26,0.85)',
-              borderColor: isPinned ? accent : 'rgba(255,255,255,0.25)',
-              boxShadow: isPinned ? `0 0 10px ${accent}99` : 'none',
-            }}
-          >
-            <span className="text-[10px] leading-none">{isPinned ? '📌' : '📍'}</span>
-          </button>
         )}
 
         {/* Unread badge */}

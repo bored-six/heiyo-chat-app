@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import RoomBubble from './RoomBubble.jsx';
 import AvatarPickerModal from './AvatarPickerModal.jsx';
-import { useRoomOrder } from '../hooks/useRoomOrder.js';
 import { avatarUrl } from '../utils/avatar.js';
 
 // ─── Static decoration data ───────────────────────────────────────────────────
@@ -399,8 +398,6 @@ function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
 
 export default function BubbleUniverse() {
   const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes } = useChat();
-  const { sortedRooms, pinnedId, togglePin } = useRoomOrder(rooms);
-
   const [creating, setCreating]           = useState(false);
   const [newRoomName, setNewRoomName]     = useState('');
   const [newRoomDesc, setNewRoomDesc]     = useState('');
@@ -468,8 +465,7 @@ export default function BubbleUniverse() {
   }
 
   function pulseEcho(text) {
-    const activeRoom = rooms.find(r => r.id === sortedRooms[0]?.id);
-    socket.emit('echo:pulse', { text, fromRoom: activeRoom?.name ?? null });
+    socket.emit('echo:pulse', { text, fromRoom: rooms[0]?.name ?? null });
   }
 
   function openDm(userId) {
@@ -488,7 +484,7 @@ export default function BubbleUniverse() {
   const totalMiddle = realEchoes.length;
 
   // Orbit 3 — Rooms (customizable)
-  const visibleRooms  = sortedRooms.filter(r => !hiddenRooms.has(r.id));
+  const visibleRooms  = rooms.filter(r => !hiddenRooms.has(r.id));
 
   // ── Caps ────────────────────────────────────────────────────────────────────
   const innerVisible  = dmList.slice(0, RING.inner.max);
@@ -507,7 +503,7 @@ export default function BubbleUniverse() {
   );
 
   // Active room name (for pulse picker)
-  const activeRoomName = rooms.find(r => r.id === sortedRooms[0]?.id)?.name ?? null;
+  const activeRoomName = rooms[0]?.name ?? null;
 
   function OverflowBubble({ pos, count, color }) {
     return (
@@ -813,8 +809,6 @@ export default function BubbleUniverse() {
             unread={unread[room.id] ?? 0}
             parallaxX={(mouse.x - 0.5) * depth * -1}
             parallaxY={(mouse.y - 0.5) * depth * -1}
-            isPinned={pinnedId === room.id}
-            onPin={() => togglePin(room.id)}
           />
         );
       })}
@@ -949,7 +943,7 @@ export default function BubbleUniverse() {
 
       {showCustomizer && (
         <OrbitCustomizerModal
-          rooms={sortedRooms}
+          rooms={rooms}
           hiddenRooms={hiddenRooms}
           onToggle={toggleRoomVisibility}
           onClose={() => setShowCustomizer(false)}
