@@ -64,7 +64,6 @@ export default function App() {
       )}
       {/* ── Global background layers ── */}
       <div className="pointer-events-none absolute inset-0 pattern-dots opacity-[0.07]" />
-      <div className="pointer-events-none absolute inset-0 pattern-stripes" />
       <div className="pointer-events-none absolute inset-0 pattern-mesh" />
 
       {/* ── Massive background word ── */}

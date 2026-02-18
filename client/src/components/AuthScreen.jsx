@@ -104,18 +104,17 @@ export default function AuthScreen({ onAuth }) {
   return (
     <div className="relative flex h-screen items-center justify-center overflow-hidden bg-[#0D0D1A]">
       {/* Background layers */}
-      <div className="pointer-events-none absolute inset-0 pattern-dots opacity-[0.08]" />
-      <div className="pointer-events-none absolute inset-0 pattern-stripes" />
+      <div className="pointer-events-none absolute inset-0 pattern-dots opacity-[0.07]" />
 
-      {/* Floating decorative emoji — same set as BubbleUniverse */}
+      {/* Floating decorative shapes — same set as BubbleUniverse */}
       {DECORATIONS.map((d, i) => (
         <span
           key={i}
           aria-hidden="true"
           className={`pointer-events-none absolute select-none ${d.anim} ${d.size}`}
-          style={{ top: d.top, left: d.left, animationDelay: d.delay }}
+          style={{ top: d.top, left: d.left, animationDelay: d.delay, color: d.color, opacity: 0.35 }}
         >
-          {d.emoji}
+          {d.char}
         </span>
       ))}
 

@@ -19,17 +19,17 @@ const BUBBLE_POSITIONS = [
   { top: '50%',  left: '28%' },
 ];
 
-// Floating decorative emoji scattered across the void — exported so AuthScreen can reuse them
+// Floating decorative geometric shapes scattered across the void — exported so AuthScreen can reuse them
 export const DECORATIONS = [
-  { emoji: '✨', top: '6%',  left: '30%', anim: 'animate-wiggle',        size: 'text-4xl', delay: '0s'   },
-  { emoji: '💫', top: '80%', left: '84%', anim: 'animate-bounce-subtle', size: 'text-5xl', delay: '0.5s' },
-  { emoji: '⚡', top: '44%', left: '88%', anim: 'animate-float',         size: 'text-3xl', delay: '1s'   },
-  { emoji: '🌀', top: '88%', left: '42%', anim: 'animate-float-reverse', size: 'text-4xl', delay: '0.3s' },
-  { emoji: '💜', top: '28%', left: '93%', anim: 'animate-wiggle',        size: 'text-3xl', delay: '0.8s' },
-  { emoji: '🔥', top: '58%', left: '93%', anim: 'animate-bounce-subtle', size: 'text-4xl', delay: '0.2s' },
-  { emoji: '✦',  top: '4%',  left: '4%',  anim: 'animate-spin-slow',     size: 'text-5xl text-[#FFE600]', delay: '0s'   },
-  { emoji: '✦',  top: '92%', left: '92%', anim: 'animate-spin-slow',     size: 'text-4xl text-[#00F5D4]', delay: '3s'   },
-  { emoji: '★',  top: '72%', left: '8%',  anim: 'animate-float-slow',    size: 'text-3xl text-[#FF6B35]', delay: '1.4s' },
+  { char: '◆', top: '6%',  left: '30%', anim: 'animate-wiggle',        size: 'text-2xl', color: '#FF3AF2', delay: '0s'   },
+  { char: '○', top: '80%', left: '84%', anim: 'animate-bounce-subtle', size: 'text-3xl', color: '#00F5D4', delay: '0.5s' },
+  { char: '+', top: '44%', left: '88%', anim: 'animate-float',         size: 'text-3xl', color: '#FFE600', delay: '1s'   },
+  { char: '◇', top: '88%', left: '42%', anim: 'animate-float-reverse', size: 'text-2xl', color: '#7B2FFF', delay: '0.3s' },
+  { char: '△', top: '28%', left: '93%', anim: 'animate-wiggle',        size: 'text-xl',  color: '#FF3AF2', delay: '0.8s' },
+  { char: '×', top: '58%', left: '93%', anim: 'animate-bounce-subtle', size: 'text-2xl', color: '#FF6B35', delay: '0.2s' },
+  { char: '✦', top: '4%',  left: '4%',  anim: 'animate-spin-slow',     size: 'text-4xl', color: '#FFE600', delay: '0s'   },
+  { char: '✦', top: '92%', left: '92%', anim: 'animate-spin-slow',     size: 'text-3xl', color: '#00F5D4', delay: '3s'   },
+  { char: '★', top: '72%', left: '8%',  anim: 'animate-float-slow',    size: 'text-2xl', color: '#FF6B35', delay: '1.4s' },
 ];
 
 export default function BubbleUniverse() {
@@ -83,9 +83,9 @@ export default function BubbleUniverse() {
           key={i}
           aria-hidden="true"
           className={`pointer-events-none absolute select-none ${d.anim} ${d.size}`}
-          style={{ top: d.top, left: d.left, animationDelay: d.delay }}
+          style={{ top: d.top, left: d.left, animationDelay: d.delay, color: d.color, opacity: 0.45 }}
         >
-          {d.emoji}
+          {d.char}
         </span>
       ))}
 
