@@ -42,26 +42,36 @@ export const DECORATIONS = [
   { char: '★', top: '72%', left: '8%',  anim: 'animate-float-slow',    size: 'text-2xl', color: '#FF6B35', delay: '1.4s' },
 ];
 
+// Under-construction placeholder data for Echoes orbit (middle ring)
+const ECHO_PLACEHOLDERS = [
+  { id: 'echo-1', glyph: '🔮', label: 'ECHOES',   color: '#FF6B35' },
+  { id: 'echo-2', glyph: '✦',  label: 'SIGNALS',  color: '#7B2FFF' },
+  { id: 'echo-3', glyph: '◈',  label: 'VIBES',    color: '#FF3AF2' },
+  { id: 'echo-4', glyph: '⟡',  label: 'STORIES',  color: '#00F5D4' },
+];
+
 // ─── Orbital ring system ──────────────────────────────────────────────────────
 //
-//  Hub sits at (CX%, CY%). Three concentric ellipses radiate outward.
-//  Each ring has an angleOffset so items on different rings never land at
-//  the same clock-position (prevents vertical stacking / overlap).
+//  Three concentric ellipses radiating outward from the hub at (CX%, CY%):
 //
-//  Outer  (quiet rooms)  — rX 38%, rY 27%,  starts at  0° (12 o'clock)
-//  Middle (active rooms) — rX 24%, rY 17%,  starts at 45° (10:30 offset)
-//  Inner  (DMs)          — rX 12%, rY  9%,  starts at 30° (11:00 offset)
+//  Orbit 1 — Inner  (Friends)  rX 12%, rY 9%   — cap 10 (smallest bubbles → more fit)
+//  Orbit 2 — Middle (Echoes)   rX 24%, rY 17%  — cap 6  (under construction)
+//  Orbit 3 — Outer  (Rooms)    rX 38%, rY 27%  — cap 5  (largest bubbles + 1 reserved for "+")
 //
-//  MAX_PER_RING caps visible items; overflow shows a "+N" ghost bubble.
+//  Cap logic: smaller ring → smaller bubbles → higher cap.
+//             Larger ring → larger bubbles → lower cap (outer rooms are prominent).
 
 const CX = 50;
 const CY = 53;
 
 const RING = {
-  outer:  { rX: 38, rY: 27, angleOffset: 0,              max: 10, color: 'rgba(0,245,212,0.08)'   },
-  middle: { rX: 24, rY: 17, angleOffset: Math.PI / 4,    max:  8, color: 'rgba(255,58,242,0.12)'  },
-  inner:  { rX: 12, rY:  9, angleOffset: Math.PI / 6,    max:  6, color: 'rgba(255,230,0,0.10)'   },
+  inner:  { rX: 12, rY:  9, angleOffset: Math.PI / 6, max: 10, color: 'rgba(255,230,0,0.10)'  },
+  middle: { rX: 24, rY: 17, angleOffset: Math.PI / 4, max:  6, color: 'rgba(255,107,53,0.10)' },
+  outer:  { rX: 38, rY: 27, angleOffset: 0,           max:  5, color: 'rgba(0,245,212,0.08)'  },
 };
+
+const SCALE_KEY       = 'heiyo_ring_scales';
+const ORBIT_HIDDEN_KEY = 'heiyo_orbit_hidden';
 
 function orbitalPositions(count, rX, rY, angleOffset = 0) {
   if (count === 0) return [];
@@ -74,11 +84,135 @@ function orbitalPositions(count, rX, rY, angleOffset = 0) {
   });
 }
 
-const SCALE_KEY = 'heiyo_ring_scales';
-
 function loadScales() {
   try { return JSON.parse(localStorage.getItem(SCALE_KEY) ?? 'null') ?? { outer: 1, middle: 1, inner: 1 }; }
   catch { return { outer: 1, middle: 1, inner: 1 }; }
+}
+
+function loadHiddenRooms() {
+  try { return new Set(JSON.parse(localStorage.getItem(ORBIT_HIDDEN_KEY) ?? '[]')); }
+  catch { return new Set(); }
+}
+
+// ─── Orbit Customizer Modal ───────────────────────────────────────────────────
+
+function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
+  const visibleCount = rooms.filter(r => !hiddenRooms.has(r.id)).length;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-96 max-h-[78vh] flex flex-col animate-appear"
+        style={{
+          background: 'rgba(13,13,26,0.98)',
+          border: '2px solid rgba(0,245,212,0.35)',
+          borderRadius: '1.5rem',
+          boxShadow: '0 0 60px rgba(0,245,212,0.18), 0 24px 64px rgba(0,0,0,0.85)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-white/8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg">🪐</span>
+              <h2 className="font-heading text-sm font-black uppercase tracking-tight text-white">
+                Room Orbit
+              </h2>
+            </div>
+            <p className="font-heading text-[10px] text-white/35 leading-relaxed">
+              Choose which rooms orbit around you.<br />
+              Hidden rooms still exist — just off your radar.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center font-heading text-lg text-white/30 hover:text-white hover:bg-white/10 transition-all flex-shrink-0 mt-0.5"
+          >×</button>
+        </div>
+
+        {/* Room list */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {rooms.length === 0 && (
+            <p className="text-center font-heading text-[11px] text-white/25 py-10">
+              No rooms yet.<br />
+              <span className="text-white/15">Create one below ↓</span>
+            </p>
+          )}
+          {rooms.map((room) => {
+            const hidden = hiddenRooms.has(room.id);
+            return (
+              <button
+                key={room.id}
+                onClick={() => onToggle(room.id)}
+                className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-200 hover:bg-white/5 text-left"
+                style={{
+                  border: `1px solid ${hidden ? 'rgba(255,255,255,0.07)' : 'rgba(0,245,212,0.25)'}`,
+                  background: hidden ? 'transparent' : 'rgba(0,245,212,0.04)',
+                }}
+              >
+                {/* Toggle indicator */}
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                  style={{
+                    background: hidden ? 'transparent' : '#00F5D4',
+                    border: `2px solid ${hidden ? 'rgba(255,255,255,0.15)' : '#00F5D4'}`,
+                    boxShadow: hidden ? 'none' : '0 0 10px #00F5D4aa',
+                  }}
+                >
+                  {!hidden && (
+                    <span className="font-heading text-[9px] text-[#0D0D1A] font-black leading-none">✓</span>
+                  )}
+                </div>
+
+                {/* Room info */}
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="font-heading text-sm font-black uppercase tracking-tight truncate"
+                    style={{ color: hidden ? 'rgba(255,255,255,0.25)' : 'white' }}
+                  >
+                    {room.name}
+                  </p>
+                  {room.description && (
+                    <p className="font-heading text-[9px] text-white/20 truncate mt-0.5">
+                      {room.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Member count */}
+                <span
+                  className="font-heading text-[10px] font-black flex-shrink-0 tabular-nums"
+                  style={{ color: hidden ? 'rgba(255,255,255,0.15)' : '#00F5D4' }}
+                >
+                  {room.memberCount ?? 0} online
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-white/8 flex items-center justify-between">
+          <p className="font-heading text-[9px] text-white/25">
+            <span style={{ color: 'rgba(0,245,212,0.5)' }}>{visibleCount}</span>
+            /{rooms.length} in orbit
+          </p>
+          <button
+            onClick={onClose}
+            className="rounded-full px-4 py-1.5 font-heading text-[10px] font-black uppercase tracking-widest text-[#0D0D1A] transition-all hover:scale-105"
+            style={{ background: '#00F5D4', boxShadow: '0 0 12px #00F5D4aa' }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -87,16 +221,18 @@ export default function BubbleUniverse() {
   const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser } = useChat();
   const { sortedRooms, pinnedId, togglePin } = useRoomOrder(rooms);
 
-  const [creating, setCreating]     = useState(false);
-  const [newRoomName, setNewRoomName] = useState('');
-  const [newRoomDesc, setNewRoomDesc] = useState('');
-  const [showOnline, setShowOnline]  = useState(true);
-  const [mouse, setMouse]            = useState({ x: 0.5, y: 0.5 });
-  const [hubOpen, setHubOpen]        = useState(false);
+  const [creating, setCreating]         = useState(false);
+  const [newRoomName, setNewRoomName]   = useState('');
+  const [newRoomDesc, setNewRoomDesc]   = useState('');
+  const [showOnline, setShowOnline]     = useState(true);
+  const [mouse, setMouse]               = useState({ x: 0.5, y: 0.5 });
+  const [hubOpen, setHubOpen]           = useState(false);
   const [editingAvatar, setEditingAvatar] = useState(false);
-  const [scales, setScalesRaw]       = useState(loadScales);
-  const rafRef  = useRef(null);
-  const hubRef  = useRef(null);
+  const [scales, setScalesRaw]          = useState(loadScales);
+  const [hiddenRooms, setHiddenRooms]   = useState(loadHiddenRooms);
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const rafRef = useRef(null);
+  const hubRef = useRef(null);
 
   // Persist scales to localStorage whenever they change
   const setScales = useCallback((updater) => {
@@ -106,6 +242,17 @@ export default function BubbleUniverse() {
       return next;
     });
   }, []);
+
+  // Toggle a room's visibility in the orbit
+  function toggleRoomVisibility(roomId) {
+    setHiddenRooms((prev) => {
+      const next = new Set(prev);
+      if (next.has(roomId)) next.delete(roomId);
+      else next.add(roomId);
+      localStorage.setItem(ORBIT_HIDDEN_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }
 
   // Close hub panel on outside click
   useEffect(() => {
@@ -148,24 +295,41 @@ export default function BubbleUniverse() {
   }
 
   // ── Categorise ──────────────────────────────────────────────────────────────
-  const activeRooms = sortedRooms.filter(r => r.lastMessageAt != null);
-  const quietRooms  = sortedRooms.filter(r => r.lastMessageAt == null);
-  const dmList      = Object.values(dms ?? {}).sort((a, b) => {
+
+  // Orbit 1 — Inner (Friends): DM partners, sorted by latest activity
+  const dmList = Object.values(dms ?? {}).sort((a, b) => {
     return (b.messages.at(-1)?.timestamp ?? 0) - (a.messages.at(-1)?.timestamp ?? 0);
   });
 
-  // ── Apply per-ring caps ──────────────────────────────────────────────────────
-  const outerVisible   = quietRooms.slice(0, RING.outer.max);
-  const outerOverflow  = Math.max(0, quietRooms.length  - RING.outer.max);
-  const middleVisible  = activeRooms.slice(0, RING.middle.max);
-  const middleOverflow = Math.max(0, activeRooms.length - RING.middle.max);
-  const innerVisible   = dmList.slice(0, RING.inner.max);
-  const innerOverflow  = Math.max(0, dmList.length      - RING.inner.max);
+  // Orbit 2 — Middle (Echoes): Fixed under-construction placeholders
+  const echoPlaceholders = ECHO_PLACEHOLDERS;
 
-  // ── Orbital positions (include +1 slot if overflow needs a ghost bubble) ────
-  const outerPos  = orbitalPositions(outerVisible.length  + (outerOverflow  > 0 ? 1 : 0), RING.outer.rX,  RING.outer.rY,  RING.outer.angleOffset);
-  const middlePos = orbitalPositions(middleVisible.length + (middleOverflow > 0 ? 1 : 0), RING.middle.rX, RING.middle.rY, RING.middle.angleOffset);
-  const innerPos  = orbitalPositions(innerVisible.length  + (innerOverflow  > 0 ? 1 : 0), RING.inner.rX,  RING.inner.rY,  RING.inner.angleOffset);
+  // Orbit 3 — Outer (Rooms): All rooms, filtered by user's orbit preferences
+  const visibleRooms = sortedRooms.filter(r => !hiddenRooms.has(r.id));
+
+  // ── Apply per-ring caps ──────────────────────────────────────────────────────
+  // Cap logic: smaller ring → smaller bubbles → higher cap
+  const innerVisible  = dmList.slice(0, RING.inner.max);                  // cap 10
+  const innerOverflow = Math.max(0, dmList.length - RING.inner.max);
+
+  const middleVisible = echoPlaceholders.slice(0, RING.middle.max);        // cap 6 (always 4 placeholders)
+
+  const outerVisible  = visibleRooms.slice(0, RING.outer.max);             // cap 5 (+1 reserved for "+")
+
+  // ── Orbital positions ────────────────────────────────────────────────────────
+  const innerPos  = orbitalPositions(
+    innerVisible.length + (innerOverflow > 0 ? 1 : 0),
+    RING.inner.rX, RING.inner.rY, RING.inner.angleOffset
+  );
+  const middlePos = orbitalPositions(
+    middleVisible.length,
+    RING.middle.rX, RING.middle.rY, RING.middle.angleOffset
+  );
+  // Outer always allocates +1 slot for the "+" customize button
+  const outerPos  = orbitalPositions(
+    outerVisible.length + 1,
+    RING.outer.rX, RING.outer.rY, RING.outer.angleOffset
+  );
 
   function OverflowBubble({ pos, count, color }) {
     return (
@@ -205,13 +369,13 @@ export default function BubbleUniverse() {
         </defs>
         <ellipse cx={CX} cy={CY} rx="9" ry="6.5" fill="url(#hub-glow)" />
 
-        {/* Outer ring */}
+        {/* Orbit 3 — Rooms (outer) */}
         <ellipse cx={CX} cy={CY} rx={RING.outer.rX}  ry={RING.outer.rY}
           fill="none" stroke="rgba(0,245,212,0.08)"  strokeWidth="0.35" strokeDasharray="2.5 6" />
-        {/* Middle ring */}
+        {/* Orbit 2 — Echoes (middle) */}
         <ellipse cx={CX} cy={CY} rx={RING.middle.rX} ry={RING.middle.rY}
-          fill="none" stroke="rgba(255,58,242,0.12)" strokeWidth="0.35" strokeDasharray="2 5"   />
-        {/* Inner ring */}
+          fill="none" stroke="rgba(255,107,53,0.10)" strokeWidth="0.35" strokeDasharray="2 5"   />
+        {/* Orbit 1 — Friends (inner) */}
         <ellipse cx={CX} cy={CY} rx={RING.inner.rX}  ry={RING.inner.rY}
           fill="none" stroke="rgba(255,230,0,0.10)"  strokeWidth="0.35" strokeDasharray="1.5 4" />
       </svg>
@@ -219,12 +383,16 @@ export default function BubbleUniverse() {
       {/* ── Zone labels ──────────────────────────────────────────────────────── */}
       <div className="absolute pointer-events-none select-none z-10"
         style={{ top: `${CY - RING.outer.rY - 3.5}%`, left: '50%', transform: 'translateX(-50%)' }}>
-        <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#00F5D4]/25">channels</span>
+        <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#00F5D4]/25">rooms</span>
+      </div>
+      <div className="absolute pointer-events-none select-none z-10"
+        style={{ top: `${CY - RING.middle.rY - 2.5}%`, left: '50%', transform: 'translateX(-50%)' }}>
+        <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#FF6B35]/20">echoes</span>
       </div>
       {dmList.length > 0 && (
         <div className="absolute pointer-events-none select-none z-10"
-          style={{ top: `${CY - RING.inner.rY - 3}%`, left: '50%', transform: 'translateX(-50%)' }}>
-          <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#FFE600]/25">direct</span>
+          style={{ top: `${CY - RING.inner.rY - 2.5}%`, left: '50%', transform: 'translateX(-50%)' }}>
+          <span className="font-heading text-[8px] font-black uppercase tracking-[0.55em] text-[#FFE600]/25">friends</span>
         </div>
       )}
 
@@ -233,7 +401,7 @@ export default function BubbleUniverse() {
         <h1 className="font-heading text-6xl font-black uppercase tracking-tighter text-gradient">HEIYO</h1>
         <p className="mt-1 font-heading text-xs font-black uppercase tracking-[0.3em] text-[#FF3AF2]/50">
           {rooms.length} {rooms.length === 1 ? 'room' : 'rooms'}
-          {dmList.length > 0 ? ` · ${dmList.length} dm${dmList.length !== 1 ? 's' : ''}` : ''}
+          {dmList.length > 0 ? ` · ${dmList.length} friend${dmList.length !== 1 ? 's' : ''}` : ''}
           {' · click to enter'}
         </p>
       </div>
@@ -364,9 +532,9 @@ export default function BubbleUniverse() {
                 Bubble sizes
               </p>
               {[
-                { key: 'outer',  label: 'Channels (outer)',  color: '#00F5D4' },
-                { key: 'middle', label: 'Active (middle)',   color: '#FF3AF2' },
-                { key: 'inner',  label: 'Direct (inner)',    color: '#FFE600' },
+                { key: 'inner',  label: 'Friends (orbit 1)',  color: '#FFE600' },
+                { key: 'middle', label: 'Echoes (orbit 2)',   color: '#FF6B35' },
+                { key: 'outer',  label: 'Rooms (orbit 3)',    color: '#00F5D4' },
               ].map(({ key, label, color }) => (
                 <div key={key} className="flex items-center gap-2 mb-2 last:mb-0">
                   <span
@@ -414,7 +582,7 @@ export default function BubbleUniverse() {
         )}
       </div>
 
-      {/* ── DM bubbles — inner ring ──────────────────────────────────────────── */}
+      {/* ── Orbit 1: Friends — inner ring (DM partners) ──────────────────────── */}
       {innerVisible.map((dm, i) => {
         const other       = dm.participants?.find(p => p.id !== me?.id);
         const unreadCount = dmUnread?.[dm.id] ?? 0;
@@ -470,34 +638,62 @@ export default function BubbleUniverse() {
         <OverflowBubble pos={innerPos[innerVisible.length]} count={innerOverflow} color="#FFE600" />
       )}
 
-      {/* ── Active rooms — middle ring ───────────────────────────────────────── */}
-      {middleVisible.map((room, i) => {
-        const pos   = middlePos[i];
-        const depth = 9 + (i % 4) * 2;
+      {/* ── Orbit 2: Echoes — middle ring (under construction) ───────────────── */}
+      {middleVisible.map((echo, i) => {
+        const pos = middlePos[i];
+        const pX  = (mouse.x - 0.5) * 8 * -1;
+        const pY  = (mouse.y - 0.5) * 8 * -1;
+        const sz  = Math.round(62 * scales.middle);
+
         return (
-          <RoomBubble key={room.id} room={room} index={i}
-            style={{ left: pos.left, top: pos.top }}
-            centered
-            sizeScale={scales.middle}
-            onEnter={() => enterRoom(room.id)}
-            unread={unread[room.id] ?? 0}
-            parallaxX={(mouse.x - 0.5) * depth * -1}
-            parallaxY={(mouse.y - 0.5) * depth * -1}
-            isPinned={pinnedId === room.id}
-            onPin={() => togglePin(room.id)}
-          />
+          <div
+            key={echo.id}
+            className="absolute z-10 flex flex-col items-center gap-1 animate-float-slow"
+            style={{
+              left: pos.left, top: pos.top,
+              transform: `translate(calc(-50% + ${pX}px), calc(-50% + ${pY}px))`,
+              transition: 'transform 0.12s ease-out',
+              animationDelay: `${i * 1.1}s`,
+            }}
+            title="Echoes orbit — coming soon"
+          >
+            <div
+              className="relative flex items-center justify-center animate-pulse"
+              style={{
+                width: sz, height: sz,
+                background: `${echo.color}08`,
+                border: `2px dashed ${echo.color}30`,
+                borderRadius: '28%',
+                boxShadow: `0 0 10px ${echo.color}18`,
+                animationDelay: `${i * 0.7}s`,
+                animationDuration: '3s',
+              }}
+            >
+              <span style={{ fontSize: sz * 0.38, opacity: 0.3 }}>{echo.glyph}</span>
+              {/* Construction badge */}
+              <div
+                className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full"
+                style={{ background: 'rgba(13,13,26,0.9)', border: `1px solid ${echo.color}30` }}
+              >
+                <span style={{ fontSize: 8 }}>🚧</span>
+              </div>
+            </div>
+            <span
+              className="font-heading text-[7px] font-black uppercase tracking-widest"
+              style={{ color: `${echo.color}30` }}
+            >
+              {echo.label}
+            </span>
+          </div>
         );
       })}
-      {middleOverflow > 0 && middlePos[middleVisible.length] && (
-        <OverflowBubble pos={middlePos[middleVisible.length]} count={middleOverflow} color="#FF3AF2" />
-      )}
 
-      {/* ── Quiet rooms — outer ring ─────────────────────────────────────────── */}
+      {/* ── Orbit 3: Rooms — outer ring (customizable) ───────────────────────── */}
       {outerVisible.map((room, i) => {
         const pos   = outerPos[i];
         const depth = 14 + (i % 4) * 2;
         return (
-          <RoomBubble key={room.id} room={room} index={activeRooms.length + i}
+          <RoomBubble key={room.id} room={room} index={i}
             style={{ left: pos.left, top: pos.top }}
             centered
             sizeScale={scales.outer}
@@ -510,9 +706,38 @@ export default function BubbleUniverse() {
           />
         );
       })}
-      {outerOverflow > 0 && outerPos[outerVisible.length] && (
-        <OverflowBubble pos={outerPos[outerVisible.length]} count={outerOverflow} color="#00F5D4" />
-      )}
+
+      {/* ── "+" customize button — always occupies the last outer slot ───────── */}
+      {outerPos[outerVisible.length] && (() => {
+        const pos  = outerPos[outerVisible.length];
+        const sz   = Math.round(88 * scales.outer);
+        return (
+          <button
+            className="absolute z-20 flex flex-col items-center justify-center gap-1 animate-float group"
+            style={{
+              left: pos.left, top: pos.top,
+              transform: 'translate(-50%, -50%)',
+              width: sz, height: sz,
+              background: 'rgba(0,245,212,0.04)',
+              border: '2px dashed rgba(0,245,212,0.28)',
+              borderRadius: '50%',
+              boxShadow: '0 0 18px rgba(0,245,212,0.08)',
+              transition: 'all 0.2s ease',
+            }}
+            onClick={() => setShowCustomizer(true)}
+            title="Customize your room orbit"
+          >
+            <span
+              className="font-heading text-2xl font-black transition-all duration-200 group-hover:scale-125"
+              style={{ color: 'rgba(0,245,212,0.45)' }}
+            >+</span>
+            <span
+              className="font-heading text-[7px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200"
+              style={{ color: 'rgba(0,245,212,0.5)' }}
+            >orbit</span>
+          </button>
+        );
+      })()}
 
       {/* ── Online users panel — top-right ──────────────────────────────────── */}
       <div className="absolute top-6 right-6 z-30 w-52">
@@ -586,6 +811,16 @@ export default function BubbleUniverse() {
           </button>
         )}
       </div>
+
+      {/* ── Orbit Customizer Modal ───────────────────────────────────────────── */}
+      {showCustomizer && (
+        <OrbitCustomizerModal
+          rooms={sortedRooms}
+          hiddenRooms={hiddenRooms}
+          onToggle={toggleRoomVisibility}
+          onClose={() => setShowCustomizer(false)}
+        />
+      )}
 
       {/* ── Avatar picker modal ──────────────────────────────────────────────── */}
       {editingAvatar && (
