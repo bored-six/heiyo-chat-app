@@ -42,6 +42,8 @@ export function hydrateFromDb() {
       members: new Set(),
       messages,
       createdAt: row.created_at,
+      createdBy: row.created_by ?? null,
+      visibility: row.visibility ?? 'public',
     };
   }
 
@@ -121,7 +123,7 @@ export function getAllUsers() {
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 
-export function createRoom(name, description = '') {
+export function createRoom(name, description = '', createdBy = null, visibility = 'public') {
   const id = uuidv4();
   const createdAt = Date.now();
   const room = {
@@ -132,9 +134,11 @@ export function createRoom(name, description = '') {
     members: new Set(),
     messages: [],
     createdAt,
+    createdBy,
+    visibility,
   };
   state.rooms[id] = room;
-  dbCreateRoom(id, name, createdAt, description); // persist
+  dbCreateRoom(id, name, createdAt, description, createdBy, visibility); // persist
   return room;
 }
 
@@ -144,6 +148,12 @@ export function getRoom(roomId) {
 
 export function getAllRooms() {
   return Object.values(state.rooms).map(serializeRoom);
+}
+
+export function getAllRoomsForUser(username) {
+  return Object.values(state.rooms)
+    .filter(r => r.visibility === 'public' || r.createdBy === username)
+    .map(serializeRoom);
 }
 
 export function joinRoom(roomId, socketId) {
@@ -333,6 +343,8 @@ export function serializeRoom(room) {
     type: room.type,
     memberCount: room.members.size,
     createdAt: room.createdAt,
+    createdBy: room.createdBy ?? null,
+    visibility: room.visibility ?? 'public',
     lastMessageAt: last?.timestamp ?? null,
     lurkerCount,
     lastMessage: last

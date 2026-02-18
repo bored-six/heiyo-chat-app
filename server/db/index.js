@@ -82,6 +82,8 @@ export function initDb() {
   try { db.exec(`ALTER TABLE dm_messages ADD COLUMN sender_avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
   try { db.exec(`ALTER TABLE dm_messages ADD COLUMN sender_tag TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.exec(`ALTER TABLE rooms ADD COLUMN description TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+  try { db.exec(`ALTER TABLE rooms ADD COLUMN created_by TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE rooms ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'`); } catch (_) {}
   try { db.exec(`ALTER TABLE messages ADD COLUMN reply_to_id TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE messages ADD COLUMN reply_to_text TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE messages ADD COLUMN reply_to_sender TEXT`); } catch (_) {}
@@ -100,10 +102,10 @@ export function initDb() {
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 
-export function dbCreateRoom(id, name, createdAt, description = '') {
+export function dbCreateRoom(id, name, createdAt, description = '', createdBy = null, visibility = 'public') {
   db.prepare(`
-    INSERT OR IGNORE INTO rooms (id, name, description, created_at) VALUES (?, ?, ?, ?)
-  `).run(id, name, description, createdAt);
+    INSERT OR IGNORE INTO rooms (id, name, description, created_at, created_by, visibility) VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id, name, description, createdAt, createdBy, visibility);
 }
 
 export function dbLoadRooms() {

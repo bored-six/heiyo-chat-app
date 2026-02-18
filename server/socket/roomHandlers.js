@@ -15,6 +15,12 @@ export function registerRoomHandlers(io, socket) {
     const room = getRoom(roomId);
     if (!room) return;
 
+    // Block access to private rooms for non-owners
+    if (room.visibility === 'private') {
+      const requester = socket.handshake.auth?.username ?? null;
+      if (room.createdBy !== requester) return;
+    }
+
     socket.join(roomId);
     joinRoom(roomId, socket.id);
 
@@ -49,15 +55,23 @@ export function registerRoomHandlers(io, socket) {
   });
 
   // Create a new room
-  socket.on('room:create', ({ name, description }) => {
+  socket.on('room:create', ({ name, description, visibility }) => {
     const trimmed = (name || '').trim().slice(0, 50);
     if (!trimmed) return;
     const desc = (description || '').trim().slice(0, 120);
+    const createdBy = socket.handshake.auth?.username ?? null;
+    const vis = visibility === 'public' ? 'public' : 'private';
 
-    const room = createRoom(trimmed, desc);
+    const room = createRoom(trimmed, desc, createdBy, vis);
+    const serialized = serializeRoom(room);
 
-    // Broadcast to everyone that a new room exists
-    io.emit('room:created', { room: serializeRoom(room) });
+    if (vis === 'public') {
+      // Broadcast to everyone
+      io.emit('room:created', { room: serialized });
+    } else {
+      // Private: only tell the creator
+      socket.emit('room:created', { room: serialized });
+    }
   });
 
   // Send current room list on request

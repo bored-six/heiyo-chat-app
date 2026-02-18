@@ -1,4 +1,4 @@
-import { addUser, removeUser, getAllRooms, joinRoom, updateUserAvatar, getActiveEchoes } from '../store/index.js';
+import { addUser, removeUser, getAllRoomsForUser, joinRoom, updateUserAvatar, getActiveEchoes } from '../store/index.js';
 import { dbGetUser, dbUpdateUserAvatar } from '../db/index.js';
 import { registerRoomHandlers } from './roomHandlers.js';
 import { registerMessageHandlers } from './messageHandlers.js';
@@ -20,10 +20,10 @@ export function initSocket(io) {
     socket.join(GENERAL_ROOM_ID);
     joinRoom(GENERAL_ROOM_ID, socket.id);
 
-    // Send initial state to the connecting client
+    // Send initial state to the connecting client — rooms filtered by visibility
     socket.emit('connected', {
       user,
-      rooms: getAllRooms(),
+      rooms: getAllRoomsForUser(username ?? null),
       echoes: getActiveEchoes(),
     });
 
