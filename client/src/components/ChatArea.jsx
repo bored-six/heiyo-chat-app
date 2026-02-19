@@ -1,10 +1,40 @@
+import { useState, useEffect } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import MessageList from './MessageList.jsx';
 import MessageInput from './MessageInput.jsx';
 import TypingIndicator from './TypingIndicator.jsx';
+import { getMutedRooms, toggleRoomMute } from '../utils/notificationSound.js';
 
 export default function ChatArea() {
-  const { me, rooms, dms, activeRoomId, activeDmId, roomMessages, onlineUsers } = useChat();
+  const { me, rooms, dms, activeRoomId, activeDmId, roomMessages, onlineUsers, socket } = useChat();
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [mutedRooms, setMutedRooms] = useState(() => getMutedRooms());
+
+  // One-shot listener for invite code response
+  useEffect(() => {
+    if (!socket || !activeRoomId) return;
+
+    function onInviteCode({ roomId, inviteCode }) {
+      if (roomId !== activeRoomId) return;
+      const url = `${window.location.origin}/?invite=${inviteCode}`;
+      navigator.clipboard.writeText(url).catch(() => {});
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2500);
+    }
+
+    socket.on('room:invite-code', onInviteCode);
+    return () => socket.off('room:invite-code', onInviteCode);
+  }, [socket, activeRoomId]);
+
+  function copyInviteLink() {
+    if (!activeRoomId || !socket) return;
+    socket.emit('room:get-invite', { roomId: activeRoomId });
+  }
+
+  function handleToggleMute(roomId) {
+    const next = toggleRoomMute(roomId);
+    setMutedRooms(new Set(next));
+  }
 
   // ── No selection ──────────────────────────────────────────────────────────
   if (!activeRoomId && !activeDmId) {
@@ -19,10 +49,17 @@ export default function ChatArea() {
   if (activeRoomId) {
     const room = rooms.find((r) => r.id === activeRoomId);
     const messages = roomMessages[activeRoomId] ?? [];
+    const isMuted = mutedRooms.has(activeRoomId);
 
     return (
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Header title={`# ${room?.name ?? activeRoomId}`} />
+        <Header
+          title={`# ${room?.name ?? activeRoomId}`}
+          onCopyInvite={copyInviteLink}
+          inviteCopied={inviteCopied}
+          isMuted={isMuted}
+          onToggleMute={() => handleToggleMute(activeRoomId)}
+        />
         <MessageList messages={messages} myId={me?.id} />
         <TypingIndicator roomId={activeRoomId} />
         <MessageInput roomId={activeRoomId} toUserId={null} />
@@ -47,12 +84,40 @@ export default function ChatArea() {
   );
 }
 
-function Header({ title, color }) {
+function Header({ title, color, onCopyInvite, inviteCopied, isMuted, onToggleMute }) {
   return (
-    <div className="flex h-12 flex-shrink-0 items-center border-b border-[#1e1f22] bg-[#313338] px-4 shadow-sm">
+    <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-[#1e1f22] bg-[#313338] px-4 shadow-sm">
       <span className="font-semibold text-[#dcddde]" style={color ? { color } : undefined}>
         {title}
       </span>
+
+      {onCopyInvite && (
+        <div className="flex items-center gap-2">
+          {/* Sound toggle */}
+          <button
+            onClick={onToggleMute}
+            title={isMuted ? 'Unmute notifications' : 'Mute notifications'}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-sm transition-all hover:bg-white/10"
+            style={{ color: isMuted ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.55)' }}
+          >
+            {isMuted ? '🔕' : '🔔'}
+          </button>
+
+          {/* Invite link */}
+          <button
+            onClick={onCopyInvite}
+            title="Copy invite link"
+            className="flex items-center gap-1.5 rounded-full px-3 py-1 font-heading text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
+            style={{
+              background: inviteCopied ? 'rgba(0,245,212,0.15)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${inviteCopied ? 'rgba(0,245,212,0.45)' : 'rgba(255,255,255,0.1)'}`,
+              color: inviteCopied ? '#00F5D4' : 'rgba(255,255,255,0.45)',
+            }}
+          >
+            {inviteCopied ? '✓ Copied!' : '🔗 Invite'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -90,6 +90,7 @@ export function initDb() {
   try { db.exec(`ALTER TABLE rooms ADD COLUMN description TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.exec(`ALTER TABLE rooms ADD COLUMN created_by TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE rooms ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public'`); } catch (_) {}
+  try { db.exec(`ALTER TABLE rooms ADD COLUMN invite_code TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE messages ADD COLUMN reply_to_id TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE messages ADD COLUMN reply_to_text TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE messages ADD COLUMN reply_to_sender TEXT`); } catch (_) {}
@@ -108,10 +109,18 @@ export function initDb() {
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 
-export function dbCreateRoom(id, name, createdAt, description = '', createdBy = null, visibility = 'public') {
+export function dbCreateRoom(id, name, createdAt, description = '', createdBy = null, visibility = 'public', inviteCode = null) {
   db.prepare(`
-    INSERT OR IGNORE INTO rooms (id, name, description, created_at, created_by, visibility) VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, name, description, createdAt, createdBy, visibility);
+    INSERT OR IGNORE INTO rooms (id, name, description, created_at, created_by, visibility, invite_code) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, name, description, createdAt, createdBy, visibility, inviteCode);
+}
+
+export function dbSetRoomInviteCode(roomId, inviteCode) {
+  db.prepare(`UPDATE rooms SET invite_code = ? WHERE id = ?`).run(inviteCode, roomId);
+}
+
+export function dbGetRoomByInviteCode(inviteCode) {
+  return db.prepare(`SELECT * FROM rooms WHERE invite_code = ?`).get(inviteCode) ?? null;
 }
 
 export function dbLoadRooms() {

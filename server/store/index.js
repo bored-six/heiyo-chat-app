@@ -11,6 +11,8 @@ import {
   dbAddRoomMember,
   dbIsRoomMember,
   dbGetRoomsForUser,
+  dbSetRoomInviteCode,
+  dbGetRoomByInviteCode,
 } from '../db/index.js';
 
 const MAX_MESSAGES = 100;
@@ -37,6 +39,14 @@ export function hydrateFromDb() {
   // Load rooms + their messages
   for (const row of dbLoadRooms()) {
     const messages = dbGetMessages(row.id).map(dbRowToMessage);
+
+    // Generate + persist invite code for any room that doesn't have one yet
+    let inviteCode = row.invite_code ?? null;
+    if (!inviteCode && row.id !== 'general') {
+      inviteCode = uuidv4().replace(/-/g, '').slice(0, 10);
+      dbSetRoomInviteCode(row.id, inviteCode);
+    }
+
     state.rooms[row.id] = {
       id: row.id,
       name: row.name,
@@ -47,6 +57,7 @@ export function hydrateFromDb() {
       createdAt: row.created_at,
       createdBy: row.created_by ?? null,
       visibility: row.visibility ?? 'public',
+      inviteCode,
     };
   }
 
@@ -128,6 +139,7 @@ export function getAllUsers() {
 
 export function createRoom(name, description = '', createdBy = null) {
   const id = uuidv4();
+  const inviteCode = uuidv4().replace(/-/g, '').slice(0, 10);
   const createdAt = Date.now();
   const room = {
     id,
@@ -139,12 +151,19 @@ export function createRoom(name, description = '', createdBy = null) {
     createdAt,
     createdBy,
     visibility: 'private',
+    inviteCode,
   };
   state.rooms[id] = room;
-  dbCreateRoom(id, name, createdAt, description, createdBy, 'private'); // persist
+  dbCreateRoom(id, name, createdAt, description, createdBy, 'private', inviteCode); // persist
   // Immediately add creator to room_members so they can join
   if (createdBy) dbAddRoomMember(id, createdBy);
   return room;
+}
+
+export function getRoomByInviteCode(code) {
+  const row = dbGetRoomByInviteCode(code);
+  if (!row) return null;
+  return state.rooms[row.id] ?? null;
 }
 
 export function getRoom(roomId) {

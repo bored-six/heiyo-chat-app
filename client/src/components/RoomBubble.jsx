@@ -132,6 +132,18 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
           </div>
         )}
 
+        {/* Unread ring — pulses yellow when there are unread messages */}
+        {unread > 0 && (
+          <div
+            className="absolute inset-0 rounded-full animate-ping pointer-events-none"
+            style={{
+              background: 'transparent',
+              border: '3px solid #FFE600',
+              opacity: 0.45,
+            }}
+          />
+        )}
+
         {/* Hot ring — only visible when HOT */}
         {tier === 'hot' && (
           <div

@@ -12,9 +12,18 @@ export default function App() {
 
   // Pre-load General's messages on connect but don't navigate there —
   // the user lands in the Bubble Universe and picks their own room.
+  // Also handle ?invite= URL param for invite link auto-join.
   useEffect(() => {
     if (!connected || !socket) return;
     socket.emit('room:join', { roomId: 'general' });
+
+    const params = new URLSearchParams(window.location.search);
+    const inviteCode = params.get('invite');
+    if (inviteCode) {
+      socket.emit('room:join-by-code', { code: inviteCode });
+      // Remove the param from the URL without a page reload
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, [connected, socket]);
 
   if (!authUser) {

@@ -10,6 +10,7 @@ import {
   addRoomMember,
   isRoomMember,
   getUserByUsername,
+  getRoomByInviteCode,
 } from '../store/index.js';
 
 export function registerRoomHandlers(io, socket) {
@@ -95,5 +96,33 @@ export function registerRoomHandlers(io, socket) {
   socket.on('room:list', () => {
     const username = socket.handshake.auth?.username ?? null;
     socket.emit('room:list', { rooms: getAllRoomsForUser(username) });
+  });
+
+  // Get invite code for a room (members only)
+  socket.on('room:get-invite', ({ roomId }) => {
+    const room = getRoom(roomId);
+    if (!room) return;
+    const requester = socket.handshake.auth?.username ?? null;
+    if (!isRoomMember(roomId, requester)) return;
+    socket.emit('room:invite-code', { roomId, inviteCode: room.inviteCode });
+  });
+
+  // Join a room via invite code
+  socket.on('room:join-by-code', ({ code }) => {
+    if (!code) return;
+    const room = getRoomByInviteCode(code);
+    if (!room) {
+      socket.emit('room:join-by-code:error', { error: 'Invalid invite link.' });
+      return;
+    }
+    const username = socket.handshake.auth?.username ?? null;
+    if (!username) {
+      socket.emit('room:join-by-code:error', { error: 'Sign in to join via invite link.' });
+      return;
+    }
+    if (!isRoomMember(room.id, username)) {
+      addRoomMember(room.id, username);
+    }
+    socket.emit('room:invited', { room: serializeRoom(room) });
   });
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { playPing, isRoomMuted } from '../utils/notificationSound.js';
 
 /**
  * Creates and manages the Socket.IO connection.
@@ -90,6 +91,10 @@ export function useSocket(dispatch, authUser, stateRef) {
       if (stateRef?.current?.activeRoomId === roomId) {
         socket.emit('message:seen', { roomId, messageId: message.id });
       }
+      // Notification ping: tab in background + room not active + not muted
+      if (document.hidden && stateRef?.current?.activeRoomId !== roomId && !isRoomMuted(roomId)) {
+        playPing();
+      }
     });
 
     socket.on('reaction:update', ({ messageId, roomId, dmId, reactions }) => {
@@ -113,6 +118,10 @@ export function useSocket(dispatch, authUser, stateRef) {
 
     socket.on('dm:received', ({ dmId, participants, message }) => {
       dispatch({ type: 'DM_RECEIVED', dmId, participants, message });
+      // Notification ping for DMs when tab is in background
+      if (document.hidden && stateRef?.current?.activeDmId !== dmId) {
+        playPing(0.09);
+      }
     });
 
     // ── Echoes ──────────────────────────────────────────────────────────────
