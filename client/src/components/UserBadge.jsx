@@ -18,6 +18,7 @@ const PRESENCE_OPTIONS = [
 export default function UserBadge() {
   const { me, socket, setAuthUser } = useChat();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [editingAvatar, setEditingAvatar] = useState(false);
   const ref = useRef(null);
 
@@ -30,7 +31,7 @@ export default function UserBadge() {
 
   if (!me) return null;
 
-  // Sync fields from me whenever the panel opens
+  // Sync fields from me whenever the panel opens; always start in view mode
   useEffect(() => {
     if (open) {
       setBio(me.bio ?? '');
@@ -38,6 +39,7 @@ export default function UserBadge() {
       setStatusText(me.statusText ?? '');
       setPresenceStatus(me.presenceStatus ?? 'online');
       setDisplayName(me.displayName ?? '');
+      setEditing(false);
     }
   }, [open]);
 
@@ -66,6 +68,7 @@ export default function UserBadge() {
     };
     socket.emit('profile:update', payload);
     setAuthUser((prev) => ({ ...prev, ...payload }));
+    setEditing(false);
   }
 
   function handleSignOut() {
@@ -73,7 +76,7 @@ export default function UserBadge() {
     setAuthUser(null);
   }
 
-  const dotColor = statusColor(presenceStatus);
+  const dotColor = statusColor(me.presenceStatus ?? 'online');
 
   return (
     <>
@@ -87,47 +90,76 @@ export default function UserBadge() {
 
       <div ref={ref} className="absolute bottom-6 left-6 z-30">
 
-        {/* ── Profile toolbar ─────────────────────────────────────────── */}
+        {/* ── Profile panel ─────────────────────────────────────────── */}
         {open && (
           <div
-            className="absolute bottom-full left-0 mb-3 w-72 rounded-2xl border-2 border-dashed border-[#FFE600]/60 bg-[#1a0f36]/95 backdrop-blur-md animate-slide-up"
+            className="absolute bottom-full left-0 mb-3 w-72 rounded-2xl border-2 border-dashed border-[#FFE600]/60 bg-[#1a0f36]/95 backdrop-blur-md animate-slide-up overflow-hidden"
             style={{ boxShadow: '0 0 40px rgba(255,230,0,0.15), 0 8px 32px rgba(0,0,0,0.5)' }}
           >
-            {/* Profile header — click avatar to change chibi */}
-            <div
-              className="flex items-center gap-3 p-4"
-              style={{ background: `linear-gradient(135deg, ${me.color}22, transparent)` }}
-            >
+
+            {/* ── Banner + Avatar Header ─────────────────────────────── */}
+            <div className="relative">
+              {/* Banner */}
               <div
-                className="relative h-14 w-14 flex-shrink-0 cursor-pointer group"
-                onClick={() => { setEditingAvatar(true); setOpen(false); }}
-                title="Change avatar"
+                className="h-16 w-full relative overflow-hidden"
+                style={{
+                  background: `
+                    linear-gradient(135deg, ${me.color}bb 0%, ${me.color}44 35%, transparent 65%),
+                    radial-gradient(ellipse at 85% 40%, #7B2FFF66 0%, transparent 55%),
+                    radial-gradient(ellipse at 15% 90%, #FF3AF255 0%, transparent 50%),
+                    linear-gradient(180deg, #0D0D1A 0%, #1a0f36 100%)
+                  `
+                }}
               >
-                <img
-                  src={avatarUrl(me.avatar)}
-                  alt={me.username}
-                  className="h-14 w-14 rounded-full transition-all duration-150 group-hover:brightness-75"
-                  style={{ border: `2px solid ${me.color}`, boxShadow: `0 0 16px ${me.color}66` }}
+                {/* Star-field dots overlay */}
+                <div className="absolute inset-0 pattern-dots opacity-10" />
+                {/* Subtle scan-line shimmer */}
+                <div
+                  className="absolute inset-0 opacity-5"
+                  style={{
+                    backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 4px)'
+                  }}
                 />
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                  <span className="text-lg drop-shadow-lg">🎨</span>
-                </div>
               </div>
-              <div className="min-w-0">
-                <p
-                  className="font-heading text-sm font-black tracking-tight text-white truncate"
-                  style={{ color: me.color, textShadow: `1px 1px 0 #0D0D1A` }}
-                >
-                  {displayName || me.username}
-                </p>
-                {me.tag && (
-                  <p className="font-heading text-[10px] font-bold text-white/35">#{me.tag}</p>
-                )}
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: dotColor }} />
-                  <span className="font-heading text-[10px] font-black uppercase tracking-widest" style={{ color: dotColor }}>
-                    {statusLabel(presenceStatus)}
-                  </span>
+
+              {/* Avatar overlapping banner */}
+              <div className="px-4">
+                <div className="-mt-8 flex items-end gap-3 mb-2">
+                  <div
+                    className="relative h-14 w-14 flex-shrink-0 cursor-pointer group"
+                    onClick={() => { setEditingAvatar(true); setOpen(false); }}
+                    title="Change avatar"
+                  >
+                    <img
+                      src={avatarUrl(me.avatar)}
+                      alt={me.username}
+                      className="h-14 w-14 rounded-full transition-all duration-150 group-hover:brightness-75"
+                      style={{
+                        border: `2px solid ${me.color}`,
+                        boxShadow: `0 0 16px ${me.color}66, 0 0 0 3px #1a0f36`
+                      }}
+                    />
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                      <span className="text-lg drop-shadow-lg">🎨</span>
+                    </div>
+                  </div>
+                  <div className="pb-1 min-w-0">
+                    <p
+                      className="font-heading text-sm font-black tracking-tight truncate"
+                      style={{ color: me.color, textShadow: `1px 1px 0 #0D0D1A` }}
+                    >
+                      {me.displayName || me.username}
+                    </p>
+                    {me.tag && (
+                      <p className="font-heading text-[10px] font-bold text-white/35">#{me.tag}</p>
+                    )}
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: dotColor }} />
+                      <span className="font-heading text-[10px] font-black uppercase tracking-widest" style={{ color: dotColor }}>
+                        {statusLabel(me.presenceStatus ?? 'online')}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -135,125 +167,177 @@ export default function UserBadge() {
             {/* Divider */}
             <div className="mx-4 h-px bg-white/10" />
 
-            {/* Scrollable profile fields */}
-            <div className="max-h-[55vh] overflow-y-auto px-4 py-3 space-y-3">
+            {/* ── VIEW MODE ──────────────────────────────────────────── */}
+            {!editing && (
+              <div className="px-4 py-3 space-y-3">
 
-              {/* Status */}
-              <div>
-                <label className="mb-1.5 block font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
-                  Status
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {PRESENCE_OPTIONS.map(({ value, label }) => {
-                    const color = statusColor(value);
-                    const active = presenceStatus === value;
-                    return (
+                {/* Transmission pill */}
+                {(me.statusEmoji || me.statusText) && (
+                  <div
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1"
+                    style={{
+                      background: `${me.color}15`,
+                      border: `1px solid ${me.color}40`
+                    }}
+                  >
+                    {me.statusEmoji && <span className="text-sm leading-none">{me.statusEmoji}</span>}
+                    {me.statusText && (
+                      <span className="font-heading text-[11px] font-bold text-white/70">{me.statusText}</span>
+                    )}
+                  </div>
+                )}
+
+                {/* Bio */}
+                {me.bio && me.bio.trim() && (
+                  <p className="text-xs leading-relaxed text-white/55 whitespace-pre-wrap">{me.bio}</p>
+                )}
+
+                {/* Empty state */}
+                {!me.statusEmoji && !me.statusText && !me.bio && (
+                  <p className="font-heading text-[10px] text-white/30 italic">
+                    No transmission yet.
+                  </p>
+                )}
+
+                {/* Edit Profile button */}
+                <button
+                  onClick={() => setEditing(true)}
+                  className="w-full rounded-lg border border-[#00F5D4] bg-[#00F5D4]/10 py-2 font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4] hover:bg-[#00F5D4]/20 transition-colors"
+                >
+                  ✏️  Edit Profile
+                </button>
+              </div>
+            )}
+
+            {/* ── EDIT MODE ──────────────────────────────────────────── */}
+            {editing && (
+              <div className="max-h-[55vh] overflow-y-auto px-4 py-3 space-y-3">
+
+                {/* Status */}
+                <div>
+                  <label className="mb-1.5 block font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
+                    Status
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {PRESENCE_OPTIONS.map(({ value, label }) => {
+                      const color = statusColor(value);
+                      const active = presenceStatus === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setPresenceStatus(value)}
+                          className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-heading text-[10px] font-black transition-all"
+                          style={{
+                            borderColor: active ? color : 'rgba(255,255,255,0.1)',
+                            background: active ? `${color}18` : 'rgba(255,255,255,0.03)',
+                          }}
+                        >
+                          <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: color }} />
+                          <span className="text-white/80">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Display Name */}
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
+                      Display Name
+                    </label>
+                    <span className={`font-heading text-[9px] font-black ${displayName.length > DISPLAY_NAME_MAX - 8 ? 'text-[#FFE600]' : 'text-white/20'}`}>
+                      {displayName.length}/{DISPLAY_NAME_MAX}
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
+                    placeholder={me.username}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-heading text-xs text-white placeholder-white/20 outline-none focus:border-[#00F5D4]/50 transition-colors"
+                  />
+                </div>
+
+                {/* Transmission */}
+                <div>
+                  <label className="mb-1.5 block font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
+                    Transmission
+                  </label>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={statusEmoji}
+                      onChange={(e) => setStatusEmoji(e.target.value.slice(0, 2))}
+                      placeholder="😊"
+                      className="w-10 rounded-lg border border-white/10 bg-white/5 px-1 py-1.5 text-center text-base outline-none focus:border-[#00F5D4]/50 transition-colors"
+                    />
+                    <input
+                      type="text"
+                      value={statusText}
+                      onChange={(e) => setStatusText(e.target.value.slice(0, STATUS_TEXT_MAX))}
+                      placeholder="deep in code rn"
+                      className="flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-heading text-xs text-white placeholder-white/20 outline-none focus:border-[#00F5D4]/50 transition-colors"
+                    />
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {QUICK_EMOJIS.map((e) => (
                       <button
-                        key={value}
-                        type="button"
-                        onClick={() => setPresenceStatus(value)}
-                        className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-heading text-[10px] font-black transition-all"
-                        style={{
-                          borderColor: active ? color : 'rgba(255,255,255,0.1)',
-                          background: active ? `${color}18` : 'rgba(255,255,255,0.03)',
-                        }}
+                        key={e}
+                        onClick={() => setStatusEmoji(e)}
+                        className={`flex h-6 w-6 items-center justify-center rounded-md text-sm transition-all hover:scale-110 ${statusEmoji === e ? 'bg-[#00F5D4]/20 ring-1 ring-[#00F5D4]' : 'bg-white/5 hover:bg-white/10'}`}
                       >
-                        <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: color }} />
-                        <span className="text-white/80">{label}</span>
+                        {e}
                       </button>
-                    );
-                  })}
+                    ))}
+                    {statusEmoji && (
+                      <button
+                        onClick={() => { setStatusEmoji(''); setStatusText(''); }}
+                        className="flex h-6 items-center rounded-md px-1.5 font-heading text-[9px] font-black uppercase tracking-wider text-white/40 bg-white/5 hover:bg-white/10 hover:text-white/70 transition-colors"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Display Name */}
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <label className="font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
-                    Display Name
-                  </label>
-                  <span className={`font-heading text-[9px] font-black ${displayName.length > DISPLAY_NAME_MAX - 8 ? 'text-[#FFE600]' : 'text-white/20'}`}>
-                    {displayName.length}/{DISPLAY_NAME_MAX}
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
-                  placeholder={me.username}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-heading text-xs text-white placeholder-white/20 outline-none focus:border-[#00F5D4]/50 transition-colors"
-                />
-              </div>
-
-              {/* Vibe Status */}
-              <div>
-                <label className="mb-1.5 block font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
-                  Vibe Status
-                </label>
-                <div className="flex gap-1.5">
-                  <input
-                    type="text"
-                    value={statusEmoji}
-                    onChange={(e) => setStatusEmoji(e.target.value.slice(0, 2))}
-                    placeholder="😊"
-                    className="w-10 rounded-lg border border-white/10 bg-white/5 px-1 py-1.5 text-center text-base outline-none focus:border-[#00F5D4]/50 transition-colors"
-                  />
-                  <input
-                    type="text"
-                    value={statusText}
-                    onChange={(e) => setStatusText(e.target.value.slice(0, STATUS_TEXT_MAX))}
-                    placeholder="deep in code rn"
-                    className="flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-heading text-xs text-white placeholder-white/20 outline-none focus:border-[#00F5D4]/50 transition-colors"
+                {/* Bio */}
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
+                      Bio
+                    </label>
+                    <span className={`font-heading text-[9px] font-black ${bio.length > BIO_MAX - 20 ? 'text-[#FFE600]' : 'text-white/20'}`}>
+                      {bio.length}/{BIO_MAX}
+                    </span>
+                  </div>
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX))}
+                    placeholder="Say something about yourself…"
+                    rows={2}
+                    className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-heading text-xs text-white placeholder-white/20 outline-none focus:border-[#00F5D4]/50 transition-colors leading-relaxed"
                   />
                 </div>
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {QUICK_EMOJIS.map((e) => (
-                    <button
-                      key={e}
-                      onClick={() => setStatusEmoji(e)}
-                      className={`flex h-6 w-6 items-center justify-center rounded-md text-sm transition-all hover:scale-110 ${statusEmoji === e ? 'bg-[#00F5D4]/20 ring-1 ring-[#00F5D4]' : 'bg-white/5 hover:bg-white/10'}`}
-                    >
-                      {e}
-                    </button>
-                  ))}
-                  {statusEmoji && (
-                    <button
-                      onClick={() => { setStatusEmoji(''); setStatusText(''); }}
-                      className="flex h-6 items-center rounded-md px-1.5 font-heading text-[9px] font-black uppercase tracking-wider text-white/40 bg-white/5 hover:bg-white/10 hover:text-white/70 transition-colors"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
 
-              {/* Bio */}
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <label className="font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
-                    Bio
-                  </label>
-                  <span className={`font-heading text-[9px] font-black ${bio.length > BIO_MAX - 20 ? 'text-[#FFE600]' : 'text-white/20'}`}>
-                    {bio.length}/{BIO_MAX}
-                  </span>
-                </div>
-                <textarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX))}
-                  placeholder="Say something about yourself…"
-                  rows={2}
-                  className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-heading text-xs text-white placeholder-white/20 outline-none focus:border-[#00F5D4]/50 transition-colors leading-relaxed"
-                />
-              </div>
+                {/* Save */}
+                <button
+                  onClick={handleSaveProfile}
+                  className="w-full rounded-lg border border-[#00F5D4] bg-[#00F5D4]/15 py-2 font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4] hover:bg-[#00F5D4]/25 transition-colors"
+                >
+                  Save Profile
+                </button>
 
-              {/* Save */}
-              <button
-                onClick={handleSaveProfile}
-                className="w-full rounded-lg border border-[#00F5D4] bg-[#00F5D4]/15 py-2 font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4] hover:bg-[#00F5D4]/25 transition-colors"
-              >
-                Save Profile
-              </button>
-            </div>
+                {/* Cancel */}
+                <button
+                  onClick={() => setEditing(false)}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 font-heading text-[10px] font-black uppercase tracking-widest text-white/35 hover:bg-white/10 hover:text-white/60 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
 
             {/* Divider */}
             <div className="mx-4 h-px bg-white/10" />
