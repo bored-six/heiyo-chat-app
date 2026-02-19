@@ -143,10 +143,10 @@ export default function UserBadge() {
                       <span className="text-lg drop-shadow-lg">🎨</span>
                     </div>
                   </div>
-                  <div className="pb-1 min-w-0">
+                  <div className="pb-1 min-w-0 flex-1">
                     <p
-                      className="font-heading text-sm font-black tracking-tight truncate"
-                      style={{ color: me.color, textShadow: `1px 1px 0 #0D0D1A` }}
+                      className="font-heading text-sm font-black tracking-tight truncate text-white"
+                      style={{ textShadow: `0 0 8px ${me.color}, 1px 1px 0 #0D0D1A` }}
                     >
                       {me.displayName || me.username}
                     </p>
