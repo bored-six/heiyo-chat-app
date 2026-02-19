@@ -54,7 +54,7 @@ app.post('/auth/register', async (req, res) => {
   const tag = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
   dbCreateUser(name, hash, color, chosenAvatar, tag);
 
-  return res.json({ username: name, color, avatar: chosenAvatar, tag, bio: '', statusEmoji: '', statusText: '', pronouns: '' });
+  return res.json({ username: name, color, avatar: chosenAvatar, tag, bio: '', statusEmoji: '', statusText: '', presenceStatus: 'online', displayName: '' });
 });
 
 app.post('/auth/login', async (req, res) => {
@@ -71,7 +71,7 @@ app.post('/auth/login', async (req, res) => {
   if (!match)
     return res.status(401).json({ error: 'Invalid username or password.' });
 
-  return res.json({ username: row.username, color: row.color, avatar: row.avatar ?? 'Stargazer', tag: row.tag ?? '', bio: row.bio ?? '', statusEmoji: row.status_emoji ?? '', statusText: row.status_text ?? '', pronouns: row.pronouns ?? '' });
+  return res.json({ username: row.username, color: row.color, avatar: row.avatar ?? 'Stargazer', tag: row.tag ?? '', bio: row.bio ?? '', statusEmoji: row.status_emoji ?? '', statusText: row.status_text ?? '', presenceStatus: row.presence_status ?? 'online', displayName: row.display_name ?? '' });
 });
 
 app.post('/auth/guest', (_req, res) => {

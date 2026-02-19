@@ -49,7 +49,7 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
       color: senderColor,
       avatar: senderAvatar,
       tag: senderTag,
-      bio: '', statusEmoji: '', statusText: '', pronouns: '',
+      bio: '', statusEmoji: '', statusText: '', presenceStatus: 'offline', displayName: '',
     });
   }
 

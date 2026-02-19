@@ -3,6 +3,7 @@ import { useChat } from '../context/ChatContext.jsx';
 import AvatarPickerModal from './AvatarPickerModal.jsx';
 import ProfileEditModal from './ProfileEditModal.jsx';
 import { avatarUrl } from '../utils/avatar.js';
+import { statusColor, statusLabel } from '../utils/status.js';
 
 export default function UserBadge() {
   const { me, socket, setAuthUser } = useChat();
@@ -85,9 +86,9 @@ export default function UserBadge() {
                   <p className="font-heading text-[10px] font-bold text-white/35">#{me.tag}</p>
                 )}
                 <div className="mt-1 flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#00F5D4] animate-pulse" />
-                  <span className="font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4]">
-                    Online
+                  <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: statusColor(me.presenceStatus ?? 'online') }} />
+                  <span className="font-heading text-[10px] font-black uppercase tracking-widest" style={{ color: statusColor(me.presenceStatus ?? 'online') }}>
+                    {statusLabel(me.presenceStatus ?? 'online')}
                   </span>
                 </div>
               </div>
@@ -124,7 +125,7 @@ export default function UserBadge() {
                   <p className="font-heading text-xs font-black uppercase tracking-wide text-white/80">
                     Edit Profile
                   </p>
-                  <p className="font-heading text-[9px] text-white/35">Bio, status, pronouns</p>
+                  <p className="font-heading text-[9px] text-white/35">Bio, status, display name</p>
                 </div>
               </button>
             </div>
@@ -190,7 +191,7 @@ export default function UserBadge() {
           </div>
 
           {/* Live pulse dot */}
-          <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-[#00F5D4] animate-pulse" />
+          <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full animate-pulse" style={{ background: statusColor(me.presenceStatus ?? 'online') }} />
         </button>
 
       </div>

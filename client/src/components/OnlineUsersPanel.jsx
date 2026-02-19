@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import { avatarUrl } from '../utils/avatar.js';
+import { statusColor } from '../utils/status.js';
 import ProfileCard from './ProfileCard.jsx';
 import ProfileEditModal from './ProfileEditModal.jsx';
 
@@ -50,6 +51,10 @@ export default function OnlineUsersPanel({ onClose }) {
                 {me.statusEmoji}
               </span>
             )}
+            <span
+              className="absolute -top-0.5 -left-0.5 h-3 w-3 rounded-full border-2"
+              style={{ background: statusColor(me.presenceStatus ?? 'online'), borderColor: '#2D1B4E' }}
+            />
           </div>
           <span className="flex-1 truncate font-heading text-sm font-black text-white">
             {me.username}
@@ -96,6 +101,10 @@ export default function OnlineUsersPanel({ onClose }) {
                       {user.statusEmoji}
                     </span>
                   )}
+                  <span
+                    className="absolute -top-0.5 -left-0.5 h-3 w-3 rounded-full border-2"
+                    style={{ background: statusColor(user.presenceStatus ?? 'online'), borderColor: '#2D1B4E' }}
+                  />
                 </button>
                 <span
                   className="flex-1 truncate font-heading text-sm font-black text-white cursor-pointer hover:underline decoration-dotted"

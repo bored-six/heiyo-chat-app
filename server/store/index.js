@@ -108,8 +108,8 @@ function serializeReactions(reactions) {
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export function addUser(socketId, { username, color, avatar = 'Stargazer', tag = '', bio = '', statusEmoji = '', statusText = '', pronouns = '' }) {
-  const user = { id: socketId, username, color, avatar, tag, bio, statusEmoji, statusText, pronouns, connectedAt: Date.now() };
+export function addUser(socketId, { username, color, avatar = 'Stargazer', tag = '', bio = '', statusEmoji = '', statusText = '', presenceStatus = 'online', displayName = '' }) {
+  const user = { id: socketId, username, color, avatar, tag, bio, statusEmoji, statusText, presenceStatus, displayName, connectedAt: Date.now() };
   state.users[socketId] = user;
   return user;
 }
@@ -132,13 +132,21 @@ export function updateUserAvatar(socketId, avatar) {
   return user;
 }
 
-export function updateUserProfile(socketId, { bio, statusEmoji, statusText, pronouns }) {
+export function updateUserProfile(socketId, { bio, statusEmoji, statusText, presenceStatus, displayName }) {
   const user = state.users[socketId];
   if (!user) return null;
   user.bio = bio;
   user.statusEmoji = statusEmoji;
   user.statusText = statusText;
-  user.pronouns = pronouns;
+  user.presenceStatus = presenceStatus;
+  user.displayName = displayName;
+  return user;
+}
+
+export function setUserPresenceStatus(socketId, status) {
+  const user = state.users[socketId];
+  if (!user) return null;
+  user.presenceStatus = status;
   return user;
 }
 

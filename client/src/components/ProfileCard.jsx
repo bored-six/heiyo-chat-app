@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { avatarUrl } from '../utils/avatar.js';
+import { statusColor, statusLabel } from '../utils/status.js';
 
 /**
  * ProfileCard — read-only popup for any user.
  *
  * Props:
- *   user        — user object (id, username, color, avatar, tag, bio, statusEmoji, statusText, pronouns)
+ *   user        — user object (id, username, color, avatar, tag, bio, statusEmoji, statusText, presenceStatus, displayName)
  *   isSelf      — bool: shows "Edit Profile" footer instead of DM
  *   onClose     — fn
  *   onDm        — fn (called when DM button pressed, only for others)
@@ -21,7 +22,8 @@ export default function ProfileCard({ user, isSelf, onClose, onDm, onEditProfile
 
   const hasStatus = user.statusEmoji || user.statusText;
   const hasBio = user.bio && user.bio.trim().length > 0;
-  const hasPronouns = user.pronouns && user.pronouns.trim().length > 0;
+  const presence = user.presenceStatus ?? 'offline';
+  const dotColor = statusColor(presence);
 
   return (
     <div
@@ -73,25 +75,30 @@ export default function ProfileCard({ user, isSelf, onClose, onDm, onEditProfile
           </div>
 
           {/* Name row */}
-          <div className="mb-1">
+          <div className="mb-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
             <span
               className="font-heading text-base font-black tracking-tight"
               style={{ color: user.color, textShadow: `1px 1px 0 #0D0D1A` }}
             >
-              {user.username}
+              {user.displayName || user.username}
             </span>
             {user.tag && (
-              <span className="font-heading text-[10px] font-bold text-white/35 ml-0.5">#{user.tag}</span>
+              <span className="font-heading text-[10px] font-bold text-white/35">#{user.tag}</span>
             )}
-            {hasPronouns && (
-              <span
-                className="ml-2 rounded-full px-2 py-0.5 font-heading text-[9px] font-black uppercase tracking-wider"
-                style={{ background: `${user.color}22`, color: `${user.color}cc` }}
-              >
-                {user.pronouns}
-              </span>
-            )}
+            {/* Presence dot */}
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-heading text-[9px] font-black uppercase tracking-wider"
+              style={{ background: `${dotColor}22`, color: dotColor }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: dotColor }} />
+              {statusLabel(presence)}
+            </span>
           </div>
+
+          {/* Username sub-label when display name is set */}
+          {user.displayName && (
+            <p className="mb-1 font-heading text-[10px] text-white/30">@{user.username}</p>
+          )}
 
           {/* Vibe status */}
           {hasStatus && (
@@ -114,10 +121,10 @@ export default function ProfileCard({ user, isSelf, onClose, onDm, onEditProfile
           )}
 
           {/* Placeholder when nothing is set */}
-          {!hasStatus && !hasBio && !hasPronouns && !isSelf && (
+          {!hasStatus && !hasBio && !isSelf && (
             <p className="mb-4 font-heading text-xs text-white/25 italic">No profile info yet.</p>
           )}
-          {!hasStatus && !hasBio && !hasPronouns && isSelf && (
+          {!hasStatus && !hasBio && isSelf && (
             <p className="mb-4 font-heading text-xs text-white/35">
               Add a bio and vibe status to show off your personality!
             </p>

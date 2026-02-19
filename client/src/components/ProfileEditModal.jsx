@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import { avatarUrl } from '../utils/avatar.js';
+import { statusColor } from '../utils/status.js';
 
 const BIO_MAX = 160;
 const STATUS_TEXT_MAX = 60;
-const PRONOUNS_MAX = 20;
+const DISPLAY_NAME_MAX = 32;
 
 const QUICK_EMOJIS = ['🎵', '☕', '🔥', '💤', '🎮', '📚', '✨', '🌙', '🍕', '🚀', '🎨', '💻'];
+
+const PRESENCE_OPTIONS = [
+  { value: 'online',    label: 'Online' },
+  { value: 'away',      label: 'Away' },
+  { value: 'dnd',       label: 'Do Not Disturb' },
+  { value: 'invisible', label: 'Invisible' },
+];
 
 export default function ProfileEditModal({ onClose }) {
   const { me, socket, setAuthUser } = useChat();
@@ -14,7 +22,8 @@ export default function ProfileEditModal({ onClose }) {
   const [bio, setBio] = useState(me?.bio ?? '');
   const [statusEmoji, setStatusEmoji] = useState(me?.statusEmoji ?? '');
   const [statusText, setStatusText] = useState(me?.statusText ?? '');
-  const [pronouns, setPronouns] = useState(me?.pronouns ?? '');
+  const [presenceStatus, setPresenceStatus] = useState(me?.presenceStatus ?? 'online');
+  const [displayName, setDisplayName] = useState(me?.displayName ?? '');
 
   // Close on Escape
   useEffect(() => {
@@ -28,7 +37,8 @@ export default function ProfileEditModal({ onClose }) {
       bio: bio.trim(),
       statusEmoji: statusEmoji.trim(),
       statusText: statusText.trim(),
-      pronouns: pronouns.trim(),
+      presenceStatus,
+      displayName: displayName.trim(),
     };
     socket.emit('profile:update', payload);
     setAuthUser((prev) => ({ ...prev, ...payload }));
@@ -83,26 +93,63 @@ export default function ProfileEditModal({ onClose }) {
           </div>
           <div>
             <p className="font-heading text-sm font-black text-white" style={{ color: me?.color }}>
-              {me?.username}
+              {displayName || me?.username}
               {me?.tag && <span className="font-heading text-[10px] font-bold text-white/35 ml-0.5">#{me.tag}</span>}
             </p>
+            {displayName && (
+              <p className="font-heading text-[9px] text-white/30 mt-0.5">@{me?.username}</p>
+            )}
             <p className="font-heading text-[10px] text-white/40 mt-0.5">Live preview above ↑</p>
           </div>
         </div>
 
         <div className="space-y-4">
-          {/* Pronouns */}
+          {/* Status (presence) */}
           <div>
-            <label className="mb-1 block font-heading text-[10px] font-black uppercase tracking-widest text-white/50">
-              Pronouns
+            <label className="mb-2 block font-heading text-[10px] font-black uppercase tracking-widest text-white/50">
+              Status
             </label>
+            <div className="grid grid-cols-2 gap-2">
+              {PRESENCE_OPTIONS.map(({ value, label }) => {
+                const color = statusColor(value);
+                const active = presenceStatus === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setPresenceStatus(value)}
+                    className="flex items-center gap-2 rounded-xl border-2 px-3 py-2 font-heading text-xs font-black transition-all"
+                    style={{
+                      borderColor: active ? color : 'rgba(255,255,255,0.1)',
+                      background: active ? `${color}18` : 'rgba(255,255,255,0.03)',
+                    }}
+                  >
+                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: color }} />
+                    <span className="text-white/80">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Display Name */}
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="font-heading text-[10px] font-black uppercase tracking-widest text-white/50">
+                Display Name
+              </label>
+              <span className={`font-heading text-[9px] font-black ${displayName.length > DISPLAY_NAME_MAX - 8 ? 'text-[#FFE600]' : 'text-white/25'}`}>
+                {displayName.length}/{DISPLAY_NAME_MAX}
+              </span>
+            </div>
             <input
               type="text"
-              value={pronouns}
-              onChange={(e) => setPronouns(e.target.value.slice(0, PRONOUNS_MAX))}
-              placeholder="e.g. they/them"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
+              placeholder={me?.username ?? 'Leave blank to use username'}
               className="w-full rounded-xl border-2 border-white/10 bg-white/5 px-3 py-2 font-heading text-sm text-white placeholder-white/25 outline-none focus:border-[#00F5D4]/50 transition-colors"
             />
+            <p className="mt-1 font-heading text-[9px] text-white/30">Shown in chat instead of your username</p>
           </div>
 
           {/* Vibe status */}
