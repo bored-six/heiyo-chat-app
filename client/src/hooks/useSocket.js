@@ -137,6 +137,20 @@ export function useSocket(dispatch, authUser, stateRef, setAuthUser) {
       setTimeout(() => dispatch({ type: 'ROOM_REMOVED', roomId }), 900);
     });
 
+    // ── Follows ─────────────────────────────────────────────────────────────
+
+    socket.on('follows:list', ({ following }) => {
+      dispatch({ type: 'FOLLOWS_SET', following });
+    });
+
+    socket.on('user:followed', ({ user }) => {
+      dispatch({ type: 'FOLLOW_ADD', user });
+    });
+
+    socket.on('user:unfollowed', ({ username }) => {
+      dispatch({ type: 'FOLLOW_REMOVE', username });
+    });
+
     // ── Echoes ──────────────────────────────────────────────────────────────
 
     socket.on('echo:new', ({ echo }) => {

@@ -394,10 +394,90 @@ function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
   );
 }
 
+// ─── Orbit icon — mini SVG of the orbit ring, locks on when following ─────────
+
+function OrbitIcon({ locked }) {
+  return (
+    <svg width="16" height="11" viewBox="0 0 16 11" fill="none" style={{ display: 'block' }}>
+      <ellipse cx="8" cy="5.5" rx="7" ry="4.5"
+        stroke="currentColor" strokeWidth="1.5"
+        strokeDasharray={locked ? '0' : '2.5 2'}
+      />
+      {locked && <circle cx="8" cy="5.5" r="2" fill="currentColor" />}
+    </svg>
+  );
+}
+
+// ─── Offline follow modal — shown when clicking a ghost bubble in orbit 1 ──────
+
+function OfflineFollowModal({ user, onUnfollow, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(12px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative w-72 animate-appear flex flex-col items-center"
+        style={{
+          background: 'rgba(13,13,26,0.98)',
+          border: `2px solid ${user.color}33`,
+          borderRadius: '1.75rem',
+          boxShadow: `0 0 60px ${user.color}11, 0 24px 64px rgba(0,0,0,0.85)`,
+          padding: '2rem 1.5rem 1.5rem',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button onClick={onClose}
+          className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center font-heading text-white/30 hover:text-white hover:bg-white/10 transition-all">
+          ×
+        </button>
+
+        {/* Avatar — dimmed to signal offline */}
+        <div className="w-16 h-16 rounded-full overflow-hidden mb-3"
+          style={{ border: `3px solid ${user.color}44`, opacity: 0.45 }}>
+          {user.avatar && user.avatar !== 'Stargazer'
+            ? <img src={avatarUrl(user.avatar)} alt="" className="w-full h-full object-cover" />
+            : <span className="w-full h-full flex items-center justify-center font-heading text-2xl font-black text-white"
+                style={{ background: `${user.color}22` }}>
+                {user.username?.[0]?.toUpperCase() ?? '?'}
+              </span>
+          }
+        </div>
+
+        <p className="font-heading text-base font-black uppercase tracking-tight text-white/40 mb-0.5">
+          {user.username}
+        </p>
+        {user.tag && <p className="font-heading text-[10px] text-white/20 mb-4">#{user.tag}</p>}
+
+        {/* Offline status pill */}
+        <div className="flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <span className="font-heading text-[8px]" style={{ color: `${user.color}66` }}>◎</span>
+          <span className="font-heading text-[9px] font-black uppercase tracking-widest text-white/25">
+            Drifting · Not in range
+          </span>
+        </div>
+
+        <button
+          onClick={() => { onUnfollow(user.username); onClose(); }}
+          className="w-full rounded-full py-2 font-heading text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
+          style={{
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: 'rgba(255,255,255,0.4)',
+          }}
+        >
+          Release from orbit
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BubbleUniverse() {
-  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes, authUser, removingRooms } = useChat();
+  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes, authUser, removingRooms, follows } = useChat();
   const [creating, setCreating]       = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
@@ -409,7 +489,8 @@ export default function BubbleUniverse() {
   const [hiddenRooms, setHiddenRooms]     = useState(loadHiddenRooms);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showPulse, setShowPulse]         = useState(false);
-  const [viewEcho, setViewEcho]           = useState(null); // echo object or null
+  const [viewEcho, setViewEcho]           = useState(null);
+  const [viewFollow, setViewFollow]       = useState(null); // offline followed user or null
   const rafRef = useRef(null);
   const hubRef = useRef(null);
 
@@ -472,12 +553,28 @@ export default function BubbleUniverse() {
     socket.emit('dm:open', { toUserId: userId });
   }
 
+  function followUser(userId)   { socket.emit('user:follow',   { userId }); }
+  function unfollowUser(username) { socket.emit('user:unfollow', { username }); }
+
   // ── Data ────────────────────────────────────────────────────────────────────
 
-  // Orbit 1 — Friends (DM partners)
+  // Orbit 1 — inner ring: followed users (online first, then offline ghosts)
+  //           + DM partners NOT already shown as a follow (deduplicated)
   const dmList = Object.values(dms ?? {}).sort((a, b) =>
     (b.messages.at(-1)?.timestamp ?? 0) - (a.messages.at(-1)?.timestamp ?? 0)
   );
+
+  const followsSorted     = Object.values(follows ?? {})
+    .sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0));
+  const followedSocketIds = new Set(followsSorted.filter(f => f.id).map(f => f.id));
+  const dmListMerged      = dmList.filter(dm => {
+    const other = dm.participants?.find(p => p.id !== me?.id);
+    return !followedSocketIds.has(other?.id);
+  });
+  const innerItems = [
+    ...followsSorted.map(u  => ({ kind: 'follow', user: u })),
+    ...dmListMerged.map(dm  => ({ kind: 'dm',     dm })),
+  ];
 
   // Orbit 2 — Echoes: real echoes only
   const realEchoes  = (echoes ?? []).slice(0, RING.middle.max);
@@ -487,8 +584,8 @@ export default function BubbleUniverse() {
   const visibleRooms  = rooms.filter(r => !hiddenRooms.has(r.id));
 
   // ── Caps ────────────────────────────────────────────────────────────────────
-  const innerVisible  = dmList.slice(0, RING.inner.max);
-  const innerOverflow = Math.max(0, dmList.length - RING.inner.max);
+  const innerVisible  = innerItems.slice(0, RING.inner.max);
+  const innerOverflow = Math.max(0, innerItems.length - RING.inner.max);
   const outerVisible  = visibleRooms.slice(0, RING.outer.max);
 
   // ── Orbital positions ────────────────────────────────────────────────────────
@@ -695,16 +792,73 @@ export default function BubbleUniverse() {
         )}
       </div>
 
-      {/* ── Orbit 1: Friends — inner ring ────────────────────────────────────── */}
-      {innerVisible.map((dm, i) => {
+      {/* ── Orbit 1: inner ring — followed users + DM partners ───────────────── */}
+      {innerVisible.map((item, i) => {
+        const pos = innerPos[i];
+        const pX  = (mouse.x - 0.5) * 5 * -1;
+        const pY  = (mouse.y - 0.5) * 5 * -1;
+        const sz  = Math.round(78 * scales.inner);
+
+        // ── Follow bubble ──────────────────────────────────────────────────
+        if (item.kind === 'follow') {
+          const u      = item.user;
+          const color  = u.color ?? '#FFE600';
+          const isOnline = u.online;
+          return (
+            <button key={`follow-${u.username}`}
+              className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
+              style={{
+                left: pos.left, top: pos.top,
+                transform: `translate(calc(-50% + ${pX}px), calc(-50% + ${pY}px))`,
+                transition: 'transform 0.12s ease-out',
+                animationDelay: `${i * 0.9}s`,
+                opacity: isOnline ? 1 : 0.4,
+              }}
+              onClick={() => {
+                if (isOnline) openDm(u.id);
+                else setViewFollow(u);
+              }}
+              title={isOnline ? u.username : `${u.username} · offline`}
+            >
+              <div className="relative flex items-center justify-center transition-all duration-300 group-hover:scale-110"
+                style={{
+                  width: sz, height: sz,
+                  background: `${color}18`,
+                  border: isOnline ? `3px solid ${color}88` : `2px dashed ${color}55`,
+                  borderRadius: '28%',
+                  boxShadow: isOnline ? `0 0 16px ${color}44` : 'none',
+                }}>
+                {u.avatar && u.avatar !== 'Stargazer'
+                  ? <img src={avatarUrl(u.avatar)} alt="" className="w-full h-full object-cover rounded-[inherit]" style={{ borderRadius: '22%' }} />
+                  : <span className="font-heading font-black text-white select-none" style={{ fontSize: sz * 0.3 }}>
+                      {u.username?.[0]?.toUpperCase() ?? '?'}
+                    </span>
+                }
+                {/* Orbit-locked indicator badge */}
+                <div className="absolute -bottom-1.5 -right-1.5 flex items-center justify-center rounded-full"
+                  style={{
+                    width: 18, height: 18,
+                    background: '#0D0D1A',
+                    border: `1.5px solid ${isOnline ? color : color + '55'}`,
+                    color: isOnline ? color : color + '66',
+                  }}>
+                  <OrbitIcon locked />
+                </div>
+              </div>
+              <span className="font-heading text-[9px] font-black uppercase tracking-widest"
+                style={{ color: isOnline ? `${color}cc` : `${color}55` }}>
+                {u.username}
+              </span>
+            </button>
+          );
+        }
+
+        // ── DM bubble ─────────────────────────────────────────────────────
+        const dm          = item.dm;
         const other       = dm.participants?.find(p => p.id !== me?.id);
         const unreadCount = dmUnread?.[dm.id] ?? 0;
         const lastMsg     = dm.messages.at(-1);
-        const pos         = innerPos[i];
         const color       = other?.color ?? '#FFE600';
-        const pX = (mouse.x - 0.5) * 5 * -1;
-        const pY = (mouse.y - 0.5) * 5 * -1;
-        const sz = Math.round(78 * scales.inner);
         return (
           <button key={dm.id}
             className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
@@ -860,12 +1014,45 @@ export default function BubbleUniverse() {
                 <span className="font-heading text-[9px] font-black text-[#FFE600]">you</span>
               </div>
             )}
-            {Object.values(onlineUsers).map(user => (
-              <div key={user.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5">
-                <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: user.color, boxShadow: `0 0 6px ${user.color}` }} />
-                <span className="flex-1 truncate font-heading text-[11px] font-black text-white/80">{user.username}</span>
-              </div>
-            ))}
+            {Object.values(onlineUsers).map(user => {
+              const isFollowing = !!follows?.[user.username];
+              const isGuest     = authUser?.isGuest;
+              return (
+                <div key={user.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5">
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: user.color, boxShadow: `0 0 6px ${user.color}` }} />
+                  <span className="flex-1 truncate font-heading text-[11px] font-black text-white/80">{user.username}</span>
+
+                  {/* Orbit button */}
+                  {isGuest ? (
+                    <div className="group/orb relative">
+                      <button disabled
+                        className="flex items-center rounded-full px-1.5 py-1 cursor-not-allowed"
+                        style={{ border: '1px solid rgba(255,230,0,0.12)', color: 'rgba(255,230,0,0.2)' }}>
+                        <OrbitIcon locked={false} />
+                      </button>
+                      <div className="pointer-events-none absolute bottom-full right-0 mb-2 w-36 rounded-xl bg-[#0D0D1A]/95 px-3 py-2 font-heading text-[9px] font-black uppercase tracking-wide text-white/40 opacity-0 group-hover/orb:opacity-100 transition-all duration-150 whitespace-nowrap"
+                        style={{ border: '1px solid rgba(255,230,0,0.15)', boxShadow: '0 0 16px rgba(0,0,0,0.6)' }}>
+                        Log in to orbit
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => isFollowing ? unfollowUser(user.username) : followUser(user.id)}
+                      title={isFollowing ? 'Release from orbit' : 'Lock into orbit'}
+                      className="flex items-center rounded-full px-1.5 py-1 transition-all duration-200 hover:scale-110"
+                      style={{
+                        border: `1px solid ${isFollowing ? 'rgba(255,230,0,0.55)' : 'rgba(255,230,0,0.18)'}`,
+                        background: isFollowing ? 'rgba(255,230,0,0.10)' : 'transparent',
+                        color: isFollowing ? '#FFE600' : 'rgba(255,230,0,0.3)',
+                        boxShadow: isFollowing ? '0 0 8px rgba(255,230,0,0.25)' : 'none',
+                      }}
+                    >
+                      <OrbitIcon locked={isFollowing} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
             {Object.keys(onlineUsers).length === 0 && (
               <p className="px-2 py-2 text-center font-heading text-[10px] text-white/30">Just you so far</p>
             )}
@@ -954,6 +1141,14 @@ export default function BubbleUniverse() {
           isOnline={!!onlineUsers[viewEcho.userId]}
           onDm={() => openDm(viewEcho.userId)}
           onClose={() => setViewEcho(null)}
+        />
+      )}
+
+      {viewFollow && (
+        <OfflineFollowModal
+          user={viewFollow}
+          onUnfollow={unfollowUser}
+          onClose={() => setViewFollow(null)}
         />
       )}
 

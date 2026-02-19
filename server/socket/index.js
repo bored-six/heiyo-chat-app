@@ -1,9 +1,10 @@
-import { addUser, removeUser, getAllRoomsForUser, joinRoom, updateUserAvatar, updateUserProfile, getActiveEchoes, getExpiredRooms, deleteRoom } from '../store/index.js';
-import { dbGetUser, dbUpdateUserAvatar, dbUpdateUserProfile } from '../db/index.js';
+import { addUser, removeUser, getAllRoomsForUser, joinRoom, updateUserAvatar, updateUserProfile, setUserPresenceStatus, getActiveEchoes, getExpiredRooms, deleteRoom, getUserByUsername } from '../store/index.js';
+import { dbGetUser, dbUpdateUserAvatar, dbUpdateUserProfile, dbGetFollowingProfiles } from '../db/index.js';
 import { registerRoomHandlers } from './roomHandlers.js';
 import { registerMessageHandlers } from './messageHandlers.js';
 import { registerDmHandlers } from './dmHandlers.js';
 import { registerEchoHandlers } from './echoHandlers.js';
+import { registerFollowHandlers } from './followHandlers.js';
 
 const GENERAL_ROOM_ID = 'general';
 const EXPIRY_CHECK_MS = 5 * 60 * 1000; // check every 5 minutes
@@ -37,7 +38,8 @@ export function initSocket(io) {
       bio: dbUser?.bio ?? '',
       statusEmoji: dbUser?.status_emoji ?? '',
       statusText: dbUser?.status_text ?? '',
-      pronouns: dbUser?.pronouns ?? '',
+      presenceStatus: dbUser?.presence_status ?? 'online',
+      displayName: dbUser?.display_name ?? '',
     });
 
     // Auto-join General
@@ -51,6 +53,18 @@ export function initSocket(io) {
       echoes: getActiveEchoes(),
     });
 
+    // Send follows list for registered users (guests have no DB row)
+    if (dbUser) {
+      const following = dbGetFollowingProfiles(username);
+      const annotated = following.map(f => {
+        const onlineUser = getUserByUsername(f.username);
+        return onlineUser
+          ? { ...onlineUser, online: true }
+          : { username: f.username, color: f.color, avatar: f.avatar, tag: f.tag, online: false, id: null };
+      });
+      socket.emit('follows:list', { following: annotated });
+    }
+
     // Notify everyone that a new user is online
     io.emit('user:online', { user });
 
@@ -59,18 +73,20 @@ export function initSocket(io) {
     registerMessageHandlers(io, socket);
     registerDmHandlers(io, socket);
     registerEchoHandlers(io, socket);
+    registerFollowHandlers(io, socket);
 
     // ── Profile update ───────────────────────────────────────────────────────
 
-    socket.on('profile:update', ({ bio, statusEmoji, statusText, pronouns }) => {
-      const b = typeof bio === 'string' ? bio.slice(0, 160) : '';
-      const se = typeof statusEmoji === 'string' ? statusEmoji.slice(0, 2) : '';
-      const st = typeof statusText === 'string' ? statusText.slice(0, 60) : '';
-      const pr = typeof pronouns === 'string' ? pronouns.slice(0, 20) : '';
-      const user = updateUserProfile(socket.id, { bio: b, statusEmoji: se, statusText: st, pronouns: pr });
+    socket.on('profile:update', ({ bio, statusEmoji, statusText, presenceStatus, displayName }) => {
+      const b  = typeof bio            === 'string' ? bio.slice(0, 160)           : '';
+      const se = typeof statusEmoji    === 'string' ? statusEmoji.slice(0, 2)     : '';
+      const st = typeof statusText     === 'string' ? statusText.slice(0, 60)     : '';
+      const ps = ['online', 'away', 'dnd', 'invisible'].includes(presenceStatus) ? presenceStatus : 'online';
+      const dn = typeof displayName    === 'string' ? displayName.slice(0, 32)    : '';
+      const user = updateUserProfile(socket.id, { bio: b, statusEmoji: se, statusText: st, presenceStatus: ps, displayName: dn });
       if (!user) return;
       // Persist for registered users only (guests have no DB row)
-      if (dbGetUser(user.username)) dbUpdateUserProfile(user.username, { bio: b, statusEmoji: se, statusText: st, pronouns: pr });
+      if (dbGetUser(user.username)) dbUpdateUserProfile(user.username, { bio: b, statusEmoji: se, statusText: st, presenceStatus: ps, displayName: dn });
       io.emit('user:updated', { user });
     });
 
@@ -102,6 +118,10 @@ export function initSocket(io) {
     // ── Disconnect ───────────────────────────────────────────────────────────
 
     socket.on('disconnect', () => {
+      // Mark offline before removal so the broadcast carries the updated status
+      const offlineUser = setUserPresenceStatus(socket.id, 'offline');
+      if (offlineUser) io.emit('user:updated', { user: offlineUser });
+
       const removedUser = removeUser(socket.id);
 
       // Clean up typing state

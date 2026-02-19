@@ -80,6 +80,16 @@ export function initDb() {
     );
   `);
 
+  // Follows table (created here so it exists from first boot)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS follows (
+      follower   TEXT NOT NULL,
+      followed   TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (follower, followed)
+    );
+  `);
+
   // Migrate: add new columns if missing (safe to run on existing DBs)
   try { db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN tag TEXT NOT NULL DEFAULT ''`); } catch (_) {}
@@ -101,6 +111,8 @@ export function initDb() {
   try { db.exec(`ALTER TABLE users ADD COLUMN status_emoji TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN status_text TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN pronouns TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN presence_status TEXT NOT NULL DEFAULT 'online'`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''`); } catch (_) {}
 
   // Seed General room (upsert — safe to call on every boot)
   db.prepare(`
@@ -226,13 +238,38 @@ export function dbUpdateUserAvatar(username, avatar) {
   db.prepare('UPDATE users SET avatar = ? WHERE username = ?').run(avatar, username);
 }
 
-export function dbUpdateUserProfile(username, { bio, statusEmoji, statusText, pronouns }) {
-  db.prepare('UPDATE users SET bio = ?, status_emoji = ?, status_text = ?, pronouns = ? WHERE username = ?')
-    .run(bio, statusEmoji, statusText, pronouns, username);
+export function dbUpdateUserProfile(username, { bio, statusEmoji, statusText, presenceStatus, displayName }) {
+  db.prepare('UPDATE users SET bio = ?, status_emoji = ?, status_text = ?, presence_status = ?, display_name = ? WHERE username = ?')
+    .run(bio, statusEmoji, statusText, presenceStatus, displayName, username);
 }
 
 export function dbUsernameExists(username) {
   return !!db.prepare('SELECT 1 FROM users WHERE username = ?').get(username);
+}
+
+// ─── Follows ──────────────────────────────────────────────────────────────────
+
+export function dbAddFollow(follower, followed) {
+  db.prepare(`INSERT OR IGNORE INTO follows (follower, followed, created_at) VALUES (?, ?, ?)`)
+    .run(follower, followed, Date.now());
+}
+
+export function dbRemoveFollow(follower, followed) {
+  db.prepare(`DELETE FROM follows WHERE follower = ? AND followed = ?`).run(follower, followed);
+}
+
+export function dbIsFollowing(follower, followed) {
+  return !!db.prepare(`SELECT 1 FROM follows WHERE follower = ? AND followed = ?`).get(follower, followed);
+}
+
+export function dbGetFollowingProfiles(follower) {
+  return db.prepare(`
+    SELECT u.username, u.color, u.avatar, u.tag
+    FROM follows f
+    JOIN users u ON u.username = f.followed
+    WHERE f.follower = ?
+    ORDER BY f.created_at ASC
+  `).all(follower);
 }
 
 // ─── Room deletion ─────────────────────────────────────────────────────────────

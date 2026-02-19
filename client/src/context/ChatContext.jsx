@@ -29,6 +29,7 @@ const initialState = {
   dmUnread: {},
   echoes: [],
   removingRooms: [], // roomIds currently playing the removal animation
+  follows: {},       // username → { username, color, avatar, tag, online, id }
 };
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -58,17 +59,37 @@ function reducer(state, action) {
     case 'DISCONNECTED':
       return { ...state, connected: false };
 
-    case 'USER_ONLINE':
+    case 'USER_ONLINE': {
       // Never add self — me is tracked separately and shown in its own row
       if (action.user.id === state.me?.id) return state;
+      // If this user is followed, mark them online + update their live socket id
+      const followsAfterOnline = { ...state.follows };
+      if (action.user.username && followsAfterOnline[action.user.username]) {
+        followsAfterOnline[action.user.username] = {
+          ...followsAfterOnline[action.user.username],
+          ...action.user,
+          online: true,
+        };
+      }
       return {
         ...state,
         onlineUsers: { ...state.onlineUsers, [action.user.id]: action.user },
+        follows: followsAfterOnline,
       };
+    }
 
     case 'USER_OFFLINE': {
-      const { [action.userId]: _removed, ...rest } = state.onlineUsers;
-      return { ...state, onlineUsers: rest };
+      const { [action.userId]: removedUser, ...restOnline } = state.onlineUsers;
+      // If this user is followed, mark offline but keep them in follows (Option B)
+      const followsAfterOffline = { ...state.follows };
+      if (removedUser?.username && followsAfterOffline[removedUser.username]) {
+        followsAfterOffline[removedUser.username] = {
+          ...followsAfterOffline[removedUser.username],
+          online: false,
+          id: null,
+        };
+      }
+      return { ...state, onlineUsers: restOnline, follows: followsAfterOffline };
     }
 
     case 'USER_UPDATED': {
@@ -233,6 +254,23 @@ function reducer(state, action) {
           ),
         },
       };
+    }
+
+    case 'FOLLOWS_SET':
+      return {
+        ...state,
+        follows: Object.fromEntries(action.following.map(u => [u.username, u])),
+      };
+
+    case 'FOLLOW_ADD':
+      return {
+        ...state,
+        follows: { ...state.follows, [action.user.username]: { ...action.user, online: true } },
+      };
+
+    case 'FOLLOW_REMOVE': {
+      const { [action.username]: _, ...remainingFollows } = state.follows;
+      return { ...state, follows: remainingFollows };
     }
 
     case 'TYPING_UPDATE':
