@@ -11,7 +11,7 @@ import { generateUser } from './utils/nameGenerator.js';
 const PORT = 3001;
 
 const app = express();
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: /^http:\/\/localhost:\d+$/ }));
 app.use(express.json());
 
 // Health check
@@ -54,7 +54,7 @@ app.post('/auth/register', async (req, res) => {
   const tag = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
   dbCreateUser(name, hash, color, chosenAvatar, tag);
 
-  return res.json({ username: name, color, avatar: chosenAvatar, tag });
+  return res.json({ username: name, color, avatar: chosenAvatar, tag, bio: '', statusEmoji: '', statusText: '', pronouns: '' });
 });
 
 app.post('/auth/login', async (req, res) => {
@@ -71,7 +71,7 @@ app.post('/auth/login', async (req, res) => {
   if (!match)
     return res.status(401).json({ error: 'Invalid username or password.' });
 
-  return res.json({ username: row.username, color: row.color, avatar: row.avatar ?? 'Stargazer', tag: row.tag ?? '' });
+  return res.json({ username: row.username, color: row.color, avatar: row.avatar ?? 'Stargazer', tag: row.tag ?? '', bio: row.bio ?? '', statusEmoji: row.status_emoji ?? '', statusText: row.status_text ?? '', pronouns: row.pronouns ?? '' });
 });
 
 app.post('/auth/guest', (_req, res) => {
@@ -85,7 +85,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: /^http:\/\/localhost:\d+$/,
     methods: ['GET', 'POST'],
   },
 });
@@ -117,3 +117,6 @@ function startListening(attemptsLeft) {
 }
 
 startListening(5);
+
+process.on('SIGTERM', () => { io.close(); process.exit(0); });
+process.on('SIGINT',  () => { io.close(); process.exit(0); });

@@ -1,5 +1,5 @@
-import { addUser, removeUser, getAllRoomsForUser, joinRoom, updateUserAvatar, getActiveEchoes } from '../store/index.js';
-import { dbGetUser, dbUpdateUserAvatar } from '../db/index.js';
+import { addUser, removeUser, getAllRoomsForUser, joinRoom, updateUserAvatar, updateUserProfile, getActiveEchoes } from '../store/index.js';
+import { dbGetUser, dbUpdateUserAvatar, dbUpdateUserProfile } from '../db/index.js';
 import { registerRoomHandlers } from './roomHandlers.js';
 import { registerMessageHandlers } from './messageHandlers.js';
 import { registerDmHandlers } from './dmHandlers.js';
@@ -14,7 +14,15 @@ export function initSocket(io) {
   io.on('connection', (socket) => {
     // Use identity provided by client auth handshake
     const { username, color, avatar, tag } = socket.handshake.auth ?? {};
-    const user = addUser(socket.id, { username, color, avatar, tag });
+    // Load persisted profile fields for registered users
+    const dbUser = dbGetUser(username);
+    const user = addUser(socket.id, {
+      username, color, avatar, tag,
+      bio: dbUser?.bio ?? '',
+      statusEmoji: dbUser?.status_emoji ?? '',
+      statusText: dbUser?.status_text ?? '',
+      pronouns: dbUser?.pronouns ?? '',
+    });
 
     // Auto-join General
     socket.join(GENERAL_ROOM_ID);
@@ -35,6 +43,20 @@ export function initSocket(io) {
     registerMessageHandlers(io, socket);
     registerDmHandlers(io, socket);
     registerEchoHandlers(io, socket);
+
+    // ── Profile update ───────────────────────────────────────────────────────
+
+    socket.on('profile:update', ({ bio, statusEmoji, statusText, pronouns }) => {
+      const b = typeof bio === 'string' ? bio.slice(0, 160) : '';
+      const se = typeof statusEmoji === 'string' ? statusEmoji.slice(0, 2) : '';
+      const st = typeof statusText === 'string' ? statusText.slice(0, 60) : '';
+      const pr = typeof pronouns === 'string' ? pronouns.slice(0, 20) : '';
+      const user = updateUserProfile(socket.id, { bio: b, statusEmoji: se, statusText: st, pronouns: pr });
+      if (!user) return;
+      // Persist for registered users only (guests have no DB row)
+      if (dbGetUser(user.username)) dbUpdateUserProfile(user.username, { bio: b, statusEmoji: se, statusText: st, pronouns: pr });
+      io.emit('user:updated', { user });
+    });
 
     // ── Avatar change ────────────────────────────────────────────────────────
 

@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import AvatarPickerModal from './AvatarPickerModal.jsx';
+import ProfileEditModal from './ProfileEditModal.jsx';
 import { avatarUrl } from '../utils/avatar.js';
 
 export default function UserBadge() {
   const { me, socket, setAuthUser } = useChat();
   const [open, setOpen] = useState(false);
   const [editingAvatar, setEditingAvatar] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
   const ref = useRef(null);
 
   if (!me) return null;
@@ -39,6 +41,9 @@ export default function UserBadge() {
           onSave={handleSaveAvatar}
           onClose={() => setEditingAvatar(false)}
         />
+      )}
+      {editingProfile && (
+        <ProfileEditModal onClose={() => setEditingProfile(false)} />
       )}
 
       <div ref={ref} className="absolute bottom-6 left-6 z-30">
@@ -111,16 +116,15 @@ export default function UserBadge() {
               </button>
 
               <button
+                onClick={() => { setEditingProfile(true); setOpen(false); }}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-150 hover:bg-white/8 active:scale-[0.98]"
-                disabled
-                title="Coming soon"
               >
-                <span className="text-base opacity-40">⚙️</span>
+                <span className="text-base">✏️</span>
                 <div>
-                  <p className="font-heading text-xs font-black uppercase tracking-wide text-white/30">
-                    Settings
+                  <p className="font-heading text-xs font-black uppercase tracking-wide text-white/80">
+                    Edit Profile
                   </p>
-                  <p className="font-heading text-[9px] text-white/20">Coming soon</p>
+                  <p className="font-heading text-[9px] text-white/35">Bio, status, pronouns</p>
                 </div>
               </button>
             </div>

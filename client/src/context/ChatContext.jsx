@@ -276,7 +276,7 @@ export function ChatProvider({ children }) {
     });
   }, []);
 
-  const socket = useSocket(dispatch, authUser, stateRef);
+  const socket = useSocket(dispatch, authUser, stateRef, setAuthUser);
 
   return (
     <ChatContext.Provider value={{ ...state, dispatch, socket, setAuthUser, authUser }}>

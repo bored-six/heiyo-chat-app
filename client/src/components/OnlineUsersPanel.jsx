@@ -1,8 +1,13 @@
+import { useState } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import { avatarUrl } from '../utils/avatar.js';
+import ProfileCard from './ProfileCard.jsx';
+import ProfileEditModal from './ProfileEditModal.jsx';
 
 export default function OnlineUsersPanel({ onClose }) {
   const { onlineUsers, me, socket, dmUnread } = useChat();
+  const [profileUser, setProfileUser] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   const users = Object.values(onlineUsers).filter((u) => u.id !== me?.id);
 
@@ -25,14 +30,27 @@ export default function OnlineUsersPanel({ onClose }) {
 
       {/* User list */}
       <div className="max-h-60 overflow-y-auto p-2 space-y-0.5">
-        {/* Self — no DM button */}
-        <div className="flex items-center gap-2 rounded-xl px-2 py-2">
-          <img
-            src={avatarUrl(me.avatar)}
-            alt={me.username}
-            className="h-8 w-8 flex-shrink-0 rounded-full"
-            style={{ border: `2px solid ${me.color}`, boxShadow: `0 0 8px ${me.color}88` }}
-          />
+        {/* Self — click to view own profile */}
+        <div
+          className="flex items-center gap-2 rounded-xl px-2 py-2 hover:bg-white/5 transition-colors cursor-pointer"
+          onClick={() => setProfileUser(me)}
+        >
+          <div className="relative flex-shrink-0">
+            <img
+              src={avatarUrl(me.avatar)}
+              alt={me.username}
+              className="h-8 w-8 rounded-full"
+              style={{ border: `2px solid ${me.color}`, boxShadow: `0 0 8px ${me.color}88` }}
+            />
+            {me.statusEmoji && (
+              <span
+                className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none pointer-events-none"
+                style={{ background: '#2D1B4E', border: `1.5px solid ${me.color}44` }}
+              >
+                {me.statusEmoji}
+              </span>
+            )}
+          </div>
           <span className="flex-1 truncate font-heading text-sm font-black text-white">
             {me.username}
             {me.tag && (
@@ -60,13 +78,29 @@ export default function OnlineUsersPanel({ onClose }) {
                 key={user.id}
                 className="flex items-center gap-2 rounded-xl px-2 py-2 hover:bg-white/5 transition-colors"
               >
-                <img
-                  src={avatarUrl(user.avatar)}
-                  alt={user.username}
-                  className="h-8 w-8 flex-shrink-0 rounded-full"
-                  style={{ border: `2px solid ${user.color}`, boxShadow: `0 0 8px ${user.color}88` }}
-                />
-                <span className="flex-1 truncate font-heading text-sm font-black text-white">
+                <button
+                  onClick={() => setProfileUser(user)}
+                  className="relative flex-shrink-0 hover:scale-110 transition-transform duration-150"
+                >
+                  <img
+                    src={avatarUrl(user.avatar)}
+                    alt={user.username}
+                    className="h-8 w-8 rounded-full"
+                    style={{ border: `2px solid ${user.color}`, boxShadow: `0 0 8px ${user.color}88` }}
+                  />
+                  {user.statusEmoji && (
+                    <span
+                      className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none pointer-events-none"
+                      style={{ background: '#2D1B4E', border: `1.5px solid ${user.color}44` }}
+                    >
+                      {user.statusEmoji}
+                    </span>
+                  )}
+                </button>
+                <span
+                  className="flex-1 truncate font-heading text-sm font-black text-white cursor-pointer hover:underline decoration-dotted"
+                  onClick={() => setProfileUser(user)}
+                >
                   {user.username}
                   {user.tag && (
                     <span className="font-heading text-[9px] font-bold normal-case tracking-normal text-white/35 ml-0.5">
@@ -90,6 +124,22 @@ export default function OnlineUsersPanel({ onClose }) {
               </div>
             );
           })
+        )}
+
+        {/* Profile card popup */}
+        {profileUser && (
+          <ProfileCard
+            user={profileUser}
+            isSelf={profileUser.id === me?.id}
+            onClose={() => setProfileUser(null)}
+            onDm={() => { openDm(profileUser.id); }}
+            onEditProfile={() => setEditingProfile(true)}
+          />
+        )}
+
+        {/* Edit profile modal (opened from own ProfileCard) */}
+        {editingProfile && (
+          <ProfileEditModal onClose={() => setEditingProfile(false)} />
         )}
       </div>
     </div>

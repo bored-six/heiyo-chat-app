@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { avatarUrl } from '../utils/avatar.js';
 import { useChat } from '../context/ChatContext.jsx';
+import ProfileCard from './ProfileCard.jsx';
 
 const EMOJIS = ['👍', '❤️', '🔥', '😂', '😮'];
 
@@ -35,8 +36,22 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
   const replyTo   = message.replyTo ?? null;
   // Exclude the sender from seenBy (they obviously saw their own message)
   const seenBy    = (message.seenBy ?? []).filter((u) => u.id !== message.senderId);
-  const { socket, activeRoomId, activeDmId, me } = useChat();
+  const { socket, activeRoomId, activeDmId, me, onlineUsers } = useChat();
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [profileUser, setProfileUser] = useState(null);
+
+  function openProfile() {
+    // Prefer the live onlineUsers entry (has full profile fields), fall back to message snapshot
+    const live = onlineUsers[message.senderId];
+    setProfileUser(live ?? {
+      id: message.senderId,
+      username: senderName,
+      color: senderColor,
+      avatar: senderAvatar,
+      tag: senderTag,
+      bio: '', statusEmoji: '', statusText: '', pronouns: '',
+    });
+  }
 
   const reactionEntries = Object.entries(reactions); // [['👍', ['id1']], ...]
 
@@ -61,21 +76,35 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
       onMouseLeave={() => setPickerVisible(false)}
     >
       {/* Chibi avatar */}
-      <img
-        src={avatarUrl(senderAvatar)}
-        alt={senderName}
-        className="mt-0.5 h-9 w-9 flex-shrink-0 rounded-full"
-        style={{
-          border: `2px solid ${senderColor}`,
-          boxShadow: `0 0 10px ${senderColor}88`,
-        }}
-      />
+      <button
+        onClick={openProfile}
+        className="relative mt-0.5 h-9 w-9 flex-shrink-0 flex-shrink-0 cursor-pointer hover:scale-110 transition-transform duration-150"
+      >
+        <img
+          src={avatarUrl(senderAvatar)}
+          alt={senderName}
+          className="h-9 w-9 rounded-full"
+          style={{
+            border: `2px solid ${senderColor}`,
+            boxShadow: `0 0 10px ${senderColor}88`,
+          }}
+        />
+        {(onlineUsers[message.senderId]?.statusEmoji) && (
+          <span
+            className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none pointer-events-none"
+            style={{ background: '#0D0D1A', border: `1.5px solid ${senderColor}44` }}
+          >
+            {onlineUsers[message.senderId].statusEmoji}
+          </span>
+        )}
+      </button>
 
       {/* Body */}
       <div className={`min-w-0 flex-1 ${isOwn ? 'text-right' : ''}`}>
         <div className={`flex items-baseline gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}>
-          <span
-            className="font-heading text-sm font-black tracking-tight"
+          <button
+            onClick={openProfile}
+            className="font-heading text-sm font-black tracking-tight hover:underline decoration-dotted cursor-pointer"
             style={{
               color: senderColor,
               textShadow: `1px 1px 0 #0D0D1A, 2px 2px 0 ${senderColor}55`,
@@ -87,7 +116,7 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
                 #{senderTag}
               </span>
             )}
-          </span>
+          </button>
           <span className="font-heading text-[10px] font-bold uppercase tracking-widest text-white/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
             {formatTime(timestamp)}
           </span>
@@ -169,6 +198,16 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
           </div>
         )}
       </div>
+
+      {/* Profile card popup */}
+      {profileUser && (
+        <ProfileCard
+          user={profileUser}
+          isSelf={profileUser.id === me?.id}
+          onClose={() => setProfileUser(null)}
+          onDm={() => socket.emit('dm:open', { toUserId: profileUser.id })}
+        />
+      )}
 
       {/* Hover toolbar — emoji picker + reply button */}
       <div

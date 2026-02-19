@@ -97,6 +97,10 @@ export function initDb() {
   try { db.exec(`ALTER TABLE dm_messages ADD COLUMN reply_to_id TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE dm_messages ADD COLUMN reply_to_text TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE dm_messages ADD COLUMN reply_to_sender TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN bio TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN status_emoji TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN status_text TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN pronouns TEXT NOT NULL DEFAULT ''`); } catch (_) {}
 
   // Seed General room (upsert — safe to call on every boot)
   db.prepare(`
@@ -220,6 +224,11 @@ export function dbGetUser(username) {
 
 export function dbUpdateUserAvatar(username, avatar) {
   db.prepare('UPDATE users SET avatar = ? WHERE username = ?').run(avatar, username);
+}
+
+export function dbUpdateUserProfile(username, { bio, statusEmoji, statusText, pronouns }) {
+  db.prepare('UPDATE users SET bio = ?, status_emoji = ?, status_text = ?, pronouns = ? WHERE username = ?')
+    .run(bio, statusEmoji, statusText, pronouns, username);
 }
 
 export function dbUsernameExists(username) {

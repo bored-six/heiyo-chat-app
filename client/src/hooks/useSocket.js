@@ -7,7 +7,7 @@ import { playPing, isRoomMuted } from '../utils/notificationSound.js';
  * Wires every server→client event to dispatch so ChatContext state stays current.
  * Returns the socket instance (stable ref, safe to call .emit() on).
  */
-export function useSocket(dispatch, authUser, stateRef) {
+export function useSocket(dispatch, authUser, stateRef, setAuthUser) {
   const socketRef = useRef(null);
 
   // Initialise synchronously so the ref is never null after first render
@@ -50,6 +50,10 @@ export function useSocket(dispatch, authUser, stateRef) {
 
     socket.on('user:updated', ({ user }) => {
       dispatch({ type: 'USER_UPDATED', user });
+      // If this update is for the current user, sync to localStorage
+      if (user.id === stateRef.current.me?.id) {
+        setAuthUser((prev) => ({ ...prev, ...user }));
+      }
     });
 
     // ── Rooms ───────────────────────────────────────────────────────────────
