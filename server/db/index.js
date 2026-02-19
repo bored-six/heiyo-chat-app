@@ -234,3 +234,11 @@ export function dbUpdateUserProfile(username, { bio, statusEmoji, statusText, pr
 export function dbUsernameExists(username) {
   return !!db.prepare('SELECT 1 FROM users WHERE username = ?').get(username);
 }
+
+// ─── Room deletion ─────────────────────────────────────────────────────────────
+
+export function dbDeleteRoom(roomId) {
+  db.prepare('DELETE FROM messages WHERE room_id = ?').run(roomId);
+  db.prepare('DELETE FROM room_members WHERE room_id = ?').run(roomId);
+  db.prepare('DELETE FROM rooms WHERE id = ?').run(roomId);
+}

@@ -128,6 +128,15 @@ export function useSocket(dispatch, authUser, stateRef, setAuthUser) {
       }
     });
 
+    // ── Room removal ────────────────────────────────────────────────────────
+
+    socket.on('room:removed', ({ roomId }) => {
+      // Start the visual implosion animation immediately
+      dispatch({ type: 'ROOM_REMOVING', roomId });
+      // Remove from state after the animation completes (~850ms)
+      setTimeout(() => dispatch({ type: 'ROOM_REMOVED', roomId }), 900);
+    });
+
     // ── Echoes ──────────────────────────────────────────────────────────────
 
     socket.on('echo:new', ({ echo }) => {

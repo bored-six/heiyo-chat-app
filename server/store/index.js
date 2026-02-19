@@ -13,6 +13,7 @@ import {
   dbGetRoomsForUser,
   dbSetRoomInviteCode,
   dbGetRoomByInviteCode,
+  dbDeleteRoom,
 } from '../db/index.js';
 
 const MAX_MESSAGES = 100;
@@ -352,6 +353,25 @@ export function getMessageSeenBy(messageId) {
   const seen = messageSeen.get(messageId);
   if (!seen) return [];
   return [...seen.values()];
+}
+
+// ─── Room expiry ──────────────────────────────────────────────────────────────
+
+const ROOM_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 hours of inactivity
+
+export function getExpiredRooms() {
+  const now = Date.now();
+  return Object.values(state.rooms).filter((room) => {
+    if (room.id === 'general') return false; // protected — never expires
+    const lastActivity = room.messages.at(-1)?.timestamp ?? room.createdAt;
+    return now - lastActivity > ROOM_EXPIRY_MS;
+  });
+}
+
+export function deleteRoom(roomId) {
+  delete state.rooms[roomId];
+  roomSpeakers.delete(roomId);
+  dbDeleteRoom(roomId);
 }
 
 // ─── Echoes ───────────────────────────────────────────────────────────────────

@@ -28,6 +28,7 @@ const initialState = {
   unread: {},
   dmUnread: {},
   echoes: [],
+  removingRooms: [], // roomIds currently playing the removal animation
 };
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -201,6 +202,24 @@ function reducer(state, action) {
       return {
         ...state,
         rooms: state.rooms.map((r) => r.id === action.room.id ? action.room : r),
+      };
+
+    // Room fired the expiry animation — keep in rooms list until animation finishes
+    case 'ROOM_REMOVING':
+      return {
+        ...state,
+        removingRooms: state.removingRooms.includes(action.roomId)
+          ? state.removingRooms
+          : [...state.removingRooms, action.roomId],
+      };
+
+    // Animation done — actually remove from state
+    case 'ROOM_REMOVED':
+      return {
+        ...state,
+        rooms: state.rooms.filter((r) => r.id !== action.roomId),
+        removingRooms: state.removingRooms.filter((id) => id !== action.roomId),
+        activeRoomId: state.activeRoomId === action.roomId ? null : state.activeRoomId,
       };
 
     case 'MESSAGE_SEEN': {

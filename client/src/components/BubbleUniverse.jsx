@@ -397,7 +397,7 @@ function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BubbleUniverse() {
-  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes, authUser } = useChat();
+  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes, authUser, removingRooms } = useChat();
   const [creating, setCreating]       = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
@@ -809,6 +809,8 @@ export default function BubbleUniverse() {
             unread={unread[room.id] ?? 0}
             parallaxX={(mouse.x - 0.5) * depth * -1}
             parallaxY={(mouse.y - 0.5) * depth * -1}
+            imploding={removingRooms.includes(room.id)}
+            isProtected={room.id === 'general'}
           />
         );
       })}

@@ -12,22 +12,33 @@ const FLOAT_ANIMS  = [
 ];
 const ROTATIONS    = ['-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2', 'rotate-0'];
 
+// Rooms expire after 2 hours of inactivity (must match server ROOM_EXPIRY_MS)
+const EXPIRY_MS = 2 * 60 * 60 * 1000;
+
 // ─── Heat ────────────────────────────────────────────────────────────────────
 
-function getHeatTier(lastMessageAt) {
-  if (!lastMessageAt) return 'cold';
-  const ageMin = (Date.now() - lastMessageAt) / 60_000;
+function getHeatTier(lastMessageAt, createdAt, isProtected) {
+  const ageRef = lastMessageAt ?? createdAt;
+  if (!ageRef) return 'cool';
+  const ageMin = (Date.now() - ageRef) / 60_000;
+
   if (ageMin < 1)  return 'hot';
   if (ageMin < 5)  return 'warm';
   if (ageMin < 15) return 'cool';
-  return 'cold';
+  if (ageMin < 60) return 'cold';
+  // Protected rooms (General) cap at 'cold' — they never expire
+  if (isProtected) return 'cold';
+  if (ageMin < 90) return 'fading';
+  return 'dying';
 }
 
 const HEAT = {
-  hot:  { sizeBoost: 28,  glowMult: 2.4, pulse: true  },
-  warm: { sizeBoost: 12,  glowMult: 1.5, pulse: false },
-  cool: { sizeBoost: 0,   glowMult: 1.0, pulse: false },
-  cold: { sizeBoost: -12, glowMult: 0.35, pulse: false },
+  hot:    { sizeBoost: 28,  glowMult: 2.4,  opacity: 1.0,  cssFilter: 'none' },
+  warm:   { sizeBoost: 12,  glowMult: 1.5,  opacity: 1.0,  cssFilter: 'none' },
+  cool:   { sizeBoost: 0,   glowMult: 1.0,  opacity: 1.0,  cssFilter: 'none' },
+  cold:   { sizeBoost: -12, glowMult: 0.35, opacity: 0.8,  cssFilter: 'grayscale(20%) brightness(80%)' },
+  fading: { sizeBoost: -20, glowMult: 0.12, opacity: 0.55, cssFilter: 'grayscale(55%) brightness(58%)' },
+  dying:  { sizeBoost: -28, glowMult: 0.05, opacity: 0.35, cssFilter: 'grayscale(85%) brightness(38%)' },
 };
 
 // ─── Relative time ────────────────────────────────────────────────────────────
@@ -45,7 +56,19 @@ function relativeTime(ts) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function RoomBubble({ room, index, style, onEnter, unread = 0, parallaxX = 0, parallaxY = 0, centered = false, sizeScale = 1 }) {
+export default function RoomBubble({
+  room,
+  index,
+  style,
+  onEnter,
+  unread = 0,
+  parallaxX = 0,
+  parallaxY = 0,
+  centered = false,
+  sizeScale = 1,
+  imploding = false,
+  isProtected = false,
+}) {
   const accent      = ACCENTS[index % ACCENTS.length];
   const borderColor = CLASH[index % CLASH.length];
   const floatAnim   = FLOAT_ANIMS[index % FLOAT_ANIMS.length];
@@ -62,18 +85,37 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
   const [hovered, setHovered] = useState(false);
 
   // Heat
-  const tier = getHeatTier(room.lastMessageAt);
+  const tier = getHeatTier(room.lastMessageAt, room.createdAt, isProtected);
   const heat = HEAT[tier];
 
   // Base size from member count (130–200px), then apply heat boost
   const baseSize = Math.max(130, Math.min(200, 130 + (room.memberCount ?? 0) * 5));
-  const size     = Math.max(80, Math.round((baseSize + heat.sizeBoost) * sizeScale));
+  const size     = Math.max(60, Math.round((baseSize + heat.sizeBoost) * sizeScale));
 
   // Glow intensity scales with heat
-  const glow = `0 0 ${Math.round(40 * heat.glowMult)}px ${accent}${Math.round(60 * heat.glowMult).toString(16).padStart(2, '0')}, 0 0 ${Math.round(200 * heat.glowMult)}px ${accent}${Math.round(14 * heat.glowMult).toString(16).padStart(2, '0')}`;
+  const glowA = Math.round(40  * heat.glowMult);
+  const glowB = Math.round(200 * heat.glowMult);
+  const alphaA = Math.round(60 * heat.glowMult).toString(16).padStart(2, '0');
+  const alphaB = Math.round(14 * heat.glowMult).toString(16).padStart(2, '0');
+  const glow = `0 0 ${glowA}px ${accent}${alphaA}, 0 0 ${glowB}px ${accent}${alphaB}`;
 
   const lurkers = room.lurkerCount ?? 0;
   const lastMsg = room.lastMessage ?? null;
+
+  // Time until expiry (only relevant for fading/dying tiers)
+  const lastActivity = room.lastMessageAt ?? room.createdAt;
+  const minsLeft = lastActivity
+    ? Math.max(0, Math.ceil((lastActivity + EXPIRY_MS - Date.now()) / 60_000))
+    : null;
+
+  // Inner wrapper animation class — applied on top of float
+  const tierAnim = imploding
+    ? 'animate-implode'
+    : tier === 'fading'
+    ? 'animate-flicker'
+    : tier === 'dying'
+    ? 'animate-jitter'
+    : '';
 
   return (
     <div
@@ -84,10 +126,15 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
         transition: 'transform 0.12s ease-out',
       }}
     >
-      {/* Inner wrapper: float animation only */}
+      {/* Inner wrapper: float + tier animation */}
       <div
-        className={`relative group ${floatAnim}`}
-        style={{ animationDelay: delay }}
+        className={`relative group ${imploding ? '' : floatAnim} ${tierAnim}`}
+        style={{
+          animationDelay: imploding ? '0s' : delay,
+          filter: imploding ? 'none' : heat.cssFilter,
+          opacity: imploding ? 1 : heat.opacity,
+          transition: 'filter 1.5s ease, opacity 1.5s ease',
+        }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
@@ -132,7 +179,7 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
           </div>
         )}
 
-        {/* Unread ring — pulses yellow when there are unread messages */}
+        {/* Unread ring */}
         {unread > 0 && (
           <div
             className="absolute inset-0 rounded-full animate-ping pointer-events-none"
@@ -144,7 +191,7 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
           />
         )}
 
-        {/* Hot ring — only visible when HOT */}
+        {/* Hot ring */}
         {tier === 'hot' && (
           <div
             className="absolute inset-0 rounded-full animate-ping pointer-events-none"
@@ -152,6 +199,18 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
               background: 'transparent',
               border: `3px solid ${accent}`,
               opacity: 0.4,
+            }}
+          />
+        )}
+
+        {/* Fading warning ring — slow pulse */}
+        {(tier === 'fading' || tier === 'dying') && !imploding && (
+          <div
+            className="absolute inset-0 rounded-full pointer-events-none animate-pulse"
+            style={{
+              background: 'transparent',
+              border: `2px solid ${tier === 'dying' ? '#FF3AF2' : accent}55`,
+              opacity: 0.5,
             }}
           />
         )}
@@ -187,7 +246,7 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
           </span>
 
           {/* Description */}
-          {room.description && (
+          {room.description && size >= 120 && (
             <span
               className="px-4 text-center font-heading text-[9px] font-bold leading-tight tracking-wide"
               style={{ color: `${accent}cc` }}
@@ -197,20 +256,48 @@ export default function RoomBubble({ room, index, style, onEnter, unread = 0, pa
           )}
 
           {/* Member count badge */}
-          <span
-            className="rounded-full border-2 border-dashed px-3 py-0.5 font-heading text-[10px] font-black uppercase tracking-widest"
-            style={{ borderColor: accent, color: accent }}
-          >
-            {room.memberCount ?? 0} online
-          </span>
+          {size >= 100 && (
+            <span
+              className="rounded-full border-2 border-dashed px-3 py-0.5 font-heading text-[10px] font-black uppercase tracking-widest"
+              style={{ borderColor: accent, color: accent }}
+            >
+              {room.memberCount ?? 0} online
+            </span>
+          )}
 
-          {/* Lurker count — only shown when > 0 */}
-          {lurkers > 0 && (
+          {/* Lurker count */}
+          {lurkers > 0 && size >= 110 && (
             <span
               className="font-heading text-[9px] font-bold tracking-wide"
               style={{ color: `${accent}88` }}
             >
               {lurkers} lurking
+            </span>
+          )}
+
+          {/* Fading / dying status badge */}
+          {tier === 'fading' && minsLeft !== null && size >= 90 && (
+            <span
+              className="font-heading text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+              style={{
+                background: 'rgba(255,107,53,0.18)',
+                border: '1px solid rgba(255,107,53,0.4)',
+                color: 'rgba(255,107,53,0.8)',
+              }}
+            >
+              💤 cooling · {minsLeft}m
+            </span>
+          )}
+          {tier === 'dying' && minsLeft !== null && size >= 80 && (
+            <span
+              className="font-heading text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full animate-pulse"
+              style={{
+                background: 'rgba(255,58,242,0.15)',
+                border: '1px solid rgba(255,58,242,0.5)',
+                color: 'rgba(255,58,242,0.9)',
+              }}
+            >
+              ☠ {minsLeft}m left
             </span>
           )}
         </button>

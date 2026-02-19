@@ -1,4 +1,4 @@
-import { addUser, removeUser, getAllRoomsForUser, joinRoom, updateUserAvatar, updateUserProfile, getActiveEchoes } from '../store/index.js';
+import { addUser, removeUser, getAllRoomsForUser, joinRoom, updateUserAvatar, updateUserProfile, getActiveEchoes, getExpiredRooms, deleteRoom } from '../store/index.js';
 import { dbGetUser, dbUpdateUserAvatar, dbUpdateUserProfile } from '../db/index.js';
 import { registerRoomHandlers } from './roomHandlers.js';
 import { registerMessageHandlers } from './messageHandlers.js';
@@ -6,9 +6,25 @@ import { registerDmHandlers } from './dmHandlers.js';
 import { registerEchoHandlers } from './echoHandlers.js';
 
 const GENERAL_ROOM_ID = 'general';
+const EXPIRY_CHECK_MS = 5 * 60 * 1000; // check every 5 minutes
 
 // Track per-room typing state: roomId → Set<socketId>
 const typing = {};
+
+// ─── Room expiry ──────────────────────────────────────────────────────────────
+// Runs on a timer; removes private rooms inactive for 2+ hours.
+// General is always exempt (enforced in getExpiredRooms).
+
+function startRoomExpiry(io) {
+  setInterval(() => {
+    const expired = getExpiredRooms();
+    for (const room of expired) {
+      console.log(`[expiry] Room "${room.name}" (${room.id}) expired — broadcasting removal`);
+      io.emit('room:removed', { roomId: room.id });
+      deleteRoom(room.id);
+    }
+  }, EXPIRY_CHECK_MS);
+}
 
 export function initSocket(io) {
   io.on('connection', (socket) => {
@@ -96,6 +112,9 @@ export function initSocket(io) {
       }
     });
   });
+
+  // Start the room expiry background job (runs once per server lifetime)
+  startRoomExpiry(io);
 }
 
 function broadcastTyping(io, roomId) {
