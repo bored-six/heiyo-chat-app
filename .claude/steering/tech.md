@@ -38,10 +38,11 @@
 ## Key Technical Constraints
 
 - **ESM only.** Every file uses `import`/`export`. Never use CommonJS.
-- **No database.** All state is in-memory in `server/store/index.js`.
-- **No auth.** Identity assigned on socket connect, keyed by `socket.id`.
-- **Socket ID = user key.** Users are identified by their socket ID in the store. Disconnecting removes the user.
-- **CORS.** Server allows only `http://localhost:5173`. Update if client port changes.
+- **SQLite persistence** via `better-sqlite3` at `server/db/index.js` (chat.db in `server/data/`). Registered users, rooms, messages, DMs, invite codes, and profile fields are all persisted.
+- **Auth system** — register/login via REST (`/auth/register`, `/auth/login`, `/auth/guest`). Session stored in `localStorage` key `heiyo_session`. Socket handshake includes `{ username, color, avatar, tag }`.
+- **Socket ID = session key.** Users are keyed by `socket.id` in-memory. Disconnecting removes the user. Registered users reconnect by logging in again.
+- **Profile fields** (`bio`, `statusEmoji`, `statusText`, `pronouns`) stored in the `users` SQLite table, loaded from DB on socket connect, broadcast via `user:updated`.
+- **CORS.** Server allows only `http://localhost:*`. Update if client port changes.
 
 ## Dev Commands
 
@@ -76,3 +77,4 @@ npm run client
 | `client/src/components/Message.jsx` | Avatar + name + text + timestamp |
 | `client/src/components/MessageInput.jsx` | Textarea, send on Enter, typing events |
 | `client/src/components/TypingIndicator.jsx` | "X is typing…" with bouncing dots |
+| `client/src/components/ConstellationView.jsx` | Spatial 2D message layout (SVG lines + node clusters) |

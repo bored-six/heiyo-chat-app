@@ -83,6 +83,10 @@ export function getRoom(roomId) { ... }
   color: '#e74c3c',
   avatar: 'Stargazer',
   tag: '1234',
+  bio: '',          // up to 160 chars
+  statusEmoji: '',  // up to 2 chars
+  statusText: '',   // up to 60 chars
+  pronouns: '',     // up to 20 chars
   connectedAt: Date.now()
 }
 ```
@@ -122,7 +126,8 @@ client/src/
 │   ├── MessageList.jsx      ← scrollable, auto-scrolls on new message
 │   ├── Message.jsx          ← avatar + name + text + timestamp
 │   ├── MessageInput.jsx     ← auto-grow textarea, Enter to send, typing events
-│   └── TypingIndicator.jsx  ← "Alice is typing…" with bouncing dots
+│   ├── TypingIndicator.jsx  ← "Alice is typing…" with bouncing dots
+│   └── ConstellationView.jsx ← spatial 2D layout: SVG lines + clustered node divs
 ├── context/
 │   └── ChatContext.jsx      ← useReducer state + ChatProvider + useChat hook
 ├── hooks/
