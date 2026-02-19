@@ -61,6 +61,10 @@ export function useSocket(dispatch, authUser, stateRef) {
       dispatch({ type: 'ROOM_CREATED', room });
     });
 
+    socket.on('room:invited', ({ room }) => {
+      dispatch({ type: 'ROOM_CREATED', room });
+    });
+
     socket.on('room:joined', ({ room, messages, members }) => {
       dispatch({ type: 'ROOM_JOINED', room, messages, members });
       // Mark the last message as seen when entering a room

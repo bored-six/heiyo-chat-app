@@ -72,6 +72,12 @@ export function initDb() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_dm_messages_dm ON dm_messages(dm_id, timestamp);
+
+    CREATE TABLE IF NOT EXISTS room_members (
+      room_id  TEXT NOT NULL,
+      username TEXT NOT NULL,
+      PRIMARY KEY (room_id, username)
+    );
   `);
 
   // Migrate: add new columns if missing (safe to run on existing DBs)
@@ -110,6 +116,23 @@ export function dbCreateRoom(id, name, createdAt, description = '', createdBy = 
 
 export function dbLoadRooms() {
   return db.prepare('SELECT * FROM rooms ORDER BY created_at ASC').all();
+}
+
+export function dbAddRoomMember(roomId, username) {
+  db.prepare(`INSERT OR IGNORE INTO room_members (room_id, username) VALUES (?, ?)`).run(roomId, username);
+}
+
+export function dbIsRoomMember(roomId, username) {
+  return !!db.prepare(`SELECT 1 FROM room_members WHERE room_id = ? AND username = ?`).get(roomId, username);
+}
+
+export function dbGetRoomsForUser(username) {
+  return db.prepare(`
+    SELECT r.* FROM rooms r
+    INNER JOIN room_members rm ON rm.room_id = r.id
+    WHERE rm.username = ?
+    ORDER BY r.created_at ASC
+  `).all(username);
 }
 
 // ─── Room messages ────────────────────────────────────────────────────────────

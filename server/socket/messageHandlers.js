@@ -33,8 +33,8 @@ export function registerMessageHandlers(io, socket) {
     // Broadcast message to everyone in the room (including sender)
     io.to(roomId).emit('message:received', { roomId, message });
 
-    // Broadcast updated room stats (heat via lastMessageAt, lurkerCount, lastMessage) to ALL clients
-    io.emit('room:updated', { room: serializeRoom(room) });
+    // Broadcast updated room stats only to current room members
+    io.to(roomId).emit('room:updated', { room: serializeRoom(room) });
   });
 
   // Client marks a message as seen

@@ -5,8 +5,11 @@ import {
   leaveRoom,
   getMessages,
   getRoomMembers,
-  getAllRooms,
+  getAllRoomsForUser,
   serializeRoom,
+  addRoomMember,
+  isRoomMember,
+  getUserByUsername,
 } from '../store/index.js';
 
 export function registerRoomHandlers(io, socket) {
@@ -15,11 +18,8 @@ export function registerRoomHandlers(io, socket) {
     const room = getRoom(roomId);
     if (!room) return;
 
-    // Block access to private rooms for non-owners
-    if (room.visibility === 'private') {
-      const requester = socket.handshake.auth?.username ?? null;
-      if (room.createdBy !== requester) return;
-    }
+    const username = socket.handshake.auth?.username ?? null;
+    if (!isRoomMember(roomId, username)) return; // silently reject non-members
 
     socket.join(roomId);
     joinRoom(roomId, socket.id);
@@ -36,8 +36,8 @@ export function registerRoomHandlers(io, socket) {
     // Notify everyone else in the room of the new member list
     socket.to(roomId).emit('room:members', { roomId, members });
 
-    // Broadcast updated room stats (lurkerCount changes on join) to all clients
-    io.emit('room:updated', { room: serializeRoom(room) });
+    // Broadcast updated room stats only to current room members
+    io.to(roomId).emit('room:updated', { room: serializeRoom(room) });
   });
 
   // Leave a room
@@ -50,32 +50,50 @@ export function registerRoomHandlers(io, socket) {
     io.to(roomId).emit('room:members', { roomId, members });
     socket.emit('room:left', { roomId });
 
-    // Broadcast updated room stats (lurkerCount changes on leave) to all clients
-    if (room) io.emit('room:updated', { room: serializeRoom(room) });
+    // Broadcast updated room stats only to remaining room members
+    if (room) io.to(roomId).emit('room:updated', { room: serializeRoom(room) });
   });
 
-  // Create a new room
-  socket.on('room:create', ({ name, description, visibility }) => {
+  // Create a new room — always private, invite-only
+  socket.on('room:create', ({ name, description }) => {
     const trimmed = (name || '').trim().slice(0, 50);
     if (!trimmed) return;
     const desc = (description || '').trim().slice(0, 120);
     const createdBy = socket.handshake.auth?.username ?? null;
-    const vis = visibility === 'public' ? 'public' : 'private';
 
-    const room = createRoom(trimmed, desc, createdBy, vis);
-    const serialized = serializeRoom(room);
+    const room = createRoom(trimmed, desc, createdBy);
 
-    if (vis === 'public') {
-      // Broadcast to everyone
-      io.emit('room:created', { room: serialized });
-    } else {
-      // Private: only tell the creator
-      socket.emit('room:created', { room: serialized });
-    }
+    // Only tell the creator — room is invisible to everyone else
+    socket.emit('room:created', { room: serializeRoom(room) });
   });
 
-  // Send current room list on request
+  // Invite a user to a room by username
+  socket.on('room:invite', ({ roomId, username }) => {
+    const room = getRoom(roomId);
+    if (!room || !username) return;
+
+    const requester = socket.handshake.auth?.username ?? null;
+    // Only existing members can invite
+    if (!isRoomMember(roomId, requester)) return;
+    // Don't invite yourself
+    if (username === requester) return;
+
+    // Persist the membership
+    addRoomMember(roomId, username);
+
+    // If the target is currently online, push the room to them immediately
+    const targetUser = getUserByUsername(username);
+    if (targetUser) {
+      io.to(targetUser.id).emit('room:invited', { room: serializeRoom(room) });
+    }
+
+    // Confirm to the inviter
+    socket.emit('room:invite:sent', { roomId, username });
+  });
+
+  // Return only rooms this user is a member of
   socket.on('room:list', () => {
-    socket.emit('room:list', { rooms: getAllRooms() });
+    const username = socket.handshake.auth?.username ?? null;
+    socket.emit('room:list', { rooms: getAllRoomsForUser(username) });
   });
 }

@@ -84,8 +84,11 @@ function reducer(state, action) {
     case 'SET_ROOMS':
       return { ...state, rooms: action.rooms };
 
-    case 'ROOM_CREATED':
+    case 'ROOM_CREATED': {
+      const exists = state.rooms.some((r) => r.id === action.room.id);
+      if (exists) return state;
       return { ...state, rooms: [...state.rooms, action.room] };
+    }
 
     case 'ROOM_JOINED': {
       const exists = state.rooms.some((r) => r.id === action.room.id);

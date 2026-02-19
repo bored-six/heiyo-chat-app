@@ -12,7 +12,7 @@ const CLASH   = ['#FFE600', '#FF6B35', '#FF3AF2', '#00F5D4', '#FFE600'];
 export default function RoomPortal() {
   const {
     me, rooms, dms, activeRoomId, activeDmId,
-    roomMessages, roomMembers, onlineUsers, dispatch,
+    roomMessages, roomMembers, onlineUsers, dispatch, socket,
   } = useChat();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,6 +58,10 @@ export default function RoomPortal() {
       ? allMessages.filter((m) => m.text.toLowerCase().includes(searchQuery.toLowerCase()))
       : allMessages;
 
+    function handleInviteSubmit(username) {
+      socket.emit('room:invite', { roomId: activeRoomId, username });
+    }
+
     return (
       <Portal
         title={room?.name ?? activeRoomId}
@@ -72,6 +76,7 @@ export default function RoomPortal() {
         onSearchChange={setSearchQuery}
         viewMode={viewMode}
         onToggleView={toggleView}
+        onInviteSubmit={handleInviteSubmit}
       >
         {viewMode === 'constellation' ? (
           <ConstellationView messages={allMessages} myId={me?.id} accent={accent} />
@@ -154,10 +159,13 @@ const MEMBER_MAX = 5;
 function Portal({
   title, accent, clash, onExit, children, members = [],
   searchOpen, searchQuery, onSearchOpen, onSearchClose, onSearchChange,
-  viewMode = 'list', onToggleView,
+  viewMode = 'list', onToggleView, onInviteSubmit,
 }) {
-  const [showMembers, setShowMembers] = useState(false);
+  const [showMembers, setShowMembers]   = useState(false);
+  const [inviteOpen, setInviteOpen]     = useState(false);
+  const [inviteInput, setInviteInput]   = useState('');
   const searchInputRef = useRef(null);
+  const inviteInputRef = useRef(null);
   const visible  = members.slice(0, MEMBER_MAX);
   const overflow = members.length - MEMBER_MAX;
 
@@ -166,9 +174,29 @@ function Portal({
       onSearchClose();
     } else {
       onSearchOpen();
-      // Focus input on next tick
+      setInviteOpen(false);
       setTimeout(() => searchInputRef.current?.focus(), 0);
     }
+  }
+
+  function handleInviteToggle() {
+    if (inviteOpen) {
+      setInviteOpen(false);
+      setInviteInput('');
+    } else {
+      setInviteOpen(true);
+      onSearchClose?.();
+      setTimeout(() => inviteInputRef.current?.focus(), 0);
+    }
+  }
+
+  function handleInviteSubmit(e) {
+    e.preventDefault();
+    const username = inviteInput.trim();
+    if (!username) return;
+    onInviteSubmit?.(username);
+    setInviteInput('');
+    setInviteOpen(false);
   }
 
   return (
@@ -229,7 +257,7 @@ function Portal({
             )}
           </div>
 
-          {/* Right: constellation toggle + search + exit */}
+          {/* Right: constellation toggle + search + invite + exit */}
           <div className="ml-4 flex flex-shrink-0 items-center gap-2">
             {/* Constellation toggle */}
             <button
@@ -259,6 +287,23 @@ function Portal({
             >
               🔍
             </button>
+
+            {/* Invite toggle — only when an invite handler is provided (rooms, not DMs) */}
+            {onInviteSubmit && (
+              <button
+                onClick={handleInviteToggle}
+                className="rounded-full border-2 border-dashed px-3 py-1.5 font-heading text-xs font-black uppercase tracking-widest transition-all duration-200 hover:scale-105"
+                style={{
+                  borderColor: inviteOpen ? accent : `${accent}55`,
+                  color: inviteOpen ? accent : `${accent}88`,
+                  backgroundColor: inviteOpen ? `${accent}15` : 'transparent',
+                }}
+                aria-label="Invite to room"
+                title="Invite someone to this room"
+              >
+                + invite
+              </button>
+            )}
 
             <button
               onClick={onExit}
@@ -298,6 +343,39 @@ function Portal({
               </button>
             )}
           </div>
+        )}
+
+        {/* ── Invite panel ── */}
+        {inviteOpen && (
+          <form
+            onSubmit={handleInviteSubmit}
+            className="flex flex-shrink-0 items-center gap-3 border-b-2 border-dashed px-5 py-2.5 animate-appear"
+            style={{ borderColor: `${accent}40`, background: `${accent}08` }}
+          >
+            <span style={{ color: accent }} className="flex-shrink-0 text-sm">🔗</span>
+            <input
+              ref={inviteInputRef}
+              value={inviteInput}
+              onChange={(e) => setInviteInput(e.target.value)}
+              placeholder="Username to invite…"
+              className="flex-1 bg-transparent font-heading text-sm font-bold uppercase tracking-wide text-white placeholder-white/25 outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!inviteInput.trim()}
+              className="flex-shrink-0 rounded-full px-3 py-1 font-heading text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 disabled:opacity-30"
+              style={{ background: accent, color: '#0D0D1A' }}
+            >
+              Send
+            </button>
+            <button
+              type="button"
+              onClick={() => { setInviteOpen(false); setInviteInput(''); }}
+              className="flex-shrink-0 font-heading text-xs font-black text-white/40 hover:text-white/70"
+            >
+              ✕
+            </button>
+          </form>
         )}
 
         {/* ── Member list panel ── */}

@@ -397,11 +397,10 @@ function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BubbleUniverse() {
-  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes, authUser } = useChat();
-  const [creating, setCreating]           = useState(false);
-  const [newRoomName, setNewRoomName]     = useState('');
-  const [newRoomDesc, setNewRoomDesc]     = useState('');
-  const [newRoomPublic, setNewRoomPublic] = useState(false);
+  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes } = useChat();
+  const [creating, setCreating]       = useState(false);
+  const [newRoomName, setNewRoomName] = useState('');
+  const [newRoomDesc, setNewRoomDesc] = useState('');
   const [showOnline, setShowOnline]       = useState(true);
   const [mouse, setMouse]                 = useState({ x: 0.5, y: 0.5 });
   const [hubOpen, setHubOpen]             = useState(false);
@@ -457,10 +456,8 @@ export default function BubbleUniverse() {
     e.preventDefault();
     const name = newRoomName.trim();
     if (!name) return;
-    // Guests always get public rooms (no persistent identity); registered users choose
-    const visibility = (authUser?.isGuest || newRoomPublic) ? 'public' : 'private';
-    socket.emit('room:create', { name, description: newRoomDesc.trim(), visibility });
-    setNewRoomName(''); setNewRoomDesc(''); setNewRoomPublic(false); setCreating(false);
+    socket.emit('room:create', { name, description: newRoomDesc.trim() });
+    setNewRoomName(''); setNewRoomDesc(''); setCreating(false);
   }
 
   function changeScale(ring, delta) {
@@ -905,22 +902,6 @@ export default function BubbleUniverse() {
             <input value={newRoomDesc} onChange={e => setNewRoomDesc(e.target.value)}
               placeholder="What happens here…" maxLength={120}
               className="rounded-full border-4 border-[#00F5D4]/50 bg-[#0D0D1A] px-5 py-2.5 font-heading text-sm font-bold tracking-wide text-white placeholder-white/20 outline-none transition-all duration-300 focus:border-[#00F5D4] focus:ring-4 focus:ring-[#00F5D4]/20" />
-
-            {/* Visibility toggle — only for registered users */}
-            {!authUser?.isGuest && (
-              <button type="button" onClick={() => setNewRoomPublic(v => !v)}
-                className="flex items-center gap-3 self-start rounded-full border-2 border-dashed px-4 py-2 transition-all duration-200"
-                style={{ borderColor: newRoomPublic ? '#00F5D4' : '#FF3AF2', background: newRoomPublic ? 'rgba(0,245,212,0.08)' : 'rgba(255,58,242,0.08)' }}>
-                <span className="text-base">{newRoomPublic ? '🌐' : '🔒'}</span>
-                <span className="font-heading text-xs font-black uppercase tracking-widest"
-                  style={{ color: newRoomPublic ? '#00F5D4' : '#FF3AF2' }}>
-                  {newRoomPublic ? 'Public' : 'Private'}
-                </span>
-                <span className="font-heading text-[10px] text-white/30">
-                  {newRoomPublic ? 'Anyone can see this' : 'Only you can see this'}
-                </span>
-              </button>
-            )}
 
             <div className="flex gap-2">
               <button type="submit"

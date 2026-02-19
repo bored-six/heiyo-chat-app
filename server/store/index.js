@@ -8,6 +8,9 @@ import {
   dbLoadDms,
   dbAddDmMessage,
   dbGetDmMessages,
+  dbAddRoomMember,
+  dbIsRoomMember,
+  dbGetRoomsForUser,
 } from '../db/index.js';
 
 const MAX_MESSAGES = 100;
@@ -123,7 +126,7 @@ export function getAllUsers() {
 
 // ─── Rooms ────────────────────────────────────────────────────────────────────
 
-export function createRoom(name, description = '', createdBy = null, visibility = 'public') {
+export function createRoom(name, description = '', createdBy = null) {
   const id = uuidv4();
   const createdAt = Date.now();
   const room = {
@@ -135,10 +138,12 @@ export function createRoom(name, description = '', createdBy = null, visibility 
     messages: [],
     createdAt,
     createdBy,
-    visibility,
+    visibility: 'private',
   };
   state.rooms[id] = room;
-  dbCreateRoom(id, name, createdAt, description, createdBy, visibility); // persist
+  dbCreateRoom(id, name, createdAt, description, createdBy, 'private'); // persist
+  // Immediately add creator to room_members so they can join
+  if (createdBy) dbAddRoomMember(id, createdBy);
   return room;
 }
 
@@ -146,14 +151,33 @@ export function getRoom(roomId) {
   return state.rooms[roomId] || null;
 }
 
-export function getAllRooms() {
-  return Object.values(state.rooms).map(serializeRoom);
+export function getAllRoomsForUser(username) {
+  // General is always included (everyone is implicitly a member)
+  const general = state.rooms['general'] ? [serializeRoom(state.rooms['general'])] : [];
+  if (!username) return general;
+
+  // Rooms where this user is an explicit member (from DB)
+  const memberRooms = dbGetRoomsForUser(username)
+    .filter(row => row.id !== 'general')
+    .map(row => state.rooms[row.id])
+    .filter(Boolean)
+    .map(serializeRoom);
+
+  return [...general, ...memberRooms];
 }
 
-export function getAllRoomsForUser(username) {
-  return Object.values(state.rooms)
-    .filter(r => r.visibility === 'public' || r.createdBy === username)
-    .map(serializeRoom);
+export function addRoomMember(roomId, username) {
+  dbAddRoomMember(roomId, username);
+}
+
+export function isRoomMember(roomId, username) {
+  if (roomId === 'general') return true;
+  if (!username) return false;
+  return dbIsRoomMember(roomId, username);
+}
+
+export function getUserByUsername(username) {
+  return Object.values(state.users).find(u => u.username === username) ?? null;
 }
 
 export function joinRoom(roomId, socketId) {
