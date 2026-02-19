@@ -397,7 +397,7 @@ function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BubbleUniverse() {
-  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes } = useChat();
+  const { rooms, socket, dispatch, unread, dms, dmUnread, onlineUsers, me, setAuthUser, echoes, authUser } = useChat();
   const [creating, setCreating]       = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
   const [newRoomDesc, setNewRoomDesc] = useState('');
@@ -915,6 +915,19 @@ export default function BubbleUniverse() {
               </button>
             </div>
           </form>
+        ) : authUser?.isGuest ? (
+          <div className="group relative">
+            <button
+              disabled
+              className="cursor-not-allowed rounded-full border-4 border-white/20 bg-white/10 px-8 py-4 font-heading text-base font-black uppercase tracking-widest text-white/30"
+              style={{ boxShadow: 'none' }}>
+              🔒 NEW ROOM
+            </button>
+            <div className="pointer-events-none absolute bottom-full right-0 mb-3 w-56 rounded-2xl border-2 border-[#7B2FFF]/60 bg-[#0D0D1A]/95 px-4 py-3 text-center font-heading text-xs font-bold uppercase tracking-wide text-white opacity-0 shadow-lg transition-all duration-200 group-hover:opacity-100"
+              style={{ boxShadow: '0 0 20px rgba(123,47,255,0.4)' }}>
+              <span className="text-[#FFE600]">Log in</span> to create a room
+            </div>
+          </div>
         ) : (
           <button onClick={() => setCreating(true)}
             className="animate-pulse-glow rounded-full border-4 border-[#FFE600] bg-gradient-to-r from-[#FF3AF2] via-[#7B2FFF] to-[#00F5D4] px-8 py-4 font-heading text-base font-black uppercase tracking-widest text-white transition-all duration-300 hover:scale-110"
