@@ -360,18 +360,16 @@ export default function UserBadge() {
         >
           {/* Avatar */}
           <div className="relative h-10 w-10 flex-shrink-0">
-            <span
-              className="absolute -inset-1 rounded-full animate-pulse pointer-events-none"
-              style={{
-                border: `2px solid ${statusColor(me.presenceStatus ?? 'online')}`,
-                boxShadow: `0 0 10px ${statusColor(me.presenceStatus ?? 'online')}cc, inset 0 0 6px ${statusColor(me.presenceStatus ?? 'online')}33`,
-              }}
-            />
             <img
               src={avatarUrl(me.avatar)}
               alt={me.username}
               className="h-10 w-10 rounded-full"
               style={{ border: '2px solid #FFE600', boxShadow: '0 0 14px #FF3AF288' }}
+            />
+            {/* Presence dot — bottom-left, dark ring separates it from the avatar */}
+            <span
+              className="absolute bottom-0 left-0 h-3 w-3 rounded-full pointer-events-none"
+              style={{ background: dotColor, boxShadow: '0 0 0 2px #2D1B4E' }}
             />
             {me.statusEmoji && (
               <span
