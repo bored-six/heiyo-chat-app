@@ -102,6 +102,12 @@ export default function UserBadge() {
 
   const dotColor = statusColor(me.presenceStatus ?? 'online');
 
+  function presenceArc(status) {
+    const circ = 2 * Math.PI * 17; // r=17 in 40×40 viewBox ≈ 106.8
+    const pct  = { online: 1, away: 0.65, dnd: 0.35, invisible: 0 }[status] ?? 1;
+    return `${(circ * pct).toFixed(1)} ${circ.toFixed(1)}`;
+  }
+
   return (
     <>
       {editingAvatar && (
@@ -120,8 +126,14 @@ export default function UserBadge() {
         {/* ── Profile panel ─────────────────────────────────────────── */}
         {open && (
           <div
-            className="absolute bottom-full left-0 mb-3 w-72 rounded-2xl border-2 border-dashed border-[#FFE600]/60 bg-[#1a0f36]/95 backdrop-blur-md animate-slide-up overflow-hidden"
-            style={{ boxShadow: '0 0 40px rgba(255,230,0,0.15), 0 8px 32px rgba(0,0,0,0.5)' }}
+            className="absolute bottom-full left-0 mb-3 w-72 rounded-2xl animate-slide-up overflow-hidden"
+            style={{
+              background: 'rgba(13,13,13,0.80)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              boxShadow: '0 0 40px rgba(255,230,0,0.08), 0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.08)',
+            }}
           >
 
             {/* ── Banner ────────────────────────────────────────────── */}
@@ -350,8 +362,16 @@ export default function UserBadge() {
         {/* ── Badge pill ──────────────────────────────────────────────── */}
         <button
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-3 rounded-full border-4 border-dashed border-[#FFE600] bg-[#2D1B4E]/90 px-4 py-2 backdrop-blur-sm cursor-pointer transition-transform hover:scale-105 active:scale-95"
-          style={{ boxShadow: open ? '0 0 28px rgba(255,230,0,0.6)' : '0 0 20px rgba(255,230,0,0.4)' }}
+          className="flex items-center gap-3 rounded-full px-4 py-2 cursor-pointer transition-transform hover:scale-105 active:scale-95"
+          style={{
+            background: 'rgba(13,13,13,0.72)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            boxShadow: open
+              ? '0 0 24px rgba(255,230,0,0.35), inset 0 1px 0 rgba(255,255,255,0.10)'
+              : '0 0 12px rgba(255,230,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06)',
+          }}
           aria-label="Open profile menu"
         >
           {/* Avatar */}
@@ -360,17 +380,30 @@ export default function UserBadge() {
               src={avatarUrl(me.avatar)}
               alt={me.username}
               className="h-10 w-10 rounded-full"
-              style={{ border: '2px solid #FFE600', boxShadow: '0 0 14px #FF3AF288' }}
+              style={{ border: '2px solid rgba(255,230,0,0.5)', boxShadow: '0 0 14px #FF3AF288' }}
             />
-            {/* Presence dot — bottom-left, dark ring separates it from the avatar */}
-            <span
-              className="absolute bottom-0 left-0 h-3 w-3 rounded-full pointer-events-none"
-              style={{ background: dotColor, boxShadow: '0 0 0 2px #2D1B4E' }}
-            />
+            {/* SVG presence arc — morphs between states */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              viewBox="0 0 40 40"
+            >
+              <circle
+                cx="20" cy="20" r="17"
+                stroke={dotColor}
+                strokeWidth="2.5"
+                strokeDasharray={presenceArc(me.presenceStatus ?? 'online')}
+                strokeLinecap="round"
+                fill="none"
+                transform="rotate(-90 20 20)"
+                style={{
+                  transition: 'stroke-dasharray 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), stroke 0.3s ease',
+                }}
+              />
+            </svg>
             {me.statusEmoji && (
               <span
                 className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none pointer-events-none select-none"
-                style={{ background: '#2D1B4E', border: '1.5px solid rgba(255,230,0,0.5)' }}
+                style={{ background: 'rgba(13,13,13,0.9)', border: '1.5px solid rgba(255,230,0,0.4)' }}
               >
                 {me.statusEmoji}
               </span>

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 
 // Five accent colors + their clashing border partners
-const ACCENTS      = ['#FF3AF2', '#00F5D4', '#FFE600', '#FF6B35', '#7B2FFF'];
-const CLASH        = ['#FFE600', '#FF6B35', '#FF3AF2', '#00F5D4', '#FFE600'];
+const ACCENTS = ['#FF3AF2', '#00F5D4', '#FFE600', '#FF6B35', '#7B2FFF'];
 const FLOAT_ANIMS  = [
   'animate-float',
   'animate-float-reverse',
@@ -69,9 +68,8 @@ export default function RoomBubble({
   imploding = false,
   isProtected = false,
 }) {
-  const accent      = ACCENTS[index % ACCENTS.length];
-  const borderColor = CLASH[index % CLASH.length];
-  const floatAnim   = FLOAT_ANIMS[index % FLOAT_ANIMS.length];
+  const accent    = ACCENTS[index % ACCENTS.length];
+  const floatAnim = FLOAT_ANIMS[index % FLOAT_ANIMS.length];
   const rotation    = ROTATIONS[index % ROTATIONS.length];
   const delay       = `${(index * 0.65) % 3.5}s`;
 
@@ -229,10 +227,11 @@ export default function RoomBubble({
           style={{
             width: `${size}px`,
             height: `${size}px`,
-            backgroundColor: `${accent}1A`,
-            border: `4px solid ${borderColor}`,
-            boxShadow: glow,
-            focusRingColor: accent,
+            backgroundColor: 'rgba(13,13,13,0.55)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.10)',
+            boxShadow: `${glow}, inset 0 1px 0 rgba(255,255,255,0.06)`,
             transition: 'width 0.6s ease, height 0.6s ease, box-shadow 0.6s ease',
           }}
           aria-label={`Enter room: ${room.name}`}

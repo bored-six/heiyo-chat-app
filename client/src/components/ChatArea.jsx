@@ -39,7 +39,7 @@ export default function ChatArea() {
   // ── No selection ──────────────────────────────────────────────────────────
   if (!activeRoomId && !activeDmId) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-[#313338] text-[#6d6f78]">
+      <div className="flex flex-1 items-center justify-center bg-[#0D0D0D] text-white/25">
         <p>Select a room or DM to start chatting.</p>
       </div>
     );
@@ -86,7 +86,15 @@ export default function ChatArea() {
 
 function Header({ title, color, onCopyInvite, inviteCopied, isMuted, onToggleMute }) {
   return (
-    <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-[#1e1f22] bg-[#313338] px-4 shadow-sm">
+    <div
+      className="flex h-12 flex-shrink-0 items-center justify-between px-4"
+      style={{
+        background: 'rgba(13,13,13,0.75)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.10)',
+      }}
+    >
       <span className="font-semibold text-[#dcddde]" style={color ? { color } : undefined}>
         {title}
       </span>

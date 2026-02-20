@@ -182,11 +182,13 @@ function Portal({
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center p-6">
       <div
-        className="animate-portal-in flex h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl backdrop-blur-sm"
+        className="animate-portal-in flex h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl"
         style={{
-          backgroundColor: 'rgba(13,13,26,0.88)',
-          border: `2px solid ${accent}55`,
-          boxShadow: `0 0 60px ${accent}55, 0 0 120px ${accent}22`,
+          background: 'rgba(13,13,13,0.72)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          boxShadow: `0 0 60px ${accent}44, 0 0 120px ${accent}18, inset 0 1px 0 rgba(255,255,255,0.08)`,
         }}
       >
         {/* ── Header ── */}

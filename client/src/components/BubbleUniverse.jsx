@@ -294,7 +294,7 @@ function PulsePicker({ activeRoomName, onPulse, onClose }) {
             boxShadow: text ? '0 0 20px rgba(255,107,53,0.5)' : 'none',
           }}
         >
-          🔮 PULSE
+          ✦ PULSE
         </button>
       </div>
     </div>
@@ -394,6 +394,38 @@ function OrbitCustomizerModal({ rooms, hiddenRooms, onToggle, onClose }) {
   );
 }
 
+// ─── Heiyo geometric logo — inline SVG with gradient + glow ──────────────────
+
+function HeiyoLogo({ size = 40 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stopColor="#00E5FF" />
+          <stop offset="100%" stopColor="#7B2FBE" />
+        </linearGradient>
+        <filter id="logo-glow" x="-25%" y="-25%" width="150%" height="150%">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+      {/* Outer decagon ring */}
+      <polygon
+        points="24,3 33,7 43,17 43,31 33,41 24,45 15,41 5,31 5,17 15,7"
+        stroke="url(#logo-grad)" strokeWidth="1.5" fill="none"
+        filter="url(#logo-glow)" opacity="0.9"
+      />
+      {/* Inner rotated square */}
+      <rect x="15" y="15" width="18" height="18" rx="2"
+        transform="rotate(45 24 24)"
+        stroke="url(#logo-grad)" strokeWidth="1" fill="rgba(0,229,255,0.05)"
+      />
+      {/* Center dot */}
+      <circle cx="24" cy="24" r="2.5" fill="url(#logo-grad)" />
+    </svg>
+  );
+}
+
 // ─── Orbit icon — mini SVG of the orbit ring, locks on when following ─────────
 
 function OrbitIcon({ locked }) {
@@ -401,9 +433,17 @@ function OrbitIcon({ locked }) {
     <svg width="16" height="11" viewBox="0 0 16 11" fill="none" style={{ display: 'block' }}>
       <ellipse cx="8" cy="5.5" rx="7" ry="4.5"
         stroke="currentColor" strokeWidth="1.5"
-        strokeDasharray={locked ? '0' : '2.5 2'}
+        strokeDasharray={locked ? '28' : '2.5 2'}
+        style={{ transition: 'stroke-dasharray 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}
       />
-      {locked && <circle cx="8" cy="5.5" r="2" fill="currentColor" />}
+      <circle cx="8" cy="5.5" r="2" fill="currentColor"
+        style={{
+          opacity: locked ? 1 : 0,
+          transform: locked ? 'scale(1)' : 'scale(0)',
+          transformOrigin: '8px 5.5px',
+          transition: 'opacity 0.3s ease, transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        }}
+      />
     </svg>
   );
 }
@@ -647,9 +687,9 @@ export default function BubbleUniverse() {
       <div className="absolute pointer-events-none select-none z-10"
         style={{ top: `${CY - RING.outer.rY - 4}%`, left: '35%', transform: 'translateX(-50%)' }}>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-          style={{ background: 'rgba(0,245,212,0.07)', border: '1px solid rgba(0,245,212,0.14)' }}>
-          <span className="font-heading text-[8px] font-black" style={{ color: 'rgba(0,245,212,0.4)' }}>○3</span>
-          <span className="font-heading text-[7px] font-black uppercase tracking-[0.45em]" style={{ color: 'rgba(0,245,212,0.25)' }}>ROOMS</span>
+          style={{ background: 'rgba(13,13,13,0.65)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <span className="font-heading text-[8px] font-black" style={{ color: 'rgba(0,229,255,0.5)' }}>○3</span>
+          <span className="font-heading text-[7px] font-black uppercase tracking-[0.45em]" style={{ color: 'rgba(0,229,255,0.3)' }}>ROOMS</span>
         </div>
       </div>
 
@@ -657,9 +697,9 @@ export default function BubbleUniverse() {
       <div className="absolute pointer-events-none select-none z-10"
         style={{ top: `${CY - RING.middle.rY - 3}%`, left: '50%', transform: 'translateX(-50%)' }}>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-          style={{ background: 'rgba(255,107,53,0.07)', border: '1px solid rgba(255,107,53,0.14)' }}>
-          <span className="font-heading text-[8px] font-black" style={{ color: 'rgba(255,107,53,0.4)' }}>○2</span>
-          <span className="font-heading text-[7px] font-black uppercase tracking-[0.45em]" style={{ color: 'rgba(255,107,53,0.25)' }}>ECHOES</span>
+          style={{ background: 'rgba(13,13,13,0.65)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <span className="font-heading text-[8px] font-black" style={{ color: 'rgba(255,107,53,0.55)' }}>○2</span>
+          <span className="font-heading text-[7px] font-black uppercase tracking-[0.45em]" style={{ color: 'rgba(255,107,53,0.35)' }}>ECHOES</span>
         </div>
       </div>
 
@@ -667,15 +707,19 @@ export default function BubbleUniverse() {
       <div className="absolute pointer-events-none select-none z-10"
         style={{ top: `${CY - RING.inner.rY - 2.5}%`, left: '65%', transform: 'translateX(-50%)' }}>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-          style={{ background: 'rgba(255,230,0,0.07)', border: '1px solid rgba(255,230,0,0.14)' }}>
-          <span className="font-heading text-[8px] font-black" style={{ color: 'rgba(255,230,0,0.4)' }}>○1</span>
-          <span className="font-heading text-[7px] font-black uppercase tracking-[0.45em]" style={{ color: 'rgba(255,230,0,0.25)' }}>FRIENDS</span>
+          style={{ background: 'rgba(13,13,13,0.65)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <span className="font-heading text-[8px] font-black" style={{ color: 'rgba(255,230,0,0.55)' }}>○1</span>
+          <span className="font-heading text-[7px] font-black uppercase tracking-[0.45em]" style={{ color: 'rgba(255,230,0,0.35)' }}>FRIENDS</span>
         </div>
       </div>
 
       {/* ── Universe title ───────────────────────────────────────────────────── */}
       <div className="absolute top-7 left-1/2 z-10 -translate-x-1/2 text-center">
-        <h1 className="font-heading text-6xl font-black uppercase tracking-tighter text-gradient">HEIYO</h1>
+        <div className="flex items-center justify-center gap-3 mb-1">
+          <HeiyoLogo size={38} />
+          <h1 className="font-heading text-6xl font-black uppercase tracking-tighter text-gradient">HEIYO</h1>
+          <HeiyoLogo size={38} />
+        </div>
         <p className="mt-1 font-heading text-xs font-black uppercase tracking-[0.3em] text-[#FF3AF2]/50">
           {rooms.length} {rooms.length === 1 ? 'room' : 'rooms'}
           {dmList.length > 0 ? ` · ${dmList.length} friend${dmList.length !== 1 ? 's' : ''}` : ''}
@@ -703,15 +747,33 @@ export default function BubbleUniverse() {
       {/* ── Profile hub ──────────────────────────────────────────────────────── */}
       <div ref={hubRef} className="absolute z-30"
         style={{ left: `${CX}%`, top: `${CY}%`, transform: 'translate(-50%, -50%)' }}>
-        <div className="absolute rounded-full animate-spin-slow pointer-events-none"
-          style={{ inset: '-18px', border: `1px solid ${me?.color ?? '#FF3AF2'}44` }} />
-        <div className="absolute rounded-full pointer-events-none"
-          style={{ inset: '-8px', border: `1px dashed ${me?.color ?? '#FF3AF2'}22` }} />
+
+        {/* Radial glow */}
         <div className="absolute rounded-full pointer-events-none"
           style={{ inset: '-28px', background: `radial-gradient(circle, ${me?.color ?? '#FF3AF2'}18, transparent 70%)` }} />
 
         <button onClick={() => setHubOpen(v => !v)}
-          className="relative flex flex-col items-center gap-1.5 group" title="Your profile">
+          className="relative flex flex-col items-center gap-1.5 group hub-button" title="Your profile">
+
+          {/* SVG rings — centered on the 64 px avatar */}
+          <svg
+            className="absolute pointer-events-none"
+            style={{ top: '-18px', left: 'calc(50% - 50px)', width: '100px', height: '100px', overflow: 'visible' }}
+            viewBox="0 0 100 100"
+          >
+            {/* Outer spinning dashed ring */}
+            <circle cx="50" cy="50" r="46"
+              stroke={`${me?.color ?? '#FF3AF2'}44`}
+              strokeWidth="1.2" strokeDasharray="6 8" fill="none"
+              className="animate-spin-slow"
+            />
+            {/* Inner ring — expands on hover via CSS */}
+            <circle cx="50" cy="50" r="36"
+              stroke={`${me?.color ?? '#FF3AF2'}28`}
+              strokeWidth="1" strokeDasharray="4 6" fill="none"
+              className="profile-ring-inner"
+            />
+          </svg>
           <div className="relative w-16 h-16 rounded-full overflow-hidden transition-all duration-300 group-hover:scale-110"
             style={{ border: `3px solid ${me?.color ?? '#FF3AF2'}`, boxShadow: `0 0 20px ${me?.color ?? '#FF3AF2'}66, 0 0 48px ${me?.color ?? '#FF3AF2'}22` }}>
             {me?.avatar
@@ -722,7 +784,13 @@ export default function BubbleUniverse() {
             }
           </div>
           <span className="font-heading text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-            style={{ color: me?.color ?? '#FF3AF2', background: `${me?.color ?? '#FF3AF2'}18`, border: `1px solid ${me?.color ?? '#FF3AF2'}44` }}>
+            style={{
+              color: me?.color ?? '#FF3AF2',
+              background: 'rgba(13,13,13,0.65)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.10)',
+            }}>
             {me?.username ?? '…'}
           </span>
         </button>
@@ -730,10 +798,12 @@ export default function BubbleUniverse() {
         {hubOpen && (
           <div className="absolute bottom-[calc(100%+1rem)] left-1/2 -translate-x-1/2 w-64 animate-appear"
             style={{
-              background: 'rgba(13,13,26,0.97)',
-              border: `2px solid ${me?.color ?? '#FF3AF2'}55`,
+              background: 'rgba(13,13,13,0.80)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.10)',
               borderRadius: '1.25rem',
-              boxShadow: `0 0 40px ${me?.color ?? '#FF3AF2'}33, 0 12px 40px rgba(0,0,0,0.6)`,
+              boxShadow: `0 0 40px ${me?.color ?? '#FF3AF2'}18, 0 12px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.08)`,
             }}>
             <div className="flex items-center gap-3 p-4 border-b border-white/8">
               <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0"
@@ -840,12 +910,23 @@ export default function BubbleUniverse() {
                 <div className="absolute -bottom-1.5 -right-1.5 flex items-center justify-center rounded-full"
                   style={{
                     width: 18, height: 18,
-                    background: '#0D0D1A',
+                    background: 'rgba(13,13,13,0.9)',
                     border: `1.5px solid ${isOnline ? color : color + '55'}`,
                     color: isOnline ? color : color + '66',
                   }}>
                   <OrbitIcon locked />
                 </div>
+                {/* SVG hover ring */}
+                <svg className="absolute pointer-events-none bubble-hover-ring"
+                  style={{ top: -5, left: -5, width: sz + 10, height: sz + 10, overflow: 'visible' }}
+                  viewBox={`0 0 ${sz + 10} ${sz + 10}`}
+                >
+                  <circle
+                    cx={(sz + 10) / 2} cy={(sz + 10) / 2} r={(sz + 10) / 2 - 3}
+                    stroke={color} strokeWidth="1.5" strokeDasharray="4 5"
+                    fill="none" strokeLinecap="round"
+                  />
+                </svg>
               </div>
               <span className="font-heading text-[9px] font-black uppercase tracking-widest"
                 style={{ color: isOnline ? `${color}cc` : `${color}55` }}>
@@ -887,6 +968,17 @@ export default function BubbleUniverse() {
                   {unreadCount}
                 </span>
               )}
+              {/* SVG hover ring */}
+              <svg className="absolute pointer-events-none bubble-hover-ring"
+                style={{ top: -5, left: -5, width: sz + 10, height: sz + 10, overflow: 'visible' }}
+                viewBox={`0 0 ${sz + 10} ${sz + 10}`}
+              >
+                <circle
+                  cx={(sz + 10) / 2} cy={(sz + 10) / 2} r={(sz + 10) / 2 - 3}
+                  stroke={color} strokeWidth="1.5" strokeDasharray="4 5"
+                  fill="none" strokeLinecap="round"
+                />
+              </svg>
             </div>
             <span className="font-heading text-[9px] font-black uppercase tracking-widest" style={{ color: `${color}cc` }}>
               {other?.username ?? '…'}
@@ -1001,14 +1093,26 @@ export default function BubbleUniverse() {
       {/* ── Online users panel ───────────────────────────────────────────────── */}
       <div className="absolute top-6 right-6 z-30 w-52">
         <button onClick={() => setShowOnline(v => !v)}
-          className="flex w-full items-center justify-between rounded-2xl border-2 border-dashed border-[#00F5D4]/60 bg-[#0D0D1A]/70 px-3 py-2 backdrop-blur-sm transition-all hover:border-[#00F5D4]">
-          <span className="font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4]">
+          className="flex w-full items-center justify-between rounded-2xl px-3 py-2 transition-all hover:brightness-110"
+          style={{
+            background: 'rgba(13,13,13,0.72)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.10)',
+          }}>
+          <span className="font-heading text-[10px] font-black uppercase tracking-widest" style={{ color: '#00E5FF' }}>
             {Object.keys(onlineUsers).length + 1} online
           </span>
-          <span className="font-heading text-[10px] text-[#00F5D4]/60">{showOnline ? '▴' : '▾'}</span>
+          <span className="font-heading text-[10px]" style={{ color: 'rgba(0,229,255,0.5)' }}>{showOnline ? '▴' : '▾'}</span>
         </button>
         {showOnline && (
-          <div className="animate-appear mt-1 space-y-0.5 rounded-2xl border-2 border-dashed border-[#00F5D4]/40 bg-[#0D0D1A]/80 p-2 backdrop-blur-sm">
+          <div className="animate-appear mt-1 space-y-0.5 rounded-2xl p-2"
+            style={{
+              background: 'rgba(13,13,13,0.75)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}>
             {me && (
               <div className="flex items-center gap-2 rounded-xl px-2 py-1.5">
                 <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: me.color, boxShadow: `0 0 6px ${me.color}` }} />
@@ -1095,26 +1199,37 @@ export default function BubbleUniverse() {
             />
           )}
 
-          {/* The orb button */}
+          {/* The orb button — SVG-first with breathing animation */}
           <button
             onClick={() => setShowPulse(true)}
-            className="animate-pulse-glow relative flex h-16 w-16 items-center justify-center rounded-full transition-transform duration-300 hover:scale-110"
+            className="animate-orb-breathe transition-transform duration-300 hover:scale-110 focus:outline-none"
             style={{
-              background: 'radial-gradient(circle at 38% 38%, rgba(255,58,242,0.28), rgba(123,47,255,0.12))',
-              border: '2px solid rgba(255,58,242,0.5)',
-              boxShadow: '0 0 28px rgba(255,58,242,0.4), inset 0 0 14px rgba(255,58,242,0.1)',
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              filter: 'drop-shadow(0 0 14px rgba(255,58,242,0.55))',
             }}
+            aria-label="Send a Pulse echo"
           >
-            {/* Broadcast / sonar SVG icon */}
-            <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Center dot */}
-              <circle cx="13" cy="17" r="2.2" fill="#FF3AF2" />
-              {/* Inner arc */}
-              <path d="M8.5 14.5 Q13 8.5 17.5 14.5" stroke="#FF3AF2" strokeWidth="2" strokeLinecap="round" fill="none" opacity="1" />
-              {/* Middle arc */}
-              <path d="M5 17 Q13 5 21 17" stroke="#FF3AF2" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.6" />
-              {/* Outer arc */}
-              <path d="M1.5 19.5 Q13 1.5 24.5 19.5" stroke="#FF3AF2" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.28" />
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+              <defs>
+                <radialGradient id="pulse-orb-grad" cx="38%" cy="35%" r="65%">
+                  <stop offset="0%"   stopColor="rgba(255,58,242,0.38)" />
+                  <stop offset="100%" stopColor="rgba(123,47,190,0.10)" />
+                </radialGradient>
+              </defs>
+              {/* Outer ambient ring */}
+              <circle cx="32" cy="32" r="30" stroke="rgba(255,58,242,0.25)" strokeWidth="1" fill="none" />
+              {/* Orb body */}
+              <circle cx="32" cy="32" r="26" fill="url(#pulse-orb-grad)" stroke="rgba(255,58,242,0.55)" strokeWidth="1.5" />
+              {/* Specular highlight */}
+              <ellipse cx="26" cy="21" rx="8" ry="5" fill="rgba(255,255,255,0.07)" />
+              {/* Sonar icon — center dot + 3 arcs */}
+              <circle cx="32" cy="36" r="2.2" fill="#FF3AF2" />
+              <path d="M27.5 33.5 Q32 27.5 36.5 33.5" stroke="#FF3AF2" strokeWidth="2" strokeLinecap="round" fill="none" />
+              <path d="M23 36 Q32 24 41 36" stroke="#FF3AF2" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.6" />
+              <path d="M18.5 38.5 Q32 20.5 45.5 38.5" stroke="#FF3AF2" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.28" />
             </svg>
           </button>
         </div>

@@ -117,7 +117,7 @@ export default function AuthScreen({ onAuth }) {
   }
 
   return (
-    <div className="relative flex h-screen items-center justify-center overflow-hidden bg-[#0D0D1A]">
+    <div className="relative flex h-screen items-center justify-center overflow-hidden bg-[#0D0D0D]">
       {/* Background layers */}
       <div className="pointer-events-none absolute inset-0 pattern-dots opacity-[0.07]" />
 
@@ -144,7 +144,18 @@ export default function AuthScreen({ onAuth }) {
       </div>
 
       {/* Card */}
-      <div className="relative z-10 w-full max-w-sm animate-appear px-4">
+      <div
+        className="relative z-10 w-full max-w-sm animate-appear mx-4"
+        style={{
+          background: 'rgba(13,13,13,0.72)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: '1.75rem',
+          padding: '2rem',
+          boxShadow: '0 0 60px rgba(255,58,242,0.08), 0 24px 64px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08)',
+        }}
+      >
         <p className="mb-8 text-center font-heading text-4xl font-black uppercase tracking-tighter text-gradient">
           Heiyo
         </p>
