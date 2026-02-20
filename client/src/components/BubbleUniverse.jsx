@@ -59,13 +59,16 @@ const RING = {
   outer:  { rX: 38, rY: 27, angleOffset: 0,           max:  5, color: 'rgba(0,245,212,0.08)'  },
 };
 
+// Orbital speeds in rad/s — inner fastest (real orbital mechanics)
+const ORBIT_SPEED = { inner: 0.08, middle: 0.05, outer: 0.03 };
+
 const SCALE_KEY        = 'heiyo_ring_scales';
 const ORBIT_HIDDEN_KEY = 'heiyo_orbit_hidden';
 
-function orbitalPositions(count, rX, rY, angleOffset = 0) {
+function orbitalPositions(count, rX, rY, angleOffset = 0, time = 0, speed = 0) {
   if (count === 0) return [];
   return Array.from({ length: count }, (_, i) => {
-    const angle = (2 * Math.PI * i / count) - Math.PI / 2 + angleOffset;
+    const angle = (2 * Math.PI * i / count) - Math.PI / 2 + angleOffset + time * speed;
     return {
       left: `${CX + rX * Math.cos(angle)}%`,
       top:  `${CY + rY * Math.sin(angle)}%`,
@@ -534,6 +537,7 @@ export default function BubbleUniverse() {
   const [viewEcho, setViewEcho]             = useState(null);
   const [viewFollow, setViewFollow]         = useState(null); // offline followed user or null
   const [outerRingPulseKey, setOuterRingPulseKey] = useState(0);
+  const [orbitTime, setOrbitTime] = useState(0);
   const rafRef = useRef(null);
   const hubRef = useRef(null);
   const prevOuterUnreadRef = useRef(0);
@@ -632,6 +636,11 @@ export default function BubbleUniverse() {
   // Orbit 3 — Rooms (customizable)
   const visibleRooms  = rooms.filter(r => !hiddenRooms.has(r.id));
 
+  // ── Caps ────────────────────────────────────────────────────────────────────
+  const innerVisible  = innerItems.slice(0, RING.inner.max);
+  const innerOverflow = Math.max(0, innerItems.length - RING.inner.max);
+  const outerVisible  = visibleRooms.slice(0, RING.outer.max);
+
   // Orbit 3 unread total — drives ring pulse
   const outerUnreadTotal = outerVisible.reduce((sum, r) => sum + (unread[r.id] ?? 0), 0);
   useEffect(() => {
@@ -641,20 +650,24 @@ export default function BubbleUniverse() {
     prevOuterUnreadRef.current = outerUnreadTotal;
   }, [outerUnreadTotal]);
 
-  // ── Caps ────────────────────────────────────────────────────────────────────
-  const innerVisible  = innerItems.slice(0, RING.inner.max);
-  const innerOverflow = Math.max(0, innerItems.length - RING.inner.max);
-  const outerVisible  = visibleRooms.slice(0, RING.outer.max);
+  // Orbital motion — updates at ~30 fps (plenty smooth for slow orbital speeds)
+  useEffect(() => {
+    const start = Date.now();
+    const id = setInterval(() => {
+      setOrbitTime((Date.now() - start) / 1000);
+    }, 33);
+    return () => clearInterval(id);
+  }, []);
 
   // ── Orbital positions ────────────────────────────────────────────────────────
   const innerPos  = orbitalPositions(
     innerVisible.length + (innerOverflow > 0 ? 1 : 0),
-    RING.inner.rX, RING.inner.rY, RING.inner.angleOffset
+    RING.inner.rX, RING.inner.rY, RING.inner.angleOffset, orbitTime, ORBIT_SPEED.inner
   );
-  const middlePos = orbitalPositions(totalMiddle, RING.middle.rX, RING.middle.rY, RING.middle.angleOffset);
+  const middlePos = orbitalPositions(totalMiddle, RING.middle.rX, RING.middle.rY, RING.middle.angleOffset, orbitTime, ORBIT_SPEED.middle);
   // Outer always has +1 reserved for "+" button
   const outerPos  = orbitalPositions(
-    outerVisible.length + 1, RING.outer.rX, RING.outer.rY, RING.outer.angleOffset
+    outerVisible.length + 1, RING.outer.rX, RING.outer.rY, RING.outer.angleOffset, orbitTime, ORBIT_SPEED.outer
   );
 
   // Active room name (for pulse picker)
@@ -913,12 +926,11 @@ export default function BubbleUniverse() {
           const isOnline = u.online;
           return (
             <button key={`follow-${u.username}`}
-              className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
+              className="absolute z-20 flex flex-col items-center gap-1 group"
               style={{
                 left: pos.left, top: pos.top,
                 transform: `translate(calc(-50% + ${pX}px), calc(-50% + ${pY}px))`,
                 transition: 'transform 0.12s ease-out',
-                animationDelay: `${i * 0.9}s`,
                 opacity: isOnline ? 1 : 0.4,
               }}
               onClick={() => {
@@ -979,12 +991,11 @@ export default function BubbleUniverse() {
         const color       = other?.color ?? '#FFE600';
         return (
           <button key={dm.id}
-            className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
+            className="absolute z-20 flex flex-col items-center gap-1 group"
             style={{
               left: pos.left, top: pos.top,
               transform: `translate(calc(-50% + ${pX}px), calc(-50% + ${pY}px))`,
               transition: 'transform 0.12s ease-out',
-              animationDelay: `${i * 0.9}s`,
             }}
             onClick={() => dispatch({ type: 'SET_ACTIVE_DM', dmId: dm.id })}
             title={lastMsg ? `${other?.username}: ${lastMsg.text}` : other?.username}
@@ -1034,12 +1045,11 @@ export default function BubbleUniverse() {
         return (
           <button
             key={echo.id}
-            className="absolute z-20 flex flex-col items-center gap-1 group animate-float-slow"
+            className="absolute z-20 flex flex-col items-center gap-1 group"
             style={{
               left: pos.left, top: pos.top,
               transform: `translate(calc(-50% + ${pX}px), calc(-50% + ${pY}px))`,
               transition: 'transform 0.12s ease-out',
-              animationDelay: `${i * 0.8}s`,
             }}
             onClick={() => setViewEcho(echo)}
             title={`${echo.username}: ${echo.text}`}
