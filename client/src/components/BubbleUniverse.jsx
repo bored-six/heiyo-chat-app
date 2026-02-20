@@ -530,11 +530,13 @@ export default function BubbleUniverse() {
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showPulse, setShowPulse]         = useState(false);
   const [pulseHovered, setPulseHovered]   = useState(false);
-  const [rippleKey, setRippleKey]         = useState(0);
-  const [viewEcho, setViewEcho]           = useState(null);
-  const [viewFollow, setViewFollow]       = useState(null); // offline followed user or null
+  const [rippleKey, setRippleKey]           = useState(0);
+  const [viewEcho, setViewEcho]             = useState(null);
+  const [viewFollow, setViewFollow]         = useState(null); // offline followed user or null
+  const [outerRingPulseKey, setOuterRingPulseKey] = useState(0);
   const rafRef = useRef(null);
   const hubRef = useRef(null);
+  const prevOuterUnreadRef = useRef(0);
 
   const setScales = useCallback((updater) => {
     setScalesRaw(prev => {
@@ -625,6 +627,15 @@ export default function BubbleUniverse() {
   // Orbit 3 — Rooms (customizable)
   const visibleRooms  = rooms.filter(r => !hiddenRooms.has(r.id));
 
+  // Orbit 3 unread total — drives ring pulse
+  const outerUnreadTotal = outerVisible.reduce((sum, r) => sum + (unread[r.id] ?? 0), 0);
+  useEffect(() => {
+    if (outerUnreadTotal > prevOuterUnreadRef.current) {
+      setOuterRingPulseKey(k => k + 1);
+    }
+    prevOuterUnreadRef.current = outerUnreadTotal;
+  }, [outerUnreadTotal]);
+
   // ── Caps ────────────────────────────────────────────────────────────────────
   const innerVisible  = innerItems.slice(0, RING.inner.max);
   const innerOverflow = Math.max(0, innerItems.length - RING.inner.max);
@@ -673,6 +684,16 @@ export default function BubbleUniverse() {
         {/* Orbit 3 — Rooms */}
         <ellipse cx={CX} cy={CY} rx={RING.outer.rX}  ry={RING.outer.rY}
           fill="none" stroke="rgba(0,245,212,0.08)"  strokeWidth="0.35" strokeDasharray="2.5 6" />
+        {/* Orbit 3 — pulse layer (re-keyed on each new message to replay animation) */}
+        {outerRingPulseKey > 0 && (
+          <ellipse
+            key={outerRingPulseKey}
+            cx={CX} cy={CY}
+            rx={RING.outer.rX} ry={RING.outer.rY}
+            fill="none" stroke="rgba(0,245,212,1)" strokeWidth="0.6"
+            className="animate-ring-pulse"
+          />
+        )}
         {/* Orbit 2 — Echoes */}
         <ellipse cx={CX} cy={CY} rx={RING.middle.rX} ry={RING.middle.rY}
           fill="none" stroke="rgba(255,107,53,0.10)" strokeWidth="0.35" strokeDasharray="2 5" />

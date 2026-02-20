@@ -39,6 +39,7 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
   const { socket, activeRoomId, activeDmId, me, onlineUsers } = useChat();
   const [pickerVisible, setPickerVisible] = useState(false);
   const [profileUser, setProfileUser] = useState(null);
+  const [lastAdded, setLastAdded] = useState(null);
 
   function openProfile() {
     // Prefer the live onlineUsers entry (has full profile fields), fall back to message snapshot
@@ -62,17 +63,23 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
       dmId: activeDmId ?? undefined,
       emoji,
     });
+    setLastAdded(emoji);
+    setTimeout(() => setLastAdded(null), 600);
   }
 
   return (
     <div
-      className={`group relative mx-3 my-2 flex items-start gap-3 rounded-2xl p-3 transition-all duration-200 hover:scale-[1.015] ${isOwn ? 'flex-row-reverse hover:rotate-[0.4deg]' : 'hover:-rotate-[0.4deg]'}`}
+      className={`animate-appear group relative mx-3 my-2 flex items-start gap-3 rounded-2xl p-3 transition-all duration-200 hover:scale-[1.015] ${isOwn ? 'flex-row-reverse hover:rotate-[0.4deg]' : 'hover:-rotate-[0.4deg]'}`}
       style={{
         backgroundColor: isOwn ? `${senderColor}22` : `${senderColor}12`,
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        border: `1px solid ${senderColor}18`,
         ...(isOwn
           ? { borderRight: `4px solid ${senderColor}` }
           : { borderLeft: `4px solid ${senderColor}` }),
       }}
+      onMouseEnter={() => setPickerVisible(true)}
       onMouseLeave={() => setPickerVisible(false)}
     >
       {/* Chibi avatar */}
@@ -156,7 +163,7 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
                 <button
                   key={emoji}
                   onClick={() => toggleReaction(emoji)}
-                  className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-all duration-150 hover:scale-110"
+                  className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-all duration-150 hover:scale-110 ${lastAdded === emoji ? 'animate-reaction-pop' : ''}`}
                   style={{
                     borderColor: iMine ? senderColor : 'rgba(255,255,255,0.15)',
                     backgroundColor: iMine ? `${senderColor}22` : 'rgba(255,255,255,0.05)',
@@ -196,6 +203,28 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
               </span>
             )}
           </div>
+        {/* Reaction strip — slides up from below on hover */}
+        {pickerVisible && (
+          <div className={`mt-1.5 flex w-fit items-center gap-1 rounded-full border-2 border-dashed border-white/20 bg-[#1a1a2e]/95 px-2 py-1 backdrop-blur-sm animate-slide-up ${isOwn ? 'ml-auto' : ''}`}>
+            {EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => toggleReaction(emoji)}
+                className="text-base transition-transform duration-100 hover:scale-125"
+                title={`React with ${emoji}`}
+              >
+                {emoji}
+              </button>
+            ))}
+            <div className="mx-0.5 h-4 w-px bg-white/20" />
+            <button
+              onClick={() => onReply?.(message)}
+              className="rounded px-1 font-heading text-[11px] font-black uppercase tracking-wide text-white/50 transition-colors hover:text-white"
+              title="Reply"
+            >
+              ↩
+            </button>
+          </div>
         )}
       </div>
 
@@ -208,30 +237,6 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
           onDm={() => socket.emit('dm:open', { toUserId: profileUser.id })}
         />
       )}
-
-      {/* Hover toolbar — emoji picker + reply button */}
-      <div
-        className={`absolute ${isOwn ? 'right-full mr-2' : 'left-full ml-2'} top-1 z-10 flex items-center gap-1 rounded-full border-2 border-dashed border-white/20 bg-[#1a1a2e]/95 px-2 py-1 backdrop-blur-sm transition-all duration-150 ${pickerVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'} group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto`}
-      >
-        {EMOJIS.map((emoji) => (
-          <button
-            key={emoji}
-            onClick={() => toggleReaction(emoji)}
-            className="text-base transition-transform duration-100 hover:scale-125"
-            title={`React with ${emoji}`}
-          >
-            {emoji}
-          </button>
-        ))}
-        <div className="mx-0.5 h-4 w-px bg-white/20" />
-        <button
-          onClick={() => onReply?.(message)}
-          className="rounded px-1 font-heading text-[11px] font-black uppercase tracking-wide text-white/50 transition-colors hover:text-white"
-          title="Reply"
-        >
-          ↩
-        </button>
-      </div>
     </div>
   );
 }
