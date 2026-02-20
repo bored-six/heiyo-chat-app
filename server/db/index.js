@@ -93,6 +93,15 @@ export function initDb() {
   // Migrate: add new columns if missing (safe to run on existing DBs)
   try { db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN tag TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+  // Backfill tag for users who got the empty-string default (pre-tag accounts)
+  {
+    const untagged = db.prepare(`SELECT username FROM users WHERE tag = ''`).all();
+    const setTag = db.prepare(`UPDATE users SET tag = ? WHERE username = ?`);
+    for (const { username } of untagged) {
+      const tag = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+      setTag.run(tag, username);
+    }
+  }
   try { db.exec(`ALTER TABLE messages ADD COLUMN sender_avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
   try { db.exec(`ALTER TABLE messages ADD COLUMN sender_tag TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.exec(`ALTER TABLE dm_messages ADD COLUMN sender_avatar TEXT NOT NULL DEFAULT 'Stargazer'`); } catch (_) {}
