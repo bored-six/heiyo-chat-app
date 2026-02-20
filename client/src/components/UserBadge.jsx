@@ -512,6 +512,14 @@ export default function UserBadge() {
         >
           {/* Avatar */}
           <div className="relative h-10 w-10 flex-shrink-0">
+            {/* Presence ring — glowing border around avatar that pulses */}
+            <span
+              className="absolute -inset-1 rounded-full animate-pulse pointer-events-none"
+              style={{
+                border: `2px solid ${statusColor(me.presenceStatus ?? 'online')}`,
+                boxShadow: `0 0 10px ${statusColor(me.presenceStatus ?? 'online')}cc, inset 0 0 6px ${statusColor(me.presenceStatus ?? 'online')}33`,
+              }}
+            />
             <img
               src={avatarUrl(me.avatar)}
               alt={me.username}
@@ -527,15 +535,6 @@ export default function UserBadge() {
                 {me.statusEmoji}
               </span>
             )}
-            {/* Presence pulse dot — bottom-left of avatar */}
-            <span
-              className="absolute -bottom-0.5 -left-0.5 h-3 w-3 rounded-full animate-pulse pointer-events-none"
-              style={{
-                background: statusColor(me.presenceStatus ?? 'online'),
-                border: '2px solid #2D1B4E',
-                boxShadow: `0 0 6px ${statusColor(me.presenceStatus ?? 'online')}`,
-              }}
-            />
           </div>
 
           {/* Name */}
