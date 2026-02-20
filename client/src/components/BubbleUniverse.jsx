@@ -572,9 +572,14 @@ export default function BubbleUniverse() {
     rafRef.current = requestAnimationFrame(() => { setMouse({ x, y }); rafRef.current = null; });
   }, []);
 
-  function enterRoom(roomId) {
+  function enterRoom(roomId, e) {
+    let origin = null;
+    if (e?.currentTarget) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      origin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
     socket.emit('room:join', { roomId });
-    dispatch({ type: 'SET_ACTIVE_ROOM', roomId });
+    dispatch({ type: 'SET_ACTIVE_ROOM', roomId, origin });
   }
 
   function createRoom(e) {
@@ -870,6 +875,15 @@ export default function BubbleUniverse() {
               ))}
             </div>
 
+            <div className="px-4 py-3 border-b border-white/8">
+              <button
+                onClick={e => { e.stopPropagation(); setShowCustomizer(true); setHubOpen(false); }}
+                className="w-full flex items-center gap-2 rounded-xl px-3 py-2 font-heading text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white hover:bg-white/5 transition-all text-left"
+              >
+                <span className="text-sm">🪐</span>
+                Orbit Settings
+              </button>
+            </div>
             <div className="flex gap-2 p-3">
               <button onClick={e => { e.stopPropagation(); setEditingAvatar(true); setHubOpen(false); }}
                 className="flex-1 rounded-full py-2 font-heading text-[10px] font-black uppercase tracking-widest text-white/80 hover:text-white transition-all"
@@ -1074,7 +1088,7 @@ export default function BubbleUniverse() {
           <RoomBubble key={room.id} room={room} index={i}
             style={{ left: pos.left, top: pos.top }}
             centered sizeScale={scales.outer}
-            onEnter={() => enterRoom(room.id)}
+            onEnter={(e) => enterRoom(room.id, e)}
             unread={unread[room.id] ?? 0}
             parallaxX={(mouse.x - 0.5) * depth * -1}
             parallaxY={(mouse.y - 0.5) * depth * -1}
@@ -1084,30 +1098,42 @@ export default function BubbleUniverse() {
         );
       })}
 
-      {/* ── "+" customize button — always last outer slot ─────────────────────── */}
+      {/* ── Ghost bubble: create new room — always last outer slot ─────────────── */}
       {outerPos[outerVisible.length] && (() => {
+        const atCapacity = outerVisible.length >= RING.outer.max;
         const pos = outerPos[outerVisible.length];
         const sz  = Math.round(88 * scales.outer);
+        const isGuest = authUser?.isGuest;
         return (
-          <button
-            className="absolute z-20 flex flex-col items-center justify-center gap-1 animate-float group"
+          <div
+            key="ghost-create"
+            className="absolute z-20"
             style={{
               left: pos.left, top: pos.top,
               transform: 'translate(-50%, -50%)',
               width: sz, height: sz,
-              background: 'rgba(0,245,212,0.04)',
-              border: '2px dashed rgba(0,245,212,0.28)',
-              borderRadius: '50%',
-              boxShadow: '0 0 18px rgba(0,245,212,0.08)',
             }}
-            onClick={() => setShowCustomizer(true)}
-            title="Customize your room orbit"
           >
-            <span className="font-heading text-2xl font-black transition-all duration-200 group-hover:scale-125"
-              style={{ color: 'rgba(0,245,212,0.45)' }}>+</span>
-            <span className="font-heading text-[7px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-200"
-              style={{ color: 'rgba(0,245,212,0.5)' }}>orbit</span>
-          </button>
+            <button
+              onClick={() => { if (!isGuest && !atCapacity) setCreating(true); }}
+              disabled={isGuest || atCapacity}
+              title={isGuest ? 'Register to create rooms' : atCapacity ? 'Orbit full' : 'Create new room'}
+              className={`w-full h-full rounded-full flex items-center justify-center transition-all duration-300 ${
+                atCapacity
+                  ? 'opacity-20 scale-75 cursor-not-allowed'
+                  : isGuest
+                  ? 'opacity-30 cursor-not-allowed'
+                  : 'animate-ghost-pulse cursor-pointer hover:opacity-100'
+              }`}
+              style={{
+                background: 'transparent',
+                border: `2px dashed rgba(255,255,255,${atCapacity ? '0.2' : '0.4'})`,
+                boxShadow: atCapacity || isGuest ? 'none' : '0 0 12px rgba(123,47,255,0.3)',
+              }}
+            >
+              <span style={{ fontSize: sz * 0.28, color: 'rgba(255,255,255,0.6)', lineHeight: 1 }}>+</span>
+            </button>
+          </div>
         );
       })()}
 
@@ -1256,12 +1282,17 @@ export default function BubbleUniverse() {
         </div>
       </div>
 
-      {/* ── Create room — bottom-right ───────────────────────────────────────── */}
-      <div className="absolute bottom-8 right-8 z-30">
-        {creating ? (
+      {/* ── Create room form — centered overlay (triggered by ghost bubble in orbit 3) ── */}
+      {creating && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
+          onClick={() => { setCreating(false); setNewRoomName(''); setNewRoomDesc(''); }}
+        >
           <form onSubmit={createRoom}
-            className="animate-appear flex flex-col gap-3 rounded-3xl border-4 border-[#FFE600] bg-[#2D1B4E]/95 p-6 backdrop-blur-sm"
-            style={{ boxShadow: '0 0 20px rgba(255,58,242,0.4)' }}>
+            className="animate-appear flex flex-col gap-3 rounded-3xl border-4 border-[#FFE600] bg-[#2D1B4E]/95 p-6 backdrop-blur-sm w-80"
+            style={{ boxShadow: '0 0 20px rgba(255,58,242,0.4)' }}
+            onClick={e => e.stopPropagation()}
+          >
             <label className="font-heading text-xs font-black uppercase tracking-widest text-[#FFE600]">Room name</label>
             <input autoFocus value={newRoomName} onChange={e => setNewRoomName(e.target.value)}
               placeholder="SUPERNOVA…" maxLength={32}
@@ -1285,27 +1316,8 @@ export default function BubbleUniverse() {
               </button>
             </div>
           </form>
-        ) : authUser?.isGuest ? (
-          <div className="group relative">
-            <button
-              disabled
-              className="cursor-not-allowed rounded-full border-4 border-white/20 bg-white/10 px-8 py-4 font-heading text-base font-black uppercase tracking-widest text-white/30"
-              style={{ boxShadow: 'none' }}>
-              🔒 NEW ROOM
-            </button>
-            <div className="pointer-events-none absolute bottom-full right-0 mb-3 w-56 rounded-2xl border-2 border-[#7B2FFF]/60 bg-[#0D0D1A]/95 px-4 py-3 text-center font-heading text-xs font-bold uppercase tracking-wide text-white opacity-0 shadow-lg transition-all duration-200 group-hover:opacity-100"
-              style={{ boxShadow: '0 0 20px rgba(123,47,255,0.4)' }}>
-              <span className="text-[#FFE600]">Log in</span> to create a room
-            </div>
-          </div>
-        ) : (
-          <button onClick={() => setCreating(true)}
-            className="animate-pulse-glow rounded-full border-4 border-[#FFE600] bg-gradient-to-r from-[#FF3AF2] via-[#7B2FFF] to-[#00F5D4] px-8 py-4 font-heading text-base font-black uppercase tracking-widest text-white transition-all duration-300 hover:scale-110"
-            style={{ boxShadow: '0 0 30px rgba(255,58,242,0.6)' }}>
-            + NEW ROOM
-          </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Modals ───────────────────────────────────────────────────────────── */}
       {showPulse && (

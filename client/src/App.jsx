@@ -6,7 +6,7 @@ import UserBadge from './components/UserBadge.jsx';
 import AuthScreen from './components/AuthScreen.jsx';
 
 export default function App() {
-  const { connected, socket, activeRoomId, activeDmId, setAuthUser, authUser } = useChat();
+  const { connected, socket, activeRoomId, activeDmId, setAuthUser, authUser, roomEntryOrigin } = useChat();
   const everConnected = useRef(false);
   if (connected) everConnected.current = true;
 
@@ -67,6 +67,16 @@ export default function App() {
       )}
       {/* ── Global background layers ── */}
       <div className="pointer-events-none absolute inset-0 pattern-dots opacity-[0.07]" />
+      {/* Aurora ambient layer */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-[0.06]" style={{zIndex: 1}}>
+        <div
+          className="animate-aurora w-[150%] h-[150%] -ml-[25%] -mt-[25%]"
+          style={{
+            background: 'conic-gradient(from 0deg at 40% 60%, #FF3AF2 0%, #7B2FFF 15%, #00F5D4 30%, #FFE600 50%, #FF6B35 65%, #FF3AF2 80%, #7B2FFF 100%)',
+            filter: 'blur(80px)',
+          }}
+        />
+      </div>
       <div className="pointer-events-none absolute inset-0 pattern-mesh" />
 
       {/* ── Massive background word ── */}
@@ -80,7 +90,7 @@ export default function App() {
       </div>
 
       {/* ── Main view ── */}
-      {hasActiveConversation ? <RoomPortal /> : <BubbleUniverse />}
+      {hasActiveConversation ? <RoomPortal origin={roomEntryOrigin} /> : <BubbleUniverse />}
 
       {/* ── Floating user badge — always visible ── */}
       <UserBadge />
