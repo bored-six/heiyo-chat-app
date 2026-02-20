@@ -354,7 +354,7 @@ export default function UserBadge() {
         {/* ── Badge pill ──────────────────────────────────────────────── */}
         <button
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-3 rounded-full border-4 border-dashed border-[#FFE600] bg-[#2D1B4E]/90 px-4 py-2 backdrop-blur-sm animate-slide-up cursor-pointer transition-transform hover:scale-105 active:scale-95"
+          className="flex items-center gap-3 rounded-full border-4 border-dashed border-[#FFE600] bg-[#2D1B4E]/90 px-4 py-2 backdrop-blur-sm cursor-pointer transition-transform hover:scale-105 active:scale-95"
           style={{ boxShadow: open ? '0 0 28px rgba(255,230,0,0.6)' : '0 0 20px rgba(255,230,0,0.4)' }}
           aria-label="Open profile menu"
         >
