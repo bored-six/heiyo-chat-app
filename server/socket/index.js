@@ -40,6 +40,7 @@ export function initSocket(io) {
       statusText: dbUser?.status_text ?? '',
       presenceStatus: dbUser?.presence_status ?? 'online',
       displayName: dbUser?.display_name ?? '',
+      bannerColor: dbUser?.banner_color ?? '',
     });
 
     // Auto-join General
@@ -77,16 +78,17 @@ export function initSocket(io) {
 
     // ── Profile update ───────────────────────────────────────────────────────
 
-    socket.on('profile:update', ({ bio, statusEmoji, statusText, presenceStatus, displayName }) => {
+    socket.on('profile:update', ({ bio, statusEmoji, statusText, presenceStatus, displayName, bannerColor }) => {
       const b  = typeof bio            === 'string' ? bio.slice(0, 160)           : '';
       const se = typeof statusEmoji    === 'string' ? statusEmoji.slice(0, 2)     : '';
       const st = typeof statusText     === 'string' ? statusText.slice(0, 60)     : '';
       const ps = ['online', 'away', 'dnd', 'invisible'].includes(presenceStatus) ? presenceStatus : 'online';
       const dn = typeof displayName    === 'string' ? displayName.slice(0, 32)    : '';
-      const user = updateUserProfile(socket.id, { bio: b, statusEmoji: se, statusText: st, presenceStatus: ps, displayName: dn });
+      const bc = typeof bannerColor    === 'string' && /^(#[0-9A-Fa-f]{6}|)$/.test(bannerColor) ? bannerColor : '';
+      const user = updateUserProfile(socket.id, { bio: b, statusEmoji: se, statusText: st, presenceStatus: ps, displayName: dn, bannerColor: bc });
       if (!user) return;
       // Persist for registered users only (guests have no DB row)
-      if (dbGetUser(user.username)) dbUpdateUserProfile(user.username, { bio: b, statusEmoji: se, statusText: st, presenceStatus: ps, displayName: dn });
+      if (dbGetUser(user.username)) dbUpdateUserProfile(user.username, { bio: b, statusEmoji: se, statusText: st, presenceStatus: ps, displayName: dn, bannerColor: bc });
       io.emit('user:updated', { user });
     });
 

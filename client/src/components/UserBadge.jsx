@@ -8,6 +8,7 @@ const BIO_MAX = 160;
 const STATUS_TEXT_MAX = 60;
 const DISPLAY_NAME_MAX = 32;
 const QUICK_EMOJIS = ['🎵', '☕', '🔥', '💤', '🎮', '📚', '✨', '🌙', '🍕', '🚀', '🎨', '💻'];
+const BANNER_PRESETS = ['#FF3AF2', '#00F5D4', '#FFE600', '#7B2FFF', '#FF6B35', '#23a55a', '#4A90E2', '#FF4757', '#2ECC71', '#E91E8C', '#F39C12', '#1ABC9C'];
 const PRESENCE_OPTIONS = [
   { value: 'online',    label: 'Online' },
   { value: 'away',      label: 'Away' },
@@ -21,6 +22,7 @@ export default function UserBadge() {
   const [editing, setEditing] = useState(false);
   const [editingAvatar, setEditingAvatar] = useState(false);
   const ref = useRef(null);
+  const presenceDropdownRef = useRef(null);
 
   // Inline profile edit state
   const [bio, setBio] = useState('');
@@ -28,6 +30,9 @@ export default function UserBadge() {
   const [statusText, setStatusText] = useState('');
   const [presenceStatus, setPresenceStatus] = useState('online');
   const [displayName, setDisplayName] = useState('');
+  const [bannerColor, setBannerColor] = useState('');
+  const [presenceDropdownOpen, setPresenceDropdownOpen] = useState(false);
+  const [bannerPickerOpen, setBannerPickerOpen] = useState(false);
 
   if (!me) return null;
 
@@ -39,7 +44,10 @@ export default function UserBadge() {
       setStatusText(me.statusText ?? '');
       setPresenceStatus(me.presenceStatus ?? 'online');
       setDisplayName(me.displayName ?? '');
+      setBannerColor(me.bannerColor ?? '');
       setEditing(false);
+      setPresenceDropdownOpen(false);
+      setBannerPickerOpen(false);
     }
   }, [open]);
 
@@ -53,6 +61,18 @@ export default function UserBadge() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
+  // Close presence dropdown on outside click
+  useEffect(() => {
+    if (!presenceDropdownOpen) return;
+    function handleClick(e) {
+      if (presenceDropdownRef.current && !presenceDropdownRef.current.contains(e.target)) {
+        setPresenceDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [presenceDropdownOpen]);
+
   function handleSaveAvatar(newAvatar) {
     socket.emit('avatar:change', { avatar: newAvatar });
     setAuthUser((prev) => ({ ...prev, avatar: newAvatar }));
@@ -65,10 +85,38 @@ export default function UserBadge() {
       statusText: statusText.trim(),
       presenceStatus,
       displayName: displayName.trim(),
+      bannerColor,
     };
     socket.emit('profile:update', payload);
     setAuthUser((prev) => ({ ...prev, ...payload }));
     setEditing(false);
+  }
+
+  function handlePresenceChange(value) {
+    const valid = ['online', 'away', 'dnd', 'invisible'].includes(value) ? value : 'online';
+    socket.emit('profile:update', {
+      bio: me.bio ?? '',
+      statusEmoji: me.statusEmoji ?? '',
+      statusText: me.statusText ?? '',
+      presenceStatus: valid,
+      displayName: me.displayName ?? '',
+      bannerColor: me.bannerColor ?? '',
+    });
+    setAuthUser((prev) => ({ ...prev, presenceStatus: valid }));
+    setPresenceDropdownOpen(false);
+  }
+
+  function handleBannerColorPick(color) {
+    setBannerColor(color);
+    socket.emit('profile:update', {
+      bio: me.bio ?? '',
+      statusEmoji: me.statusEmoji ?? '',
+      statusText: me.statusText ?? '',
+      presenceStatus: me.presenceStatus ?? 'online',
+      displayName: me.displayName ?? '',
+      bannerColor: color,
+    });
+    setAuthUser((prev) => ({ ...prev, bannerColor: color }));
   }
 
   function handleSignOut() {
@@ -99,16 +147,20 @@ export default function UserBadge() {
 
             {/* ── Banner + Avatar Header ─────────────────────────────── */}
             <div className="relative">
-              {/* Banner */}
+              {/* Banner — clickable to change color */}
               <div
-                className="h-16 w-full relative overflow-hidden"
+                className="h-16 w-full relative overflow-hidden cursor-pointer group/banner"
+                onClick={() => setBannerPickerOpen(v => !v)}
+                title="Change banner color"
                 style={{
-                  background: `
-                    linear-gradient(135deg, ${me.color}bb 0%, ${me.color}44 35%, transparent 65%),
-                    radial-gradient(ellipse at 85% 40%, #7B2FFF66 0%, transparent 55%),
-                    radial-gradient(ellipse at 15% 90%, #FF3AF255 0%, transparent 50%),
-                    linear-gradient(180deg, #0D0D1A 0%, #1a0f36 100%)
-                  `
+                  background: bannerColor
+                    ? `linear-gradient(135deg, ${bannerColor}cc 0%, ${bannerColor}66 50%, ${bannerColor}22 100%)`
+                    : `
+                      linear-gradient(135deg, ${me.color}bb 0%, ${me.color}44 35%, transparent 65%),
+                      radial-gradient(ellipse at 85% 40%, #7B2FFF66 0%, transparent 55%),
+                      radial-gradient(ellipse at 15% 90%, #FF3AF255 0%, transparent 50%),
+                      linear-gradient(180deg, #0D0D1A 0%, #1a0f36 100%)
+                    `
                 }}
               >
                 {/* Star-field dots overlay */}
@@ -120,6 +172,12 @@ export default function UserBadge() {
                     backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 4px)'
                   }}
                 />
+                {/* Hover overlay */}
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity">
+                  <span className="rounded-full bg-black/50 px-2.5 py-1 font-heading text-[9px] font-black uppercase tracking-wider text-white/80">
+                    🎨 Change Banner
+                  </span>
+                </div>
               </div>
 
               {/* Avatar overlapping banner */}
@@ -142,6 +200,15 @@ export default function UserBadge() {
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                       <span className="text-lg drop-shadow-lg">🎨</span>
                     </div>
+                    {/* Transmission emoji on avatar */}
+                    {me.statusEmoji && (
+                      <span
+                        className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[13px] leading-none pointer-events-none select-none"
+                        style={{ background: '#1a0f36', border: `2px solid ${me.color}44` }}
+                      >
+                        {me.statusEmoji}
+                      </span>
+                    )}
                   </div>
                   <div className="pb-1 min-w-0 flex-1">
                     <p
@@ -153,16 +220,88 @@ export default function UserBadge() {
                     {me.tag && (
                       <p className="font-heading text-[10px] font-bold text-white/35">#{me.tag}</p>
                     )}
-                    <div className="mt-0.5 flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full animate-pulse" style={{ background: dotColor }} />
-                      <span className="font-heading text-[10px] font-black uppercase tracking-widest" style={{ color: dotColor }}>
-                        {statusLabel(me.presenceStatus ?? 'online')}
-                      </span>
+                    {/* Presence — clickable dropdown in view mode */}
+                    <div className="relative mt-0.5" ref={presenceDropdownRef}>
+                      <button
+                        className="flex items-center gap-1.5 rounded-md px-1 -ml-1 hover:bg-white/10 transition-colors group/presence"
+                        onClick={() => setPresenceDropdownOpen(v => !v)}
+                        title="Change status"
+                      >
+                        <span className="h-2 w-2 rounded-full animate-pulse flex-shrink-0" style={{ background: dotColor }} />
+                        <span className="font-heading text-[10px] font-black uppercase tracking-widest" style={{ color: dotColor }}>
+                          {statusLabel(me.presenceStatus ?? 'online')}
+                        </span>
+                        <span className="text-[8px] text-white/30 opacity-0 group-hover/presence:opacity-100 transition-opacity">▾</span>
+                      </button>
+                      {presenceDropdownOpen && (
+                        <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border border-white/10 bg-[#0D0D1A]/98 py-1 shadow-xl min-w-[150px]">
+                          {PRESENCE_OPTIONS.map(({ value, label }) => {
+                            const color = statusColor(value);
+                            const active = me.presenceStatus === value;
+                            return (
+                              <button
+                                key={value}
+                                onClick={() => handlePresenceChange(value)}
+                                className="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors"
+                                style={{ background: active ? 'rgba(255,255,255,0.05)' : undefined }}
+                              >
+                                <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                                <span className="font-heading text-[10px] font-black text-white/80">{label}</span>
+                                {active && <span className="ml-auto text-white/40 text-[8px]">✓</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Banner color picker */}
+            {bannerPickerOpen && (
+              <div className="px-4 py-3 border-b border-white/10 bg-[#0D0D1A]/60">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-heading text-[9px] font-black uppercase tracking-widest text-white/40">Banner Color</p>
+                  <button
+                    onClick={() => setBannerPickerOpen(false)}
+                    className="font-heading text-[9px] font-black uppercase text-white/30 hover:text-white/60 transition-colors"
+                  >
+                    Done ✕
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {BANNER_PRESETS.map(color => (
+                    <button
+                      key={color}
+                      onClick={() => handleBannerColorPick(color)}
+                      className="h-6 w-6 rounded-md transition-transform hover:scale-110"
+                      style={{
+                        background: color,
+                        boxShadow: bannerColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none',
+                      }}
+                    />
+                  ))}
+                  <button
+                    onClick={() => handleBannerColorPick('')}
+                    className="h-6 px-2 rounded-md font-heading text-[8px] font-black uppercase text-white/40 bg-white/5 hover:bg-white/10 hover:text-white/60 transition-colors"
+                  >
+                    Reset
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={bannerColor || '#7B2FFF'}
+                    onChange={(e) => handleBannerColorPick(e.target.value)}
+                    className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
+                    style={{ minWidth: '24px' }}
+                  />
+                  <span className="font-heading text-[10px] text-white/40">Custom color</span>
+                </div>
+              </div>
+            )}
 
             {/* Divider */}
             <div className="mx-4 h-px bg-white/10" />
@@ -379,6 +518,15 @@ export default function UserBadge() {
               className="h-10 w-10 rounded-full"
               style={{ border: '2px solid #FFE600', boxShadow: '0 0 14px #FF3AF288' }}
             />
+            {/* Transmission emoji on pill avatar */}
+            {me.statusEmoji && (
+              <span
+                className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none pointer-events-none select-none"
+                style={{ background: '#2D1B4E', border: '1.5px solid rgba(255,230,0,0.5)' }}
+              >
+                {me.statusEmoji}
+              </span>
+            )}
           </div>
 
           {/* Name */}

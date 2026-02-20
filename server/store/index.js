@@ -108,8 +108,8 @@ function serializeReactions(reactions) {
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
-export function addUser(socketId, { username, color, avatar = 'Stargazer', tag = '', bio = '', statusEmoji = '', statusText = '', presenceStatus = 'online', displayName = '' }) {
-  const user = { id: socketId, username, color, avatar, tag, bio, statusEmoji, statusText, presenceStatus, displayName, connectedAt: Date.now() };
+export function addUser(socketId, { username, color, avatar = 'Stargazer', tag = '', bio = '', statusEmoji = '', statusText = '', presenceStatus = 'online', displayName = '', bannerColor = '' }) {
+  const user = { id: socketId, username, color, avatar, tag, bio, statusEmoji, statusText, presenceStatus, displayName, bannerColor, connectedAt: Date.now() };
   state.users[socketId] = user;
   return user;
 }
@@ -132,7 +132,7 @@ export function updateUserAvatar(socketId, avatar) {
   return user;
 }
 
-export function updateUserProfile(socketId, { bio, statusEmoji, statusText, presenceStatus, displayName }) {
+export function updateUserProfile(socketId, { bio, statusEmoji, statusText, presenceStatus, displayName, bannerColor }) {
   const user = state.users[socketId];
   if (!user) return null;
   user.bio = bio;
@@ -140,6 +140,7 @@ export function updateUserProfile(socketId, { bio, statusEmoji, statusText, pres
   user.statusText = statusText;
   user.presenceStatus = presenceStatus;
   user.displayName = displayName;
+  user.bannerColor = bannerColor ?? '';
   return user;
 }
 

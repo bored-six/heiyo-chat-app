@@ -122,6 +122,7 @@ export function initDb() {
   try { db.exec(`ALTER TABLE users ADD COLUMN pronouns TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN presence_status TEXT NOT NULL DEFAULT 'online'`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN banner_color TEXT NOT NULL DEFAULT ''`); } catch (_) {}
 
   // Seed General room (upsert — safe to call on every boot)
   db.prepare(`
@@ -247,9 +248,9 @@ export function dbUpdateUserAvatar(username, avatar) {
   db.prepare('UPDATE users SET avatar = ? WHERE username = ?').run(avatar, username);
 }
 
-export function dbUpdateUserProfile(username, { bio, statusEmoji, statusText, presenceStatus, displayName }) {
-  db.prepare('UPDATE users SET bio = ?, status_emoji = ?, status_text = ?, presence_status = ?, display_name = ? WHERE username = ?')
-    .run(bio, statusEmoji, statusText, presenceStatus, displayName, username);
+export function dbUpdateUserProfile(username, { bio, statusEmoji, statusText, presenceStatus, displayName, bannerColor }) {
+  db.prepare('UPDATE users SET bio = ?, status_emoji = ?, status_text = ?, presence_status = ?, display_name = ?, banner_color = ? WHERE username = ?')
+    .run(bio, statusEmoji, statusText, presenceStatus, displayName, bannerColor ?? '', username);
 }
 
 export function dbUsernameExists(username) {
