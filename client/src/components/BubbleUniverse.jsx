@@ -489,6 +489,8 @@ export default function BubbleUniverse() {
   const [hiddenRooms, setHiddenRooms]     = useState(loadHiddenRooms);
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [showPulse, setShowPulse]         = useState(false);
+  const [pulseHovered, setPulseHovered]   = useState(false);
+  const [rippleKey, setRippleKey]         = useState(0);
   const [viewEcho, setViewEcho]           = useState(null);
   const [viewFollow, setViewFollow]       = useState(null); // offline followed user or null
   const rafRef = useRef(null);
@@ -1061,18 +1063,61 @@ export default function BubbleUniverse() {
       </div>
 
       {/* ── Pulse Echo button — bottom-center ───────────────────────────────── */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
-        <button
-          onClick={() => setShowPulse(true)}
-          className="rounded-full border-2 px-6 py-3 font-heading text-sm font-black uppercase tracking-widest text-white transition-all duration-300 hover:scale-110"
-          style={{
-            borderColor: 'rgba(255,107,53,0.6)',
-            background: 'rgba(255,107,53,0.12)',
-            boxShadow: '0 0 20px rgba(255,107,53,0.25)',
-          }}
+      <div
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2"
+        onMouseEnter={() => { setPulseHovered(true); setRippleKey(k => k + 1); }}
+        onMouseLeave={() => setPulseHovered(false)}
+      >
+        {/* Tooltip */}
+        <div
+          className="pointer-events-none transition-all duration-200"
+          style={{ opacity: pulseHovered ? 1 : 0, transform: pulseHovered ? 'translateY(0)' : 'translateY(4px)' }}
         >
-          🔮 Pulse
-        </button>
+          <span
+            className="font-heading text-[9px] font-black uppercase tracking-widest"
+            style={{ color: 'rgba(255,58,242,0.8)' }}
+          >
+            Pulse
+          </span>
+        </div>
+
+        {/* Orb wrapper — positions ripple ring relative to orb */}
+        <div className="relative flex items-center justify-center">
+          {/* Expanding ripple ring — re-keyed on every hover to replay animation */}
+          {pulseHovered && (
+            <div
+              key={rippleKey}
+              className="absolute animate-ripple-out rounded-full"
+              style={{
+                inset: 0,
+                border: '1.5px solid rgba(255,58,242,0.55)',
+              }}
+            />
+          )}
+
+          {/* The orb button */}
+          <button
+            onClick={() => setShowPulse(true)}
+            className="animate-pulse-glow relative flex h-16 w-16 items-center justify-center rounded-full transition-transform duration-300 hover:scale-110"
+            style={{
+              background: 'radial-gradient(circle at 38% 38%, rgba(255,58,242,0.28), rgba(123,47,255,0.12))',
+              border: '2px solid rgba(255,58,242,0.5)',
+              boxShadow: '0 0 28px rgba(255,58,242,0.4), inset 0 0 14px rgba(255,58,242,0.1)',
+            }}
+          >
+            {/* Broadcast / sonar SVG icon */}
+            <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Center dot */}
+              <circle cx="13" cy="17" r="2.2" fill="#FF3AF2" />
+              {/* Inner arc */}
+              <path d="M8.5 14.5 Q13 8.5 17.5 14.5" stroke="#FF3AF2" strokeWidth="2" strokeLinecap="round" fill="none" opacity="1" />
+              {/* Middle arc */}
+              <path d="M5 17 Q13 5 21 17" stroke="#FF3AF2" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.6" />
+              {/* Outer arc */}
+              <path d="M1.5 19.5 Q13 1.5 24.5 19.5" stroke="#FF3AF2" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.28" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* ── Create room — bottom-right ───────────────────────────────────────── */}
