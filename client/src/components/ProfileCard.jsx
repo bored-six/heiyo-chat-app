@@ -141,7 +141,7 @@ export default function ProfileCard({ user, isSelf, onClose, onDm, onEditProfile
               onClick={() => { onClose(); onEditProfile?.(); }}
               className="w-full rounded-xl border-2 border-dashed border-[#00F5D4] bg-[#00F5D4]/10 py-2 font-heading text-xs font-black uppercase tracking-widest text-[#00F5D4] hover:bg-[#00F5D4]/20 transition-colors"
             >
-              ✏️ Edit Profile
+              ✦ Display Catalogue
             </button>
           ) : (
             <button

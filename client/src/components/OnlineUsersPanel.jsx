@@ -3,12 +3,12 @@ import { useChat } from '../context/ChatContext.jsx';
 import { avatarUrl } from '../utils/avatar.js';
 import { statusColor } from '../utils/status.js';
 import ProfileCard from './ProfileCard.jsx';
-import ProfileEditModal from './ProfileEditModal.jsx';
+import DisplayCatalogueModal from './DisplayCatalogueModal.jsx';
 
 export default function OnlineUsersPanel({ onClose }) {
   const { onlineUsers, me, socket, dmUnread } = useChat();
   const [profileUser, setProfileUser] = useState(null);
-  const [editingProfile, setEditingProfile] = useState(false);
+  const [catalogueOpen, setCatalogueOpen] = useState(false);
 
   const users = Object.values(onlineUsers).filter((u) => u.id !== me?.id);
 
@@ -142,13 +142,13 @@ export default function OnlineUsersPanel({ onClose }) {
             isSelf={profileUser.id === me?.id}
             onClose={() => setProfileUser(null)}
             onDm={() => { openDm(profileUser.id); }}
-            onEditProfile={() => setEditingProfile(true)}
+            onEditProfile={() => setCatalogueOpen(true)}
           />
         )}
 
-        {/* Edit profile modal (opened from own ProfileCard) */}
-        {editingProfile && (
-          <ProfileEditModal onClose={() => setEditingProfile(false)} />
+        {/* Display Catalogue modal (opened from own ProfileCard) */}
+        {catalogueOpen && (
+          <DisplayCatalogueModal onClose={() => setCatalogueOpen(false)} />
         )}
       </div>
     </div>

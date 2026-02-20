@@ -1,13 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../context/ChatContext.jsx';
 import AvatarPickerModal from './AvatarPickerModal.jsx';
+import DisplayCatalogueModal from './DisplayCatalogueModal.jsx';
 import { avatarUrl } from '../utils/avatar.js';
 import { statusColor, statusLabel } from '../utils/status.js';
 
-const BIO_MAX = 160;
-const STATUS_TEXT_MAX = 60;
-const DISPLAY_NAME_MAX = 32;
-const QUICK_EMOJIS = ['🎵', '☕', '🔥', '💤', '🎮', '📚', '✨', '🌙', '🍕', '🚀', '🎨', '💻'];
 const BANNER_PRESETS = ['#FF3AF2', '#00F5D4', '#FFE600', '#7B2FFF', '#FF6B35', '#23a55a', '#4A90E2', '#FF4757', '#2ECC71', '#E91E8C', '#F39C12', '#1ABC9C'];
 const PRESENCE_OPTIONS = [
   { value: 'online',    label: 'Online' },
@@ -19,33 +16,21 @@ const PRESENCE_OPTIONS = [
 export default function UserBadge() {
   const { me, socket, setAuthUser } = useChat();
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [catalogueOpen, setCatalogueOpen] = useState(false);
   const [editingAvatar, setEditingAvatar] = useState(false);
   const ref = useRef(null);
   const presenceDropdownRef = useRef(null);
 
-  // Inline profile edit state
-  const [bio, setBio] = useState('');
-  const [statusEmoji, setStatusEmoji] = useState('');
-  const [statusText, setStatusText] = useState('');
-  const [presenceStatus, setPresenceStatus] = useState('online');
-  const [displayName, setDisplayName] = useState('');
   const [bannerColor, setBannerColor] = useState('');
   const [presenceDropdownOpen, setPresenceDropdownOpen] = useState(false);
   const [bannerPickerOpen, setBannerPickerOpen] = useState(false);
 
   if (!me) return null;
 
-  // Sync fields from me whenever the panel opens; always start in view mode
+  // Sync banner color from me whenever the panel opens
   useEffect(() => {
     if (open) {
-      setBio(me.bio ?? '');
-      setStatusEmoji(me.statusEmoji ?? '');
-      setStatusText(me.statusText ?? '');
-      setPresenceStatus(me.presenceStatus ?? 'online');
-      setDisplayName(me.displayName ?? '');
       setBannerColor(me.bannerColor ?? '');
-      setEditing(false);
       setPresenceDropdownOpen(false);
       setBannerPickerOpen(false);
     }
@@ -76,20 +61,6 @@ export default function UserBadge() {
   function handleSaveAvatar(newAvatar) {
     socket.emit('avatar:change', { avatar: newAvatar });
     setAuthUser((prev) => ({ ...prev, avatar: newAvatar }));
-  }
-
-  function handleSaveProfile() {
-    const payload = {
-      bio: bio.trim(),
-      statusEmoji: statusEmoji.trim(),
-      statusText: statusText.trim(),
-      presenceStatus,
-      displayName: displayName.trim(),
-      bannerColor,
-    };
-    socket.emit('profile:update', payload);
-    setAuthUser((prev) => ({ ...prev, ...payload }));
-    setEditing(false);
   }
 
   function handlePresenceChange(value) {
@@ -124,6 +95,11 @@ export default function UserBadge() {
     setAuthUser(null);
   }
 
+  function openCatalogue() {
+    setOpen(false);
+    setCatalogueOpen(true);
+  }
+
   const dotColor = statusColor(me.presenceStatus ?? 'online');
 
   return (
@@ -134,6 +110,9 @@ export default function UserBadge() {
           onSave={handleSaveAvatar}
           onClose={() => setEditingAvatar(false)}
         />
+      )}
+      {catalogueOpen && (
+        <DisplayCatalogueModal onClose={() => setCatalogueOpen(false)} />
       )}
 
       <div ref={ref} className="absolute bottom-6 left-6 z-30">
@@ -163,16 +142,13 @@ export default function UserBadge() {
                     `
                 }}
               >
-                {/* Star-field dots overlay */}
                 <div className="absolute inset-0 pattern-dots opacity-10" />
-                {/* Subtle scan-line shimmer */}
                 <div
                   className="absolute inset-0 opacity-5"
                   style={{
                     backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 4px)'
                   }}
                 />
-                {/* Hover overlay */}
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity">
                   <span className="rounded-full bg-black/50 px-2.5 py-1 font-heading text-[9px] font-black uppercase tracking-wider text-white/80">
                     🎨 Change Banner
@@ -183,6 +159,7 @@ export default function UserBadge() {
               {/* Avatar overlapping banner */}
               <div className="px-4">
                 <div className="-mt-8 flex items-end gap-3 mb-2">
+                  {/* Avatar — clickable to change */}
                   <div
                     className="relative h-14 w-14 flex-shrink-0 cursor-pointer group"
                     onClick={() => { setEditingAvatar(true); setOpen(false); }}
@@ -200,7 +177,6 @@ export default function UserBadge() {
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                       <span className="text-lg drop-shadow-lg">🎨</span>
                     </div>
-                    {/* Transmission emoji on avatar */}
                     {me.statusEmoji && (
                       <span
                         className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[13px] leading-none pointer-events-none select-none"
@@ -210,6 +186,8 @@ export default function UserBadge() {
                       </span>
                     )}
                   </div>
+
+                  {/* Name + username sub-label + presence */}
                   <div className="pb-1 min-w-0 flex-1">
                     <p
                       className="font-heading text-sm font-black tracking-tight truncate text-white"
@@ -217,10 +195,13 @@ export default function UserBadge() {
                     >
                       {me.displayName || me.username}
                     </p>
+                    {me.displayName && (
+                      <p className="font-heading text-[10px] font-bold text-white/30">@{me.username}</p>
+                    )}
                     {me.tag && (
                       <p className="font-heading text-[10px] font-bold text-white/35">#{me.tag}</p>
                     )}
-                    {/* Presence — clickable dropdown in view mode */}
+                    {/* Presence — clickable dropdown */}
                     <div className="relative mt-0.5" ref={presenceDropdownRef}>
                       <button
                         className="flex items-center gap-1.5 rounded-md px-1 -ml-1 hover:bg-white/10 transition-colors group/presence"
@@ -306,177 +287,45 @@ export default function UserBadge() {
             {/* Divider */}
             <div className="mx-4 h-px bg-white/10" />
 
-            {/* ── VIEW MODE ──────────────────────────────────────────── */}
-            {!editing && (
-              <div className="px-4 py-3 space-y-3">
+            {/* ── View content ────────────────────────────────────────── */}
+            <div className="px-4 py-3 space-y-3">
 
-                {/* Transmission pill */}
-                {(me.statusEmoji || me.statusText) && (
-                  <div
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1"
-                    style={{
-                      background: `${me.color}15`,
-                      border: `1px solid ${me.color}40`
-                    }}
-                  >
-                    {me.statusEmoji && <span className="text-sm leading-none">{me.statusEmoji}</span>}
-                    {me.statusText && (
-                      <span className="font-heading text-[11px] font-bold text-white/70">{me.statusText}</span>
-                    )}
-                  </div>
-                )}
-
-                {/* Bio */}
-                {me.bio && me.bio.trim() && (
-                  <p className="text-xs leading-relaxed text-white/55 whitespace-pre-wrap">{me.bio}</p>
-                )}
-
-                {/* Empty state */}
-                {!me.statusEmoji && !me.statusText && !me.bio && (
-                  <p className="font-heading text-[10px] text-white/30 italic">
-                    No transmission yet.
-                  </p>
-                )}
-
-                {/* Edit Profile button */}
-                <button
-                  onClick={() => setEditing(true)}
-                  className="w-full rounded-lg border border-[#00F5D4] bg-[#00F5D4]/10 py-2 font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4] hover:bg-[#00F5D4]/20 transition-colors"
+              {/* Transmission pill */}
+              {(me.statusEmoji || me.statusText) && (
+                <div
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1"
+                  style={{
+                    background: `${me.color}15`,
+                    border: `1px solid ${me.color}40`
+                  }}
                 >
-                  ✏️  Edit Profile
-                </button>
-              </div>
-            )}
-
-            {/* ── EDIT MODE ──────────────────────────────────────────── */}
-            {editing && (
-              <div className="max-h-[55vh] overflow-y-auto px-4 py-3 space-y-3">
-
-                {/* Status */}
-                <div>
-                  <label className="mb-1.5 block font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
-                    Status
-                  </label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {PRESENCE_OPTIONS.map(({ value, label }) => {
-                      const color = statusColor(value);
-                      const active = presenceStatus === value;
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => setPresenceStatus(value)}
-                          className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-heading text-[10px] font-black transition-all"
-                          style={{
-                            borderColor: active ? color : 'rgba(255,255,255,0.1)',
-                            background: active ? `${color}18` : 'rgba(255,255,255,0.03)',
-                          }}
-                        >
-                          <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: color }} />
-                          <span className="text-white/80">{label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {me.statusEmoji && <span className="text-sm leading-none">{me.statusEmoji}</span>}
+                  {me.statusText && (
+                    <span className="font-heading text-[11px] font-bold text-white/70">{me.statusText}</span>
+                  )}
                 </div>
+              )}
 
-                {/* Display Name */}
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label className="font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
-                      Display Name
-                    </label>
-                    <span className={`font-heading text-[9px] font-black ${displayName.length > DISPLAY_NAME_MAX - 8 ? 'text-[#FFE600]' : 'text-white/20'}`}>
-                      {displayName.length}/{DISPLAY_NAME_MAX}
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
-                    placeholder={me.username}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-heading text-xs text-white placeholder-white/20 outline-none focus:border-[#00F5D4]/50 transition-colors"
-                  />
-                </div>
+              {/* Bio */}
+              {me.bio && me.bio.trim() && (
+                <p className="text-xs leading-relaxed text-white/55 whitespace-pre-wrap">{me.bio}</p>
+              )}
 
-                {/* Transmission */}
-                <div>
-                  <label className="mb-1.5 block font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
-                    Transmission
-                  </label>
-                  <div className="flex gap-1.5">
-                    <input
-                      type="text"
-                      value={statusEmoji}
-                      onChange={(e) => setStatusEmoji(e.target.value.slice(0, 2))}
-                      placeholder="😊"
-                      className="w-10 rounded-lg border border-white/10 bg-white/5 px-1 py-1.5 text-center text-base outline-none focus:border-[#00F5D4]/50 transition-colors"
-                    />
-                    <input
-                      type="text"
-                      value={statusText}
-                      onChange={(e) => setStatusText(e.target.value.slice(0, STATUS_TEXT_MAX))}
-                      placeholder="deep in code rn"
-                      className="flex-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-heading text-xs text-white placeholder-white/20 outline-none focus:border-[#00F5D4]/50 transition-colors"
-                    />
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {QUICK_EMOJIS.map((e) => (
-                      <button
-                        key={e}
-                        onClick={() => setStatusEmoji(e)}
-                        className={`flex h-6 w-6 items-center justify-center rounded-md text-sm transition-all hover:scale-110 ${statusEmoji === e ? 'bg-[#00F5D4]/20 ring-1 ring-[#00F5D4]' : 'bg-white/5 hover:bg-white/10'}`}
-                      >
-                        {e}
-                      </button>
-                    ))}
-                    {statusEmoji && (
-                      <button
-                        onClick={() => { setStatusEmoji(''); setStatusText(''); }}
-                        className="flex h-6 items-center rounded-md px-1.5 font-heading text-[9px] font-black uppercase tracking-wider text-white/40 bg-white/5 hover:bg-white/10 hover:text-white/70 transition-colors"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                </div>
+              {/* Empty state */}
+              {!me.statusEmoji && !me.statusText && !me.bio && (
+                <p className="font-heading text-[10px] text-white/30 italic">
+                  No transmission yet.
+                </p>
+              )}
 
-                {/* Bio */}
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <label className="font-heading text-[9px] font-black uppercase tracking-widest text-white/40">
-                      Bio
-                    </label>
-                    <span className={`font-heading text-[9px] font-black ${bio.length > BIO_MAX - 20 ? 'text-[#FFE600]' : 'text-white/20'}`}>
-                      {bio.length}/{BIO_MAX}
-                    </span>
-                  </div>
-                  <textarea
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value.slice(0, BIO_MAX))}
-                    placeholder="Say something about yourself…"
-                    rows={2}
-                    className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 font-heading text-xs text-white placeholder-white/20 outline-none focus:border-[#00F5D4]/50 transition-colors leading-relaxed"
-                  />
-                </div>
-
-                {/* Save */}
-                <button
-                  onClick={handleSaveProfile}
-                  className="w-full rounded-lg border border-[#00F5D4] bg-[#00F5D4]/15 py-2 font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4] hover:bg-[#00F5D4]/25 transition-colors"
-                >
-                  Save Profile
-                </button>
-
-                {/* Cancel */}
-                <button
-                  onClick={() => setEditing(false)}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 font-heading text-[10px] font-black uppercase tracking-widest text-white/35 hover:bg-white/10 hover:text-white/60 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+              {/* Display Catalogue button */}
+              <button
+                onClick={openCatalogue}
+                className="w-full rounded-lg border border-[#00F5D4] bg-[#00F5D4]/10 py-2 font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4] hover:bg-[#00F5D4]/20 transition-colors"
+              >
+                ✦ Display Catalogue
+              </button>
+            </div>
 
             {/* Divider */}
             <div className="mx-4 h-px bg-white/10" />
@@ -486,7 +335,6 @@ export default function UserBadge() {
               <p className="mb-1 px-3 font-heading text-[9px] font-black uppercase tracking-widest text-white/30">
                 Account
               </p>
-
               <button
                 onClick={handleSignOut}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-all duration-150 hover:bg-[#FF3AF2]/10 active:scale-[0.98] group/out"
@@ -512,7 +360,6 @@ export default function UserBadge() {
         >
           {/* Avatar */}
           <div className="relative h-10 w-10 flex-shrink-0">
-            {/* Presence ring — glowing border around avatar that pulses */}
             <span
               className="absolute -inset-1 rounded-full animate-pulse pointer-events-none"
               style={{
@@ -526,7 +373,6 @@ export default function UserBadge() {
               className="h-10 w-10 rounded-full"
               style={{ border: '2px solid #FFE600', boxShadow: '0 0 14px #FF3AF288' }}
             />
-            {/* Transmission emoji on pill avatar — bottom-right */}
             {me.statusEmoji && (
               <span
                 className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none pointer-events-none select-none"
@@ -550,6 +396,9 @@ export default function UserBadge() {
                 </span>
               )}
             </p>
+            {me.displayName && (
+              <p className="font-heading text-[9px] text-white/35">@{me.username}</p>
+            )}
             <p className="mt-0.5 font-heading text-[10px] font-black uppercase tracking-widest text-[#00F5D4]">
               Profile ▴
             </p>

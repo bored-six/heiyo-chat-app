@@ -6,9 +6,7 @@ import { statusColor } from '../utils/status.js';
 const BIO_MAX = 160;
 const STATUS_TEXT_MAX = 60;
 const DISPLAY_NAME_MAX = 32;
-
 const QUICK_EMOJIS = ['🎵', '☕', '🔥', '💤', '🎮', '📚', '✨', '🌙', '🍕', '🚀', '🎨', '💻'];
-
 const PRESENCE_OPTIONS = [
   { value: 'online',    label: 'Online' },
   { value: 'away',      label: 'Away' },
@@ -16,14 +14,14 @@ const PRESENCE_OPTIONS = [
   { value: 'invisible', label: 'Invisible' },
 ];
 
-export default function ProfileEditModal({ onClose }) {
+export default function DisplayCatalogueModal({ onClose }) {
   const { me, socket, setAuthUser } = useChat();
 
+  const [displayName, setDisplayName] = useState(me?.displayName ?? '');
   const [bio, setBio] = useState(me?.bio ?? '');
   const [statusEmoji, setStatusEmoji] = useState(me?.statusEmoji ?? '');
   const [statusText, setStatusText] = useState(me?.statusText ?? '');
   const [presenceStatus, setPresenceStatus] = useState(me?.presenceStatus ?? 'online');
-  const [displayName, setDisplayName] = useState(me?.displayName ?? '');
 
   // Close on Escape
   useEffect(() => {
@@ -39,15 +37,15 @@ export default function ProfileEditModal({ onClose }) {
       statusText: statusText.trim(),
       presenceStatus,
       displayName: displayName.trim(),
+      bannerColor: me?.bannerColor ?? '', // pass-through, not edited here
     };
     socket.emit('profile:update', payload);
     setAuthUser((prev) => ({ ...prev, ...payload }));
     onClose();
   }
 
-  function pickEmoji(e) {
-    setStatusEmoji(e);
-  }
+  const previewColor = me?.color ?? '#00F5D4';
+  const previewDot = statusColor(presenceStatus);
 
   return (
     <div
@@ -70,41 +68,75 @@ export default function ProfileEditModal({ onClose }) {
 
         {/* Header */}
         <p className="mb-4 font-heading text-sm font-black uppercase tracking-widest text-[#00F5D4]">
-          Edit Profile
+          ✦ Display Catalogue
         </p>
 
-        {/* Avatar preview */}
-        <div className="mb-5 flex items-center gap-3">
-          <div className="relative h-14 w-14 flex-shrink-0">
+        {/* Live preview strip */}
+        <div
+          className="mb-5 flex items-center gap-3 rounded-2xl p-3"
+          style={{ background: `${previewColor}0d`, border: `1px solid ${previewColor}22` }}
+        >
+          <div className="relative h-12 w-12 flex-shrink-0">
             <img
               src={avatarUrl(me?.avatar)}
               alt={me?.username}
-              className="h-14 w-14 rounded-full"
-              style={{ border: `2px solid ${me?.color}`, boxShadow: `0 0 16px ${me?.color}66` }}
+              className="h-12 w-12 rounded-full"
+              style={{ border: `2px solid ${previewColor}`, boxShadow: `0 0 14px ${previewColor}66` }}
             />
             {statusEmoji && (
               <span
                 className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#0D0D1A] text-[13px] leading-none"
-                style={{ border: `1.5px solid ${me?.color}44` }}
+                style={{ border: `1.5px solid ${previewColor}44` }}
               >
                 {statusEmoji}
               </span>
             )}
           </div>
-          <div>
-            <p className="font-heading text-sm font-black text-white" style={{ color: me?.color }}>
+          <div className="min-w-0 flex-1">
+            <p
+              className="font-heading text-sm font-black tracking-tight truncate"
+              style={{ color: previewColor, textShadow: `0 0 8px ${previewColor}` }}
+            >
               {displayName || me?.username}
-              {me?.tag && <span className="font-heading text-[10px] font-bold text-white/35 ml-0.5">#{me.tag}</span>}
+              {me?.tag && (
+                <span className="font-heading text-[10px] font-bold text-white/35 ml-0.5">#{me.tag}</span>
+              )}
             </p>
             {displayName && (
-              <p className="font-heading text-[9px] text-white/30 mt-0.5">@{me?.username}</p>
+              <p className="font-heading text-[9px] text-white/30">@{me?.username}</p>
             )}
-            <p className="font-heading text-[10px] text-white/40 mt-0.5">Live preview above ↑</p>
+            <div className="mt-0.5 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: previewDot }} />
+              <span className="font-heading text-[9px] font-black uppercase tracking-widest" style={{ color: previewDot }}>
+                {presenceStatus === 'dnd' ? 'Do Not Disturb' : presenceStatus.charAt(0).toUpperCase() + presenceStatus.slice(1)}
+              </span>
+            </div>
           </div>
+          <span className="font-heading text-[8px] text-white/25 italic flex-shrink-0">preview</span>
         </div>
 
-        <div className="space-y-4">
-          {/* Status (presence) */}
+        <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+          {/* Display Name */}
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="font-heading text-[10px] font-black uppercase tracking-widest text-white/50">
+                Display Name
+              </label>
+              <span className={`font-heading text-[9px] font-black ${displayName.length > DISPLAY_NAME_MAX - 8 ? 'text-[#FFE600]' : 'text-white/25'}`}>
+                {displayName.length}/{DISPLAY_NAME_MAX}
+              </span>
+            </div>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
+              placeholder={me?.username ?? 'Leave blank to use username'}
+              className="w-full rounded-xl border-2 border-white/10 bg-white/5 px-3 py-2 font-heading text-sm text-white placeholder-white/25 outline-none focus:border-[#00F5D4]/50 transition-colors"
+            />
+            <p className="mt-1 font-heading text-[9px] text-white/30">Shown in chat instead of your username</p>
+          </div>
+
+          {/* Status */}
           <div>
             <label className="mb-2 block font-heading text-[10px] font-black uppercase tracking-widest text-white/50">
               Status
@@ -132,42 +164,19 @@ export default function ProfileEditModal({ onClose }) {
             </div>
           </div>
 
-          {/* Display Name */}
-          <div>
-            <div className="mb-1 flex items-center justify-between">
-              <label className="font-heading text-[10px] font-black uppercase tracking-widest text-white/50">
-                Display Name
-              </label>
-              <span className={`font-heading text-[9px] font-black ${displayName.length > DISPLAY_NAME_MAX - 8 ? 'text-[#FFE600]' : 'text-white/25'}`}>
-                {displayName.length}/{DISPLAY_NAME_MAX}
-              </span>
-            </div>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value.slice(0, DISPLAY_NAME_MAX))}
-              placeholder={me?.username ?? 'Leave blank to use username'}
-              className="w-full rounded-xl border-2 border-white/10 bg-white/5 px-3 py-2 font-heading text-sm text-white placeholder-white/25 outline-none focus:border-[#00F5D4]/50 transition-colors"
-            />
-            <p className="mt-1 font-heading text-[9px] text-white/30">Shown in chat instead of your username</p>
-          </div>
-
-          {/* Vibe status */}
+          {/* Transmission */}
           <div>
             <label className="mb-1 block font-heading text-[10px] font-black uppercase tracking-widest text-white/50">
-              Vibe Status
+              Transmission
             </label>
             <div className="flex gap-2">
-              {/* Emoji trigger */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={statusEmoji}
-                  onChange={(e) => setStatusEmoji(e.target.value.slice(0, 2))}
-                  placeholder="😊"
-                  className="w-12 rounded-xl border-2 border-white/10 bg-white/5 px-2 py-2 text-center text-lg outline-none focus:border-[#00F5D4]/50 transition-colors"
-                />
-              </div>
+              <input
+                type="text"
+                value={statusEmoji}
+                onChange={(e) => setStatusEmoji(e.target.value.slice(0, 2))}
+                placeholder="😊"
+                className="w-12 rounded-xl border-2 border-white/10 bg-white/5 px-2 py-2 text-center text-lg outline-none focus:border-[#00F5D4]/50 transition-colors"
+              />
               <input
                 type="text"
                 value={statusText}
@@ -176,12 +185,11 @@ export default function ProfileEditModal({ onClose }) {
                 className="flex-1 rounded-xl border-2 border-white/10 bg-white/5 px-3 py-2 font-heading text-sm text-white placeholder-white/25 outline-none focus:border-[#00F5D4]/50 transition-colors"
               />
             </div>
-            {/* Quick emoji picks */}
             <div className="mt-2 flex flex-wrap gap-1.5">
               {QUICK_EMOJIS.map((e) => (
                 <button
                   key={e}
-                  onClick={() => pickEmoji(e)}
+                  onClick={() => setStatusEmoji(e)}
                   className={`flex h-7 w-7 items-center justify-center rounded-lg text-sm transition-all hover:scale-110 ${statusEmoji === e ? 'bg-[#00F5D4]/20 ring-1 ring-[#00F5D4]' : 'bg-white/5 hover:bg-white/10'}`}
                 >
                   {e}
@@ -230,7 +238,7 @@ export default function ProfileEditModal({ onClose }) {
             onClick={handleSave}
             className="flex-1 rounded-xl border-2 border-[#00F5D4] bg-[#00F5D4]/15 py-2.5 font-heading text-xs font-black uppercase tracking-widest text-[#00F5D4] hover:bg-[#00F5D4]/25 transition-colors"
           >
-            Save Profile
+            Save
           </button>
         </div>
       </div>
