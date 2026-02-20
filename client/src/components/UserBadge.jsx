@@ -124,120 +124,116 @@ export default function UserBadge() {
             style={{ boxShadow: '0 0 40px rgba(255,230,0,0.15), 0 8px 32px rgba(0,0,0,0.5)' }}
           >
 
-            {/* ── Banner + Avatar Header ─────────────────────────────── */}
-            <div className="relative">
-              {/* Banner — clickable to change color */}
+            {/* ── Banner ────────────────────────────────────────────── */}
+            <div
+              className="h-16 w-full relative overflow-hidden cursor-pointer group/banner"
+              onClick={() => setBannerPickerOpen(v => !v)}
+              title="Change banner color"
+              style={{
+                background: bannerColor
+                  ? `linear-gradient(135deg, ${bannerColor}cc 0%, ${bannerColor}66 50%, ${bannerColor}22 100%)`
+                  : `
+                    linear-gradient(135deg, ${me.color}bb 0%, ${me.color}44 35%, transparent 65%),
+                    radial-gradient(ellipse at 85% 40%, #7B2FFF66 0%, transparent 55%),
+                    radial-gradient(ellipse at 15% 90%, #FF3AF255 0%, transparent 50%),
+                    linear-gradient(180deg, #0D0D1A 0%, #1a0f36 100%)
+                  `
+              }}
+            >
+              <div className="absolute inset-0 pattern-dots opacity-10" />
               <div
-                className="h-16 w-full relative overflow-hidden cursor-pointer group/banner"
-                onClick={() => setBannerPickerOpen(v => !v)}
-                title="Change banner color"
-                style={{
-                  background: bannerColor
-                    ? `linear-gradient(135deg, ${bannerColor}cc 0%, ${bannerColor}66 50%, ${bannerColor}22 100%)`
-                    : `
-                      linear-gradient(135deg, ${me.color}bb 0%, ${me.color}44 35%, transparent 65%),
-                      radial-gradient(ellipse at 85% 40%, #7B2FFF66 0%, transparent 55%),
-                      radial-gradient(ellipse at 15% 90%, #FF3AF255 0%, transparent 50%),
-                      linear-gradient(180deg, #0D0D1A 0%, #1a0f36 100%)
-                    `
-                }}
+                className="absolute inset-0 opacity-5"
+                style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 4px)' }}
+              />
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity">
+                <span className="rounded-full bg-black/50 px-2.5 py-1 font-heading text-[9px] font-black uppercase tracking-wider text-white/80">
+                  🎨 Change Banner
+                </span>
+              </div>
+            </div>
+
+            {/* ── Avatar + Name row ─────────────────────────────────── */}
+            {/* Avatar overlaps the banner via -mt-8; name is a separate
+                column that starts BELOW the banner so it's always readable */}
+            <div className="px-4 flex items-end gap-3 -mt-8 mb-0">
+              {/* Avatar — clickable to change */}
+              <div
+                className="relative h-14 w-14 flex-shrink-0 cursor-pointer group"
+                onClick={() => { setEditingAvatar(true); setOpen(false); }}
+                title="Change avatar"
               >
-                <div className="absolute inset-0 pattern-dots opacity-10" />
-                <div
-                  className="absolute inset-0 opacity-5"
+                <img
+                  src={avatarUrl(me.avatar)}
+                  alt={me.username}
+                  className="h-14 w-14 rounded-full transition-all duration-150 group-hover:brightness-75"
                   style={{
-                    backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 4px)'
+                    border: `2px solid ${me.color}`,
+                    boxShadow: `0 0 16px ${me.color}66, 0 0 0 3px #1a0f36`
                   }}
                 />
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 group-hover/banner:opacity-100 transition-opacity">
-                  <span className="rounded-full bg-black/50 px-2.5 py-1 font-heading text-[9px] font-black uppercase tracking-wider text-white/80">
-                    🎨 Change Banner
-                  </span>
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                  <span className="text-lg drop-shadow-lg">🎨</span>
                 </div>
-              </div>
-
-              {/* Avatar overlapping banner */}
-              <div className="px-4">
-                <div className="-mt-8 flex items-end gap-3 mb-2">
-                  {/* Avatar — clickable to change */}
-                  <div
-                    className="relative h-14 w-14 flex-shrink-0 cursor-pointer group"
-                    onClick={() => { setEditingAvatar(true); setOpen(false); }}
-                    title="Change avatar"
+                {me.statusEmoji && (
+                  <span
+                    className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[13px] leading-none pointer-events-none select-none"
+                    style={{ background: '#1a0f36', border: `2px solid ${me.color}44` }}
                   >
-                    <img
-                      src={avatarUrl(me.avatar)}
-                      alt={me.username}
-                      className="h-14 w-14 rounded-full transition-all duration-150 group-hover:brightness-75"
-                      style={{
-                        border: `2px solid ${me.color}`,
-                        boxShadow: `0 0 16px ${me.color}66, 0 0 0 3px #1a0f36`
-                      }}
-                    />
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                      <span className="text-lg drop-shadow-lg">🎨</span>
-                    </div>
-                    {me.statusEmoji && (
-                      <span
-                        className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[13px] leading-none pointer-events-none select-none"
-                        style={{ background: '#1a0f36', border: `2px solid ${me.color}44` }}
-                      >
-                        {me.statusEmoji}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Name + username sub-label + presence */}
-                  <div className="pb-1 min-w-0 flex-1">
-                    <p
-                      className="font-heading text-sm font-black tracking-tight truncate text-white"
-                      style={{ textShadow: `0 0 8px ${me.color}, 1px 1px 0 #0D0D1A` }}
-                    >
-                      {me.displayName || me.username}
-                    </p>
-                    {me.displayName && (
-                      <p className="font-heading text-[10px] font-bold text-white/30">@{me.username}</p>
-                    )}
-                    {me.tag && (
-                      <p className="font-heading text-[10px] font-bold text-white/35">#{me.tag}</p>
-                    )}
-                    {/* Presence — clickable dropdown */}
-                    <div className="relative mt-0.5" ref={presenceDropdownRef}>
-                      <button
-                        className="flex items-center gap-1.5 rounded-md px-1 -ml-1 hover:bg-white/10 transition-colors group/presence"
-                        onClick={() => setPresenceDropdownOpen(v => !v)}
-                        title="Change status"
-                      >
-                        <span className="h-2 w-2 rounded-full animate-pulse flex-shrink-0" style={{ background: dotColor }} />
-                        <span className="font-heading text-[10px] font-black uppercase tracking-widest" style={{ color: dotColor }}>
-                          {statusLabel(me.presenceStatus ?? 'online')}
-                        </span>
-                        <span className="text-[8px] text-white/30 opacity-0 group-hover/presence:opacity-100 transition-opacity">▾</span>
-                      </button>
-                      {presenceDropdownOpen && (
-                        <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border border-white/10 bg-[#0D0D1A]/98 py-1 shadow-xl min-w-[150px]">
-                          {PRESENCE_OPTIONS.map(({ value, label }) => {
-                            const color = statusColor(value);
-                            const active = me.presenceStatus === value;
-                            return (
-                              <button
-                                key={value}
-                                onClick={() => handlePresenceChange(value)}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors"
-                                style={{ background: active ? 'rgba(255,255,255,0.05)' : undefined }}
-                              >
-                                <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                                <span className="font-heading text-[10px] font-black text-white/80">{label}</span>
-                                {active && <span className="ml-auto text-white/40 text-[8px]">✓</span>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                    {me.statusEmoji}
+                  </span>
+                )}
               </div>
+
+              {/* Presence — sits at the bottom of the avatar, always below the banner */}
+              <div className="relative pb-1" ref={presenceDropdownRef}>
+                <button
+                  className="flex items-center gap-1.5 rounded-md px-1 hover:bg-white/10 transition-colors group/presence"
+                  onClick={() => setPresenceDropdownOpen(v => !v)}
+                  title="Change status"
+                >
+                  <span className="h-2 w-2 rounded-full animate-pulse flex-shrink-0" style={{ background: dotColor }} />
+                  <span className="font-heading text-[10px] font-black uppercase tracking-widest" style={{ color: dotColor }}>
+                    {statusLabel(me.presenceStatus ?? 'online')}
+                  </span>
+                  <span className="text-[8px] text-white/30 opacity-0 group-hover/presence:opacity-100 transition-opacity">▾</span>
+                </button>
+                {presenceDropdownOpen && (
+                  <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border border-white/10 bg-[#0D0D1A]/98 py-1 shadow-xl min-w-[150px]">
+                    {PRESENCE_OPTIONS.map(({ value, label }) => {
+                      const color = statusColor(value);
+                      const active = me.presenceStatus === value;
+                      return (
+                        <button
+                          key={value}
+                          onClick={() => handlePresenceChange(value)}
+                          className="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-white/10 transition-colors"
+                          style={{ background: active ? 'rgba(255,255,255,0.05)' : undefined }}
+                        >
+                          <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                          <span className="font-heading text-[10px] font-black text-white/80">{label}</span>
+                          {active && <span className="ml-auto text-white/40 text-[8px]">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Display name — separate row, fully below the banner ── */}
+            <div className="px-4 pt-1 pb-2">
+              <p
+                className="font-heading text-base font-black tracking-tight truncate"
+                style={{ color: me.color, textShadow: `0 0 12px ${me.color}88` }}
+              >
+                {me.displayName || me.username}
+                {me.tag && (
+                  <span className="font-heading text-[10px] font-bold text-white/35 ml-1">#{me.tag}</span>
+                )}
+              </p>
+              {me.displayName && (
+                <p className="font-heading text-[10px] font-bold text-white/40 mt-0.5">@{me.username}</p>
+              )}
             </div>
 
             {/* Banner color picker */}
