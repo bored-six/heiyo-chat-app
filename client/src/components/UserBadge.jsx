@@ -518,7 +518,7 @@ export default function UserBadge() {
               className="h-10 w-10 rounded-full"
               style={{ border: '2px solid #FFE600', boxShadow: '0 0 14px #FF3AF288' }}
             />
-            {/* Transmission emoji on pill avatar */}
+            {/* Transmission emoji on pill avatar — bottom-right */}
             {me.statusEmoji && (
               <span
                 className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] leading-none pointer-events-none select-none"
@@ -527,6 +527,15 @@ export default function UserBadge() {
                 {me.statusEmoji}
               </span>
             )}
+            {/* Presence pulse dot — bottom-left of avatar */}
+            <span
+              className="absolute -bottom-0.5 -left-0.5 h-3 w-3 rounded-full animate-pulse pointer-events-none"
+              style={{
+                background: statusColor(me.presenceStatus ?? 'online'),
+                border: '2px solid #2D1B4E',
+                boxShadow: `0 0 6px ${statusColor(me.presenceStatus ?? 'online')}`,
+              }}
+            />
           </div>
 
           {/* Name */}
@@ -546,9 +555,6 @@ export default function UserBadge() {
               Profile ▴
             </p>
           </div>
-
-          {/* Live pulse dot */}
-          <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full animate-pulse" style={{ background: statusColor(me.presenceStatus ?? 'online') }} />
         </button>
 
       </div>
