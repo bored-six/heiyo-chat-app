@@ -1060,8 +1060,8 @@ export default function BubbleUniverse() {
         )}
       </div>
 
-      {/* ── Pulse Echo button — bottom-left ──────────────────────────────────── */}
-      <div className="absolute bottom-8 left-8 z-30">
+      {/* ── Pulse Echo button — bottom-center ───────────────────────────────── */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
         <button
           onClick={() => setShowPulse(true)}
           className="rounded-full border-2 px-6 py-3 font-heading text-sm font-black uppercase tracking-widest text-white transition-all duration-300 hover:scale-110"
