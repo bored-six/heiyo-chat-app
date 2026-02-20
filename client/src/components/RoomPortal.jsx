@@ -8,7 +8,7 @@ import TypingIndicator from './TypingIndicator.jsx';
 const ACCENTS = ['#FF3AF2', '#00F5D4', '#FFE600', '#FF6B35', '#7B2FFF'];
 const CLASH   = ['#FFE600', '#FF6B35', '#FF3AF2', '#00F5D4', '#FFE600'];
 
-export default function RoomPortal() {
+export default function RoomPortal({ origin }) {
   const {
     me, rooms, dms, activeRoomId, activeDmId,
     roomMessages, roomMembers, onlineUsers, dispatch, socket,
@@ -67,6 +67,7 @@ export default function RoomPortal() {
         onSearchClose={closeSearch}
         onSearchChange={setSearchQuery}
         onInviteSubmit={handleInviteSubmit}
+        origin={origin}
       >
         <>
           <MessageList
@@ -112,6 +113,7 @@ export default function RoomPortal() {
       onSearchOpen={() => setSearchOpen(true)}
       onSearchClose={closeSearch}
       onSearchChange={setSearchQuery}
+      origin={origin}
     >
       <MessageList
         messages={dmMessages}
@@ -139,7 +141,7 @@ const MEMBER_MAX = 5;
 function Portal({
   title, accent, clash, onExit, children, members = [],
   searchOpen, searchQuery, onSearchOpen, onSearchClose, onSearchChange,
-  onInviteSubmit,
+  onInviteSubmit, origin,
 }) {
   const [showMembers, setShowMembers]   = useState(false);
   const [inviteOpen, setInviteOpen]     = useState(false);
@@ -180,9 +182,9 @@ function Portal({
   }
 
   return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center p-6">
+    <div className="animate-portal-expand absolute inset-0 z-20 flex items-center justify-center p-6" style={origin ? { transformOrigin: `${origin.x}px ${origin.y}px` } : { transformOrigin: '50% 53%' }}>
       <div
-        className="animate-portal-in flex h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl"
+        className="flex h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl"
         style={{
           background: 'rgba(13,13,13,0.72)',
           backdropFilter: 'blur(16px)',

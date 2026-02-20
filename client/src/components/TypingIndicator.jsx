@@ -9,6 +9,8 @@ export default function TypingIndicator({ roomId }) {
   }
 
   const members = roomMembers[roomId] ?? [];
+  const firstTyperColor = members.find((m) => m.id === typerIds[0])?.color ?? '#FF3AF2';
+
   function nameOf(id) {
     return members.find((m) => m.id === id)?.username ?? id.slice(0, 8);
   }
@@ -20,20 +22,17 @@ export default function TypingIndicator({ roomId }) {
 
   return (
     <div className="flex h-6 flex-shrink-0 items-center gap-2 px-5">
-      {/* Bouncing magenta dots */}
-      <span className="flex items-center gap-1" aria-hidden="true">
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="h-2 w-2 rounded-full bg-[#FF3AF2] animate-bounce"
-            style={{
-              animationDelay: `${i * 0.15}s`,
-              boxShadow: '0 0 6px rgba(255,58,242,0.8)',
-            }}
-          />
-        ))}
-      </span>
-      <span className="font-heading text-[10px] font-black tracking-widest text-[#FF3AF2]/65">
+      {/* Breathing orb */}
+      <div
+        className="animate-orb-breathe h-5 w-5 flex-shrink-0 rounded-full"
+        aria-hidden="true"
+        style={{
+          background: `radial-gradient(circle at 35% 35%, ${firstTyperColor}60, ${firstTyperColor}18)`,
+          border: `1.5px solid ${firstTyperColor}88`,
+          boxShadow: `0 0 8px ${firstTyperColor}55`,
+        }}
+      />
+      <span className="font-heading text-[10px] font-black tracking-widest" style={{ color: `${firstTyperColor}88` }}>
         {label}
       </span>
     </div>

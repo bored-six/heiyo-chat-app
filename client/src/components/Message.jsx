@@ -203,6 +203,7 @@ export default function Message({ message, isOwn, highlight = '', onReply }) {
               </span>
             )}
           </div>
+        )}
         {/* Reaction strip — slides up from below on hover */}
         {pickerVisible && (
           <div className={`mt-1.5 flex w-fit items-center gap-1 rounded-full border-2 border-dashed border-white/20 bg-[#1a1a2e]/95 px-2 py-1 backdrop-blur-sm animate-slide-up ${isOwn ? 'ml-auto' : ''}`}>

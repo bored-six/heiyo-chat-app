@@ -28,8 +28,9 @@ const initialState = {
   unread: {},
   dmUnread: {},
   echoes: [],
-  removingRooms: [], // roomIds currently playing the removal animation
-  follows: {},       // username → { username, color, avatar, tag, online, id }
+  removingRooms: [],    // roomIds currently playing the removal animation
+  follows: {},          // username → { username, color, avatar, tag, online, id }
+  roomEntryOrigin: null, // { x, y } viewport coords of the bubble that was clicked
 };
 
 // ─── Reducer ─────────────────────────────────────────────────────────────────
@@ -285,6 +286,7 @@ function reducer(state, action) {
         activeRoomId: action.roomId,
         activeDmId: null,
         unread: { ...state.unread, [action.roomId]: 0 },
+        roomEntryOrigin: action.origin ?? null,
       };
 
     case 'SET_ACTIVE_DM':
